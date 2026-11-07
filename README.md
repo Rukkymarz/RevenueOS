@@ -1,6 +1,8 @@
 # RevenueOS
 
-**Mobile-first revenue operating system** · Next.js 15 / TypeScript · FastAPI · PostgreSQL · Optional LangGraph · MIT
+**Mobile-first revenue operating system** · Next.js 16 / TypeScript · FastAPI · PostgreSQL · Optional LangGraph · MIT
+
+**Current release candidate:** the full source is on `codex/revenueos-cyber-executive-v6`, with [draft PR #1](https://github.com/Rukkymarz/RevenueOS/pull/1). Frontend/API validation and real PostgreSQL/RLS checks have passed in CI. Read [release acceptance](docs/RELEASE_ACCEPTANCE.md) for the current function inventory and remaining production gates; dated setup notes below are historical snapshots. A custom domain is optional: hosting providers assign HTTPS service URLs.
 
 RevenueOS is a **working starter product**, not a deployed SaaS. It includes authenticated, tenant-scoped lead management, business/lead scoring, clients, opportunities, tasks, campaigns, PDF/DOCX proposal exports, editable Next.js website generation, SVG ad cards, template-based MP4 video rendering, human approvals, and a send-once Resend outreach adapter. A single assistant can perform deterministic task routing or use an explicitly configured text-model API for draft creation.
 

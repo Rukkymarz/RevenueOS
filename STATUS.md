@@ -1,5 +1,17 @@
 # RevenueOS project status — 2026-11-06
 
+## Current release candidate
+
+- Full source pushed to `codex/revenueos-cyber-executive-v6`; draft PR #1 opened.
+- Next.js upgraded to 16.4.5 and Pillow to 13.0.0; production and development dependency advisories repaired.
+- Genuine frontend lockfile and pinned API dependency set committed.
+- 26 API tests pass; frontend typecheck/lint/build and source preflight pass.
+- GitHub CI confirms PostgreSQL/pgvector migrations, FORCE RLS, runtime database-role checks and real API transaction behavior under the restricted role.
+- Browser QA uses signed PKCE test identity and a disposable database; onboarding, CRM create/edit, exact approvals, themes, composer, responsive keyboard navigation and workspace switching verified.
+- Production infrastructure, actual Keycloak/MFA, provider accounts, backups/restore and hosted end-to-end verification remain outstanding. No hosted production URL exists.
+
+See `docs/RELEASE_ACCEPTANCE.md` for every reviewed function. Older sections below describe previous environments and are retained as history.
+
 ## Implemented in source
 
 - [x] MIT-licensed monorepo (Next.js 16 PWA, FastAPI, PostgreSQL)

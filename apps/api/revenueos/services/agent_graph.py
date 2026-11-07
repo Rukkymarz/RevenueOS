@@ -27,7 +27,7 @@ RESPONSES = {
     "website": "Open Websites to generate editable, deployable Next.js source. Review content and approve any deployment separately.",
     "marketing": "Open Campaigns to plan your content. Publishing requires a human approval and configured channel integration.",
     "followups": "Open Tasks and Approvals for due follow-ups and messages awaiting review. No messages are sent automatically.",
-    "analytics": "Open Reports for verified pipeline totals, clients, revenue, and conversion metrics; missing information is not estimated.",
+    "analytics": "Open Reports for recorded pipeline totals, clients, user-entered revenue, and conversion metrics; missing information is not estimated.",
     "general": "I can coordinate leads, proposals, websites, tasks, campaigns, approvals and reporting. Select a module or request an AI draft.",
 }
 

@@ -29,11 +29,14 @@ Status: release candidate. Production approval remains blocked by unverified liv
 
 - API regression suite: 26 passing tests (including real signed-token verification).
 - Next.js 16.4.5 production build, TypeScript and ESLint checked locally.
-- npm production audit: no known vulnerabilities after upgrading Next.js.
+- npm full dependency audit: no known vulnerabilities after upgrading Next.js and overriding the lint parser's vulnerable minimatch dependency.
 - Python pinned dependency audit: no known vulnerabilities after upgrading Pillow to 13.0.0.
 - Source release preflight passes. It is not a substitute for live acceptance.
-- PostgreSQL migration, FORCE RLS, runtime-role and real API transaction checks are automated in CI; record its actual run result before release.
+- PostgreSQL migration, FORCE RLS, runtime-role and real API transaction checks passed in GitHub Actions on commit b459bc9: https://github.com/Rukkymarz/RevenueOS/actions/runs/42342741269.
+- Frontend build/typecheck/lint, API tests, source preflight and security audits passed on the same commit: https://github.com/Rukkymarz/RevenueOS/actions/runs/42342741253. Later commits must pass the same checks.
 - Local browser fixture exercises real UI/API/OIDC-code/PKCE with an ephemeral signing key and disposable SQLite database. It does not verify Keycloak, PostgreSQL, SMTP or cloud hosting.
+- Browser checks include first-run setup, lead create/edit, exact-content approval, composer, sign-out, theme persistence, 390px layout without horizontal overflow, mobile navigation, browser Back, keyboard AI dock, settings and switching between two isolated workspaces.
+- Source is published on `codex/revenueos-cyber-executive-v6`; draft PR: https://github.com/Rukkymarz/RevenueOS/pull/1.
 
 ## Domain-free deployment
 
