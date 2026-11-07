@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=75", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "revenueos-api"
+version = "0.1.0"
+description = "Security-first, tenant-aware revenue operations API"
+requires-python = ">=3.12"
+dependencies = [
+ "fastapi>=0.115,<1", "uvicorn[standard]>=0.34,<1", "sqlalchemy>=2.0,<3",
+ "psycopg[binary]>=3.2,<4", "alembic>=1.15,<2", "pydantic[email]>=2.10,<3",
+ "httpx>=0.27,<1", "PyJWT[crypto]>=2.9,<3", "python-multipart>=0.0.20,<1",
+ "reportlab>=4.2,<5", "python-docx>=1.1,<2", "Pillow>=13,<14",
+ "langgraph>=1.0,<2", "prometheus-client>=0.21,<1", "pgvector>=0.4,<1", "redis>=5,<8"
+]
+[project.optional-dependencies]
+test = ["pytest>=8,<10", "pytest-cov>=6,<8", "ruff>=0.11,<1", "httpx>=0.27,<1"]
+
+[tool.setuptools.packages.find]
+include = ["revenueos*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 110
+exclude = ["alembic"]

@@ -1,0 +1,163 @@
+# Single-node production baseline. Do not use the local `compose.yaml` on the public internet.
+# Generate .env.production and production realm before starting (scripts/bootstrap_production.py).
+name: revenueos-production
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_DB: revenueos
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${DB_ROOT_PASSWORD:?required}
+      APP_DB_PASSWORD: ${APP_DB_PASSWORD:?required}
+      KEYCLOAK_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD:?required}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infra/postgres/01-create-app-role.sh:/docker-entrypoint-initdb.d/01-create-app-role.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d revenueos"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+    restart: unless-stopped
+    networks: [private]
+    security_opt: ["no-new-privileges:true"]
+
+  redis:
+    image: redis:7.4-alpine
+    command: ["redis-server", "--save", "", "--appendonly", "no", "--maxmemory", "128mb", "--maxmemory-policy", "noeviction"]
+    restart: unless-stopped
+    networks: [private]
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+
+  migrate:
+    build: ./apps/api
+    environment:
+      DATABASE_URL: postgresql+psycopg://postgres:${DB_ROOT_PASSWORD:?required}@db:5432/revenueos
+    command: ["alembic", "upgrade", "head"]
+    depends_on:
+      db: {condition: service_healthy}
+    restart: "no"
+    networks: [private]
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.8.1
+    command: ["start", "--import-realm", "--http-enabled=true", "--proxy-headers=xforwarded"]
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://db:5432/keycloak
+      KC_DB_USERNAME: revenueos_keycloak
+      KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD:?required}
+      KC_HOSTNAME: https://${AUTH_DOMAIN:?required}
+      KC_HOSTNAME_STRICT: "true"
+      KC_HEALTH_ENABLED: "true"
+      KC_BOOTSTRAP_ADMIN_USERNAME: revenueos_bootstrap
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?required}
+    volumes:
+      - ./infra/keycloak/revenueos-production-realm.json:/opt/keycloak/data/import/revenueos-production-realm.json:ro
+    depends_on:
+      db: {condition: service_healthy}
+    restart: unless-stopped
+    networks: [private]
+    security_opt: ["no-new-privileges:true"]
+    # IdP and administration endpoints only behind the HTTPS reverse proxy.
+
+  api:
+    build: ./apps/api
+    environment:
+      APP_ENV: production
+      TRUST_PROXY_HEADERS: "true"
+      DATABASE_URL: postgresql+psycopg://revenueos_app:${APP_DB_PASSWORD:?required}@db:5432/revenueos
+      OIDC_ISSUER: https://${AUTH_DOMAIN:?required}/realms/revenueos
+      OIDC_JWKS_URL: http://keycloak:8080/realms/revenueos/protocol/openid-connect/certs
+      OIDC_AUDIENCE: revenueos-api
+      BOOTSTRAP_ADMIN_EMAIL: ${BOOTSTRAP_ADMIN_EMAIL:?required}
+      CORS_ORIGINS: https://${APP_DOMAIN:?required}
+      PUBLIC_BASE_URL: https://${APP_DOMAIN:?required}
+      METRICS_TOKEN: ${METRICS_TOKEN:?required}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      RESEND_FROM: ${RESEND_FROM:-}
+      OUTREACH_POSTAL_ADDRESS: ${OUTREACH_POSTAL_ADDRESS:-}
+      UNSUBSCRIBE_SECRET: ${UNSUBSCRIBE_SECRET:?required}
+      REDIS_URL: redis://redis:6379/0
+      AI_ENABLED: ${AI_ENABLED:-false}
+      AI_DAILY_RUN_LIMIT: ${AI_DAILY_RUN_LIMIT:-20}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-}
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+      DEEPSEEK_MODEL: ${DEEPSEEK_MODEL:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-}
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+      GROQ_MODEL: ${GROQ_MODEL:-}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_MODEL: ${GEMINI_MODEL:-}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      OPENROUTER_MODEL: ${OPENROUTER_MODEL:-}
+      MEDIA_DIR: /data/media
+    volumes:
+      - media_data:/data/media
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+      keycloak: {condition: service_started}
+      redis: {condition: service_healthy}
+    restart: unless-stopped
+    networks: [private]
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+
+  web:
+    build:
+      context: ./apps/web
+      args:
+        NEXT_PUBLIC_API_URL: ""
+        NEXT_PUBLIC_OIDC_ISSUER: https://${AUTH_DOMAIN:?required}/realms/revenueos
+    depends_on:
+      api: {condition: service_healthy}
+    restart: unless-stopped
+    networks: [private]
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+
+  proxy:
+    image: caddy:2.10.2-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN:?required}
+      AUTH_DOMAIN: ${AUTH_DOMAIN:?required}
+    volumes:
+      - ./infra/proxy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - web
+      - keycloak
+    restart: unless-stopped
+    networks: [private]
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+    cap_add: [NET_BIND_SERVICE]
+
+networks:
+  private:
+    internal: false  # outbound API calls/TLS issuance require controlled egress
+volumes:
+  postgres_data:
+  media_data:
+  caddy_data:
+  caddy_config:

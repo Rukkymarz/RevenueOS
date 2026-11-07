@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">RevenueOS app icon</title>
+  <desc id="desc">A luminous electric-blue structural R with a small emerald signal node, representing revenue and connected workflows.</desc>
+  <defs>
+    <linearGradient id="blue" x1="105" y1="100" x2="370" y2="414" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#60C1FF"/>
+      <stop offset="0.49" stop-color="#248AFF"/>
+      <stop offset="1" stop-color="#2164ED"/>
+    </linearGradient>
+  </defs>
+  <path d="M145 408 V112 H260 C329 112 374 150 374 215 C374 279 328 314 262 314 H145" fill="none" stroke="url(#blue)" stroke-width="54" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M265 314 L380 407" fill="none" stroke="url(#blue)" stroke-width="54" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="380" cy="407" r="27" fill="#2DDAA4"/>
+  <circle cx="380" cy="407" r="10" fill="#B8FFE9"/>
+</svg>
