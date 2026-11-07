@@ -21,7 +21,7 @@ export function AiCoreDock({
 
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
-      if (event.key === "Escape" && open) { setOpen(false); trigger.current?.focus(); }
+      if (event.key === "Escape" && open) { setOpen(false); }
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
         event.preventDefault(); setOpen(true);
       }
@@ -29,14 +29,19 @@ export function AiCoreDock({
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, [open]);
-  useEffect(() => { if (open) input.current?.focus(); }, [open]);
+  useEffect(() => {
+    if (!open) return;
+    const previous = document.activeElement as HTMLElement | null;
+    input.current?.focus();
+    return () => { if (previous?.isConnected) previous.focus(); };
+  }, [open]);
 
   return <aside className={`core-dock ${open ? "core-dock--open" : ""}`} aria-label="AI Core available in every workspace">
-    {!open && <button ref={trigger} type="button" className="core-dock__trigger" onClick={() => setOpen(true)} aria-label="Open RevenueOS AI Core; shortcut Control K">
+    {<button hidden={open} ref={trigger} type="button" className="core-dock__trigger" onClick={() => setOpen(true)} aria-label="Open RevenueOS AI Core; shortcut Control K">
       <AiCoreOrb small /><span>AI Core <kbd>⌘ K</kbd></span>
     </button>}
     {open && <section className="core-dock__panel" role="dialog" aria-modal="false" aria-label="RevenueOS AI Core">
-      <header className="core-dock__header"><div className="core-dock__identity"><AiCoreOrb small/><div><strong>RevenueOS AI Core</strong><small>One assistant · Human controlled</small></div></div><button type="button" aria-label="Close AI Core" onClick={() => {setOpen(false);trigger.current?.focus();}}><X size={18}/></button></header>
+      <header className="core-dock__header"><div className="core-dock__identity"><AiCoreOrb small/><div><strong>RevenueOS AI Core</strong><small>One assistant · Human controlled</small></div></div><button type="button" aria-label="Close AI Core" onClick={() => setOpen(false)}><X size={18}/></button></header>
       <p className="core-dock__guide">Research a prospect, draft a proposal or plan your next revenue move.</p>
       <div className="core-dock__suggestions"><button type="button" onClick={() => setCommand("Draft a business growth proposal with clear assumptions and pricing placeholders.")}>Proposal <ArrowUpRight size={12}/></button><button type="button" onClick={() => setCommand("Prioritize my next five revenue follow-ups.")}>Next actions <ArrowUpRight size={12}/></button></div>
       {answer && <div className="core-dock__answer" role="status" aria-live="polite">{answer}</div>}

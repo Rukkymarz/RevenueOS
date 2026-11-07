@@ -1,7 +1,7 @@
 name: Validate RevenueOS
 on:
   push:
-    branches: [main]
+    branches: [main, codex/revenueos-cyber-executive-v6]
   pull_request:
 permissions:
   contents: read

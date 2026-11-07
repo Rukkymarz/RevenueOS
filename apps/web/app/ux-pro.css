@@ -6,6 +6,7 @@
 }
 .shell.light { --soft: #52667e; --ux-ring: #0759ad; }
 .settings-grid { display: grid; gap: 20px; }
+.core-dock__trigger[hidden] { display: none; }
 .settings-grid .panel { padding: clamp(18px, 3vw, 28px); }
 .settings-grid p { line-height: 1.7; overflow-wrap: anywhere; }
 .settings-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: 16px; align-items: end; }
