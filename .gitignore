@@ -36,3 +36,6 @@ backups/
 *.dump
 *.tar.gz.age
 *.tar.gz.age.partial
+.netlify/
+**/.netlify/
+supabase/.temp/

@@ -1,7 +1,9 @@
 import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
-  output: process.env.VERCEL ? undefined : "standalone",
+  output: process.env.VERCEL || process.env.NETLIFY ? undefined : "standalone",
   reactStrictMode: true,
+  serverExternalPackages: ["ffmpeg-static"],
+  outputFileTracingIncludes: {"/api/v1/*": ["./assets/fonts/**", "./node_modules/ffmpeg-static/ffmpeg"]},
   async headers() {
     return [{ source: "/(.*)", headers: [
       { key: "X-Content-Type-Options", value: "nosniff" },

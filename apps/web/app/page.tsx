@@ -1,5 +1,5 @@
 "use client";
-import { useAuth } from "react-oidc-context";
+import { useRevenueAuth as useAuth } from "../components/supabase-auth";
 import useSWR, { SWRConfig } from "swr";
 import useSWRInfinite from "swr/infinite";
 import { CommandCenter } from "../components/command-center";
