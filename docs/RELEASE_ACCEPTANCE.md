@@ -3,6 +3,10 @@
 This record supersedes historical build/connection notes in the archive.
 Status: release candidate. Production approval remains blocked by unverified live services.
 
+**Budget constraint:** the owner selected $0, with no paid services. See
+`ZERO_COST_HOSTING.md`. Do not proceed with the paid Vercel/Render production
+topology, enable metered overages, or start card-backed trials.
+
 ## Function inventory reviewed
 
 | Requested function | Implementation and remaining acceptance |

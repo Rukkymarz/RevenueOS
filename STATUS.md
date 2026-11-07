@@ -2,6 +2,8 @@
 
 ## Current release candidate
 
+- Owner budget: **$0, no paid services**. Paid deployment is not authorized; see `docs/ZERO_COST_HOSTING.md` for verified limitations and the remaining free-pilot/self-hosting choices.
+
 - Full source pushed to `codex/revenueos-cyber-executive-v6`; draft PR #1 opened.
 - Next.js upgraded to 16.4.5 and Pillow to 13.0.0; production and development dependency advisories repaired.
 - Genuine frontend lockfile and pinned API dependency set committed.
