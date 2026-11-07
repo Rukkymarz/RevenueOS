@@ -2,6 +2,10 @@
 
 ## Selected deployment: Netlify + Supabase
 
+- Account setup follow-up: owner supplied new Supabase project `mhowsmotisbphpgusjth` in a new account. Existing connector access was denied; reconnecting to that account is pending. No schema was applied and no unrelated project was touched.
+- Netlify public repository link is configured. A draft infrastructure build failed during Git preparation, before app compilation, due to host-key/access verification. Automatic builds are stopped and no production deploy is published. Official GitHub connection and original Netlify account sign-in are pending owner action.
+- All validation and both database isolation workflows passed on `e3b013d`.
+
 - Owner selected this alternative to Oracle and requested a separate Supabase organization. New organization creation is pending; the existing unrelated project is untouched.
 - Created and linked the Netlify Free project `revenueos-hh24`. Not published yet.
 - Migrated the existing API contracts into Next.js serverless routes; added Supabase email/password/PKCE/TOTP authentication and database-enforced tenant/RBAC/approval rules. The original Python code is preserved.

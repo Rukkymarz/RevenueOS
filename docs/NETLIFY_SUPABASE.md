@@ -8,12 +8,23 @@ the reference and alternate self-hosted distribution; do not remove them.
 
 - Netlify Free team: `rukkymarz`. New project: `revenueos-hh24`, ID
   `8e641284-8c1c-4d49-96d3-e3673ea790fe`. The short name `revenueos` was taken.
-- Authenticated Netlify CLI is linked. `.netlify/` is git-ignored.
+- Authenticated Netlify CLI is linked. `.netlify/` is git-ignored. The public
+  GitHub repository is linked with `main` as the production branch; automatic
+  builds are stopped. Explicit draft build `6aeecd296347c5d7c99def60` failed before
+  compilation because Netlify could not verify/access its Git clone endpoint.
+  Do not disable host-key verification. Complete the official GitHub connection
+  in Netlify before retrying. No production deploy is published.
 - Owner selected a DIFFERENT Supabase organization from the one containing the
   unrelated cleaning project. That existing project must not be inspected,
   reused or modified. New Free organization creation is pending owner action.
-- No Supabase RevenueOS project or public deployment exists yet. Do not infer
-  a functioning site from Netlify's allocated project hostname.
+- The owner supplied the new project URL `https://mhowsmotisbphpgusjth.supabase.co`
+  and confirmed creating a new Supabase account. The connector remains authorized
+  for the old account and rejects access to the new project. Reconnect using the
+  new account and authorize its RevenueOS organization before any migrations or
+  project configuration. Its plan/schema/health are not yet verified.
+- No database changes or functioning public deployment exist yet. Do not infer
+  a working app from an allocated project hostname. The non-secret auth-mode
+  flag is set in Netlify; the project's URL/key remain unconfigured there.
 - Administrator email was supplied privately in chat; configure it only in the
   new project's private configuration table, not source control.
 
