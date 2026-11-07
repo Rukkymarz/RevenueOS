@@ -6,7 +6,8 @@
 - Oracle Free Tier sign-in/verification and home-region capacity are pending owner action. No infrastructure or DNS changes made.
 - Added encrypted single-node backup command covering both databases, media and private configuration, with maintenance cleanup and restart handling.
 - Seven recovery-tool tests pass: archive integrity, unsafe paths/duplicates, nested media traversal, successful backup orchestration and cleanup/restart after encryption failure. Docker/age backup and actual restore are not yet exercised on a deployment host.
-- All 26 API tests pass outside the Windows sandbox (sandbox loopback blocks the async test client). Frontend typecheck and lint pass. The local Turbopack worker crashes; the supported Webpack build is being verified separately, with normal Linux CI still required.
+- All 26 API tests pass outside the Windows sandbox (sandbox loopback blocks the async test client). Frontend typecheck, lint and the supported Webpack production build pass. The local Turbopack worker crashes; the normal Turbopack build passes in Linux CI.
+- Commit `35d9ae5` passed the full validation workflow (including seven recovery-tool tests, dependency audits and frontend build): https://github.com/Rukkymarz/RevenueOS/actions/runs/42346475184. PostgreSQL migrations and tenant isolation passed: https://github.com/Rukkymarz/RevenueOS/actions/runs/42346475166.
 - See `docs/ORACLE_LAUNCH.md`; the original application and secure OIDC architecture are preserved. Supabase Auth is a possible migration, not an already compatible configuration.
 
 ## Current release candidate
