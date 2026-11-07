@@ -60,7 +60,10 @@ def main():
 
         denied(other,"select public.revenueos_create_workspace('Wrong owner','services',true)")
         denied(admin,"select public.revenueos_create_workspace('First workspace','services',true)",aal="aal1")
+        assert query(admin,"select public.revenueos_can_initialize()")[0][0] is True
+        assert query(other,"select public.revenueos_can_initialize()")[0][0] is False
         first=query(admin,"select public.revenueos_create_workspace('First workspace','services',true)")[0][0]["id"]
+        assert query(admin,"select public.revenueos_can_initialize()")[0][0] is False
         second=query(admin,"select public.revenueos_create_workspace('Second workspace','services',false)")[0][0]["id"]
         query(admin,"select public.revenueos_add_member(%s,%s,%s,'operator')",(second,other,"other@example.org"))
         query(admin,"select public.revenueos_add_member(%s,%s,%s,'viewer')",(first,viewer,"viewer@example.org"))

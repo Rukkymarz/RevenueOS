@@ -3,6 +3,11 @@
 This record supersedes historical build/connection notes in the archive.
 Status: release candidate. Production approval remains blocked by unverified live services.
 
+**Current hosting selection (2026-11-07): Netlify + Supabase.** See
+`NETLIFY_SUPABASE.md` for the implemented serverless migration and its outstanding
+live gates. Keycloak/Redis/Vercel requirements below describe the preserved Python
+and Docker topology, not mandatory services for the selected serverless deployment.
+
 **Budget constraint:** the owner selected $0, with no paid services. See
 `ZERO_COST_HOSTING.md`. Do not proceed with the paid Vercel/Render production
 topology, enable metered overages, or start card-backed trials.

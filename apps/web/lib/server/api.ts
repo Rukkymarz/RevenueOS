@@ -2,8 +2,6 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { ApiError, authenticate, checked, context, readBody, requireRole } from "./database";
 import { chat, createSchemas, decision, defaults, draft, leadImport, media, member, parsePatch, patchSchemas, workspace } from "./schemas";
-import { proposalExport, websiteExport } from "./exports";
-import { renderMedia } from "./media";
 
 const tables:Record<string,string>={leads:"leads",clients:"clients",opportunities:"opportunities",tasks:"tasks",campaigns:"campaigns",proposals:"proposals",websites:"websites",media:"media_jobs",approvals:"approvals","outreach/drafts":"message_drafts","audit-events":"audit_events"};
 const headers={"Cache-Control":"no-store","X-Content-Type-Options":"nosniff","X-Frame-Options":"DENY","Referrer-Policy":"strict-origin-when-cross-origin"};
@@ -20,7 +18,7 @@ export async function handleApi(request:Request){
   const {db,user}=await authenticate(request);
   if(path==="me"&&method==="GET"){
    const memberships=checked(await db.from("memberships").select("business_id,role,businesses(name)").eq("subject",user.id));
-   return json({subject:user.id,email:user.email,businesses:(memberships||[]).map(m=>({id:m.business_id,role:m.role,name:(m.businesses as unknown as {name:string})?.name}))});
+   return json({subject:user.id,email:user.email,can_initialize:await rpc(db,"revenueos_can_initialize",{}),businesses:(memberships||[]).map(m=>({id:m.business_id,role:m.role,name:(m.businesses as unknown as {name:string})?.name}))});
   }
   if(path==="setup"&&method==="POST"){
    const data=workspace.parse(await readBody(request));return json(await rpc(db,"revenueos_create_workspace",{workspace_name:data.name,workspace_industry:data.industry,initial:true}),201);
@@ -62,11 +60,13 @@ export async function handleApi(request:Request){
   if(parts[0]==="outreach"&&parts[2]==="send"&&method==="POST"){requireRole(role,"manager");throw new ApiError(503,"Email delivery is not configured. No message was sent.");}
   if(path==="leads/import"&&method==="POST"){const data=leadImport.parse(await readBody(request));return json(await rpc(db,"revenueos_import_leads",{bid,records:data.leads}),201);}
   if(parts[0]==="proposals"&&parts[2]==="export"&&method==="GET"){
+   const {proposalExport}=await import("./exports");
    z.uuid().parse(parts[1]);const format=url.searchParams.get("format")||"pdf";if(!["pdf","docx"].includes(format))throw new ApiError(422,"Choose PDF or DOCX");
    const row=await record(db,"proposals",bid,parts[1]);const output=await proposalExport(row,format);return binary(output.bytes,output.type,`proposal-${parts[1]}.${output.extension}`);
   }
-  if(parts[0]==="websites"&&parts[2]==="download"&&method==="GET"){z.uuid().parse(parts[1]);return binary(websiteExport(await record(db,"websites",bid,parts[1])),"application/zip",`website-${parts[1]}.zip`);}
+  if(parts[0]==="websites"&&parts[2]==="download"&&method==="GET"){const {websiteExport}=await import("./exports");z.uuid().parse(parts[1]);return binary(websiteExport(await record(db,"websites",bid,parts[1])),"application/zip",`website-${parts[1]}.zip`);}
   if(path==="media"&&method==="POST"){
+   const {renderMedia}=await import("./media");
    const data=media.parse(await readBody(request));const job=await rpc(db,"revenueos_reserve_media",{bid,media_kind:data.kind,media_title:data.title,media_subtitle:data.subtitle});
    try{
     const output=await renderMedia(data.kind,data.title,data.subtitle);

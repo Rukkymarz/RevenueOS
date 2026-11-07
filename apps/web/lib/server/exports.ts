@@ -16,7 +16,7 @@ export async function proposalExport(row:Row,format:string){
  const font=await pdf.embedFont(await readFile(join(process.cwd(),"assets/fonts/NotoSans.ttf")),{subset:true});
  let page=pdf.addPage();let y=page.getHeight()-55;
  const line=(text:string,size=11)=>{if(y<55){page=pdf.addPage();y=page.getHeight()-55;}page.drawText(text,{x:50,y,size,font,color:rgb(.08,.1,.16)});y-=size+7;};
- // Standard PDF font only supports WinAnsi; replace unsupported glyphs explicitly.
+ // Preserve supported Unicode with Noto Sans; substitute missing glyphs safely.
  const safe=(text:string)=>Array.from(text).map(c=>{try{font.encodeText(c);return c;}catch{return "?";}}).join("");
  for(const raw of [String(row.title),"",...String(row.content).split(/\r?\n/),"",row.amount==null?"Amount: not specified":`Amount: $${Number(row.amount).toFixed(2)}`]){
   let current="";

@@ -21,8 +21,8 @@ begin
  perform pg_advisory_xact_lock(hashtextextended(bid,0));
  if media_kind not in ('image','video') or length(trim(media_title)) not between 2 and 160 or length(media_subtitle)>240 then raise exception 'Invalid media request' using errcode='23514'; end if;
  if (select count(*) from public.media_jobs where business_id=bid)>=100
-  or (select count(*) from public.media_jobs where business_id=bid and created_at>=date_trunc('day',now()))>=20
-  or (media_kind='video' and (select count(*) from public.media_jobs where business_id=bid and kind='video' and created_at>=date_trunc('day',now()))>=5) then
+  or (select count(*) from public.media_jobs where business_id=bid and created_at>=(date_trunc('day',now() at time zone 'UTC') at time zone 'UTC'))>=20
+  or (media_kind='video' and (select count(*) from public.media_jobs where business_id=bid and kind='video' and created_at>=(date_trunc('day',now() at time zone 'UTC') at time zone 'UTC'))>=5) then
   raise exception 'Free media quota reached' using errcode='54000'; end if;
  insert into public.media_jobs(id,business_id,created_at,kind,title,subtitle,status,requested_by)
  values(gen_random_uuid()::text,bid,now(),media_kind,media_title,media_subtitle,'pending',actor_id) returning * into result;

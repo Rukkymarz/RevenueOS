@@ -1,5 +1,15 @@
 # RevenueOS project status — 2026-11-07
 
+## Selected deployment: Netlify + Supabase
+
+- Owner selected this alternative to Oracle and requested a separate Supabase organization. New organization creation is pending; the existing unrelated project is untouched.
+- Created and linked the Netlify Free project `revenueos-hh24`. Not published yet.
+- Migrated the existing API contracts into Next.js serverless routes; added Supabase email/password/PKCE/TOTP authentication and database-enforced tenant/RBAC/approval rules. The original Python code is preserved.
+- Eight local serverless regression tests pass, including actual PDF, DOCX, ZIP and MP4 exports. Local production Webpack build and lint/typecheck pass; dependency audit is clean.
+- Isolated PostgreSQL 17 Supabase-compatible migration/isolation CI passed on `820e095`. Linux export CI caught a missing FFmpeg text filter; fixed by rendering font outlines to PNG before encoding and rechecking CI. Real Supabase Auth/Storage acceptance remains outstanding.
+- Browser checked desktop and 390px sign-in/registration layouts with no horizontal overflow and no browser errors. These used a deliberately nonworking local test URL and do not establish live login success.
+- See `docs/NETLIFY_SUPABASE.md` for configuration, migration scope and remaining launch gates. Historical Oracle/Keycloak notes below describe the alternate Docker deployment.
+
 ## Oracle launch preparation — 2026-11-07
 
 - Owner authorized continuing toward production with prompts for owner-only setup; $0 limit remains.

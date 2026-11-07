@@ -6,7 +6,7 @@ import { Download, RefreshCcw, ShieldCheck, Upload } from "lucide-react";
 type Item = Record<string, unknown>;
 type Call = (path:string, method?:string, body?:unknown, requireBusiness?:boolean, signal?:AbortSignal)=>Promise<unknown>;
 
-export function WorkspaceSettings({call,role,onChanged}:{call:Call;role:string;onChanged:()=>Promise<void>}) {
+export function WorkspaceSettings({call,role,subject,onChanged}:{call:Call;role:string;subject:string;onChanged:()=>Promise<void>}) {
   const [plugins,setPlugins]=useState<Item[]>([]);
   const [members,setMembers]=useState<Item[]>([]);
   const [events,setEvents]=useState<Item[]>([]);
@@ -48,6 +48,7 @@ export function WorkspaceSettings({call,role,onChanged}:{call:Call;role:string;o
     {notice&&<p role="status" className="success">{notice}</p>}
     <section className="panel"><div className="panel-head"><h2>Workspace access</h2><button className="icon-btn" aria-label="Refresh settings" onClick={()=>setRevision(v=>v+1)}><RefreshCcw size={18}/></button></div>
       <p>Your role: <strong>{role}</strong>. Administrators manage access; managers review and send approved work.</p>
+      <p>Your sign-in ID: <code>{subject}</code></p>
       <p className="settings-note"><ShieldCheck size={18}/> Provider credentials stay on the server. External publishing and sending require separate approval.</p>
     </section>
     {operator&&<section className="panel"><h2>Connections and AI usage</h2>

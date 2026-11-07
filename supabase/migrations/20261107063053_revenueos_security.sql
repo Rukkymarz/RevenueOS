@@ -297,3 +297,14 @@ begin
 end $$;
 revoke all on function public.revenueos_import_leads(text,jsonb) from public,anon;
 grant execute on function public.revenueos_import_leads(text,jsonb) to authenticated;
+
+create function private.can_initialize() returns boolean language plpgsql stable security definer set search_path='' as $$
+declare actor_id text:=private.actor();
+begin
+ return not exists(select 1 from public.businesses) and exists(
+  select 1 from private.configuration c join auth.users u on lower(u.email)=c.bootstrap_email where u.id::text=actor_id);
+end $$;
+create function public.revenueos_can_initialize() returns boolean language sql security invoker set search_path='' as $$select private.can_initialize()$$;
+grant execute on function private.can_initialize() to authenticated;
+revoke all on function public.revenueos_can_initialize() from public,anon;
+grant execute on function public.revenueos_can_initialize() to authenticated;
