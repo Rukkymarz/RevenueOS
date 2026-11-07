@@ -64,3 +64,11 @@
   html { scroll-behavior: auto; }
   .neo-home *, .core-dock * { animation: none !important; transition: none !important; }
 }
+.auth-screen { --border:#354356; --surface-2:#171e29; --text:#eef5fc; --blue:#126c9a; --muted:#b7c8df; }
+.auth-screen .settings-form { align-items:stretch; margin-bottom:16px; }
+.auth-screen .settings-form label { width:100%; }
+.auth-screen .settings-form input { background:#171e29; color:#eef5fc; border:1px solid #354356; width:100%; }
+.auth-screen>.outline { margin:4px 0; }
+.auth-screen details { max-width:100%; margin:16px 0; }
+.auth-screen code { overflow-wrap:anywhere; }
+.auth-screen img { background:white; padding:8px; border-radius:10px; }

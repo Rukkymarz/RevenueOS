@@ -6,6 +6,7 @@ grant usage on schema private to authenticated;
 alter default privileges in schema private revoke execute on functions from public;
 create table private.configuration (singleton boolean primary key default true check(singleton), bootstrap_email text not null);
 create table private.request_windows (subject text primary key, window_start timestamptz not null, requests integer not null);
+create table private.revoked_sessions (session_id uuid primary key, user_id uuid not null, revoked_at timestamptz not null default now());
 revoke all on all tables in schema private from public, anon, authenticated;
 
 create function private.actor() returns text language plpgsql stable security definer set search_path = '' as $$
@@ -13,6 +14,7 @@ declare actor_id uuid := auth.uid();
 begin
   if actor_id is null or coalesce(auth.jwt()->>'aal','aal1') <> 'aal2'
     or not exists(select 1 from auth.users u where u.id=actor_id and u.email_confirmed_at is not null)
+    or exists(select 1 from private.revoked_sessions r where r.session_id::text=auth.jwt()->>'session_id')
     or not exists(select 1 from auth.sessions s where s.id::text=auth.jwt()->>'session_id' and s.user_id=actor_id
                   and (s.not_after is null or s.not_after > now())) then
     raise exception 'Verified sign-in and MFA required' using errcode='42501';
@@ -26,6 +28,18 @@ language sql stable security definer set search_path = '' as $$
        >= array_position(array['viewer','operator','manager','admin'],minimum))
 $$;
 grant execute on function private.actor(), private.has_role(text,text) to authenticated;
+
+create function private.revoke_sessions() returns void language plpgsql security definer set search_path='' as $$
+declare actor_id text:=private.actor();
+begin
+ insert into private.revoked_sessions(session_id,user_id)
+ select id,user_id from auth.sessions where user_id::text=actor_id
+ on conflict(session_id) do nothing;
+end $$;
+create function public.revenueos_revoke_sessions() returns void language sql security invoker set search_path='' as $$select private.revoke_sessions()$$;
+grant execute on function private.revoke_sessions() to authenticated;
+revoke all on function public.revenueos_revoke_sessions() from public,anon;
+grant execute on function public.revenueos_revoke_sessions() to authenticated;
 
 -- Deny every table first, including future-facing tables not yet exposed by the UI.
 do $$ declare t record; begin

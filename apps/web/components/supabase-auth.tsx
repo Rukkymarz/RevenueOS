@@ -8,9 +8,17 @@ import Image from "next/image";
 export type RevenueAuth={isLoading:boolean;isAuthenticated:boolean;error?:Error;user?:{access_token:string;profile:{sub:string}};signinRedirect:()=>Promise<void>;signoutRedirect:()=>Promise<void>};
 export const RevenueAuthContext=createContext<RevenueAuth|null>(null);
 export function useRevenueAuth(){const value=useContext(RevenueAuthContext);if(!value)throw new Error("Authentication provider missing");return value;}
+let browserClient:SupabaseClient|undefined;
+export function getBrowserClient(){
+ const build=()=>createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!,process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,{auth:{flowType:"pkce",persistSession:typeof window!=="undefined",autoRefreshToken:typeof window!=="undefined",detectSessionInUrl:true,storage:typeof window!=="undefined"?window.sessionStorage:undefined}});
+ // Browser-only singleton avoids duplicate auth clients in React Strict Mode.
+ // Server rendering always gets a fresh client with persistence disabled.
+ if(typeof window==="undefined")return build();
+ return browserClient??=build();
+}
 
 export function SupabaseAuth({children}:{children:ReactNode}){
- const [client]=useState<SupabaseClient>(()=>createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!,process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,{auth:{flowType:"pkce",persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,storage:typeof window!=="undefined"?window.sessionStorage:undefined}}));
+ const [client]=useState<SupabaseClient>(getBrowserClient);
  const [session,setSession]=useState<Session|null>(null);const [loading,setLoading]=useState(true);
  const [email,setEmail]=useState("");const [password,setPassword]=useState("");const [code,setCode]=useState("");
  const [busy,setBusy]=useState(false);const [error,setError]=useState("");const [notice,setNotice]=useState("");
@@ -37,7 +45,14 @@ export function SupabaseAuth({children}:{children:ReactNode}){
   }
   void inspect();return()=>{active=false;};
  },[client,session]);
- async function signout(){const result=await client.auth.signOut({scope:"global"});if(result.error){setError("Sign out failed. Retry before leaving this device.");throw result.error;}setSession(null);setMfaReady(false);setPassword("");setCode("");setQr("");setSecret("");}
+ async function signout(){
+  const revoke=mfaReady?await client.rpc("revenueos_revoke_sessions"):null;
+  // Still clear provider sessions if a previous attempt already revoked the DB session.
+  const result=await client.auth.signOut({scope:"global"});
+  if(result.error){setError("Sign out failed. Retry before leaving this device.");throw result.error;}
+  setSession(null);setMfaReady(false);setPassword("");setCode("");setQr("");setSecret("");
+  if(revoke?.error)setNotice("Signed out. Immediate workspace-session revocation could not be confirmed; contact the administrator if this device was compromised.");
+ }
  async function submit(event:React.FormEvent){
   event.preventDefault();setBusy(true);setError("");setNotice("");
   try{

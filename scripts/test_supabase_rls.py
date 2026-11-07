@@ -102,6 +102,10 @@ def main():
         assert query(other,"select name from storage.objects")==[]
         denied(other,"insert into storage.objects(bucket_id,name) values('revenueos-artifacts',%s) returning name",(f"{first}/{other}/arbitrary.svg",))
         assert query(admin,"select public.revenueos_export(%s)",(first,))[0][0]["records"]["leads"][0]["id"]==lead
+        query(admin,"select public.revenueos_revoke_sessions()")
+        denied(admin,"select * from public.leads")
+        # Revoking the first actor must not revoke another workspace user's session.
+        assert query(other,"select public.revenueos_report(%s,false)",(second,))[0][0]["lead_volume"]==0
     print("PASS: Supabase-compatible schema, MFA/session gates, RLS/RBAC, protected fields, approvals, atomic import and artifact isolation")
 
 
