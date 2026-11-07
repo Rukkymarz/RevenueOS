@@ -30,3 +30,9 @@ infra/keycloak/revenueos-production-realm.json
 **/.next/
 **/.pytest_cache/
 **/__pycache__/
+
+# Private recovery data must never enter Git.
+backups/
+*.dump
+*.tar.gz.age
+*.tar.gz.age.partial

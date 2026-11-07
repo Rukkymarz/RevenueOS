@@ -1,4 +1,13 @@
-# RevenueOS project status — 2026-11-06
+# RevenueOS project status — 2026-11-07
+
+## Oracle launch preparation — 2026-11-07
+
+- Owner authorized continuing toward production with prompts for owner-only setup; $0 limit remains.
+- Oracle Free Tier sign-in/verification and home-region capacity are pending owner action. No infrastructure or DNS changes made.
+- Added encrypted single-node backup command covering both databases, media and private configuration, with maintenance cleanup and restart handling.
+- Seven recovery-tool tests pass: archive integrity, unsafe paths/duplicates, nested media traversal, successful backup orchestration and cleanup/restart after encryption failure. Docker/age backup and actual restore are not yet exercised on a deployment host.
+- All 26 API tests pass outside the Windows sandbox (sandbox loopback blocks the async test client). Frontend typecheck and lint pass. The local Turbopack worker crashes; the supported Webpack build is being verified separately, with normal Linux CI still required.
+- See `docs/ORACLE_LAUNCH.md`; the original application and secure OIDC architecture are preserved. Supabase Auth is a possible migration, not an already compatible configuration.
 
 ## Current release candidate
 

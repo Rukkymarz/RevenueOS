@@ -19,6 +19,7 @@ jobs:
       - run: python -m compileall -q revenueos
         working-directory: apps/api
       - run: python scripts/check_release.py
+      - run: pytest -q scripts/test_backup_production.py
       - run: pip install pip-audit==2.10.1
       - run: pip-audit -r apps/api/requirements.lock --no-deps --disable-pip
   web:
