@@ -94,7 +94,7 @@ function IdentityWorkspace(){
 }
 function Workspace({me,businessId,setBusinessId,loadMe}:{me:Me;businessId:string;setBusinessId:(id:string)=>void;loadMe:()=>Promise<void>}) {
   const auth=useAuth();
-  const page=useSyncExternalStore(subscribeWorkspace,workspaceSnapshot,()=>"Dashboard");
+  const page=useSyncExternalStore<Section>(subscribeWorkspace,workspaceSnapshot,()=>"Dashboard");
   const mobile=useSyncExternalStore(subscribeMobile,()=>window.matchMedia("(max-width: 800px)").matches,()=>false);
 
   const [moreOpen,setMoreOpen] = useState(false);
