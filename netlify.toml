@@ -1,0 +1,12 @@
+[build]
+  base = "apps/web"
+  command = "npm run build"
+  publish = ".next"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+# Next.js is detected by Netlify and uses the current OpenNext adapter.
+# No SPA catch-all: it would intercept the authenticated API routes.
+# Runtime/public Supabase configuration is set in the project's environment,
+# with Builds and Functions scopes. No credentials belong in this file.

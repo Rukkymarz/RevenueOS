@@ -1,0 +1,74 @@
+/* UI UX Pro Max: analytics dashboard guidance, adapted to Cyber Executive. */
+.shell {
+  --soft: #9aaac1;
+  --ux-ring: #00e5ff;
+  --ux-duration: 180ms;
+}
+.shell.light { --soft: #52667e; --ux-ring: #0759ad; }
+.settings-grid { display: grid; gap: 20px; }
+.core-dock__trigger[hidden] { display: none; }
+.settings-grid .panel { padding: clamp(18px, 3vw, 28px); }
+.settings-grid p { line-height: 1.7; overflow-wrap: anywhere; }
+.settings-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: 16px; align-items: end; }
+.settings-form label { display: grid; gap: 8px; font-size: 14px; }
+.settings-form input, .settings-form select { min-height: 44px; width: 100%; border: 1px solid var(--border); background: var(--surface-2); color: var(--text); padding: 10px; border-radius: 8px; }
+.settings-grid .item-row { flex-wrap: wrap; gap: 12px; }
+.import-control { display: grid; gap: 12px; }
+.skip-link { position: fixed; top: 8px; left: 8px; z-index: 100; transform: translateY(-150%); background: var(--surface); color: var(--text); padding: 16px; }
+.skip-link:focus { transform: none; }
+.neo-home { max-width: 1440px; margin-inline: auto; width: 100%; }
+.neo-core { min-height: 440px; padding-block: 24px; box-shadow: 0 18px 48px #030a182e; }
+.neo-core h2 { text-wrap: balance; }
+.neo-core > p { font-size: 14px; max-width: 560px; }
+.neo-core-status, .neo-eyebrow, .neo-kicker { font-size: 11px; }
+.neo-suggestions button, .neo-create-actions button, .neo-link,
+.core-action-button, .theme-select, .core-dock__header > button,
+.core-dock__suggestions button { min-height: 44px; }
+.core-dock__header > button { min-width: 44px; }
+.neo-suggestions button, .neo-ai-toggle, .neo-create p,
+.neo-create-actions button, .neo-stat-header, .neo-link { font-size: 13px; }
+.neo-command-form textarea, .core-dock textarea { font-size: 16px; line-height: 1.6; }
+.neo-ai-toggle { min-height: 44px; }
+.neo-safety, .neo-footer, .neo-stat small,
+.neo-priority small, .neo-lead small { font-size: 12px; line-height: 1.6; }
+.neo-priority strong, .neo-lead strong { font-size: 14px; overflow-wrap: anywhere; }
+.neo-stat { position: relative; border-radius: 14px; }
+.neo-stat strong { font-variant-numeric: tabular-nums; letter-spacing: -.04em; }
+.neo-stat small, .neo-priority small, .neo-lead small { color: var(--muted); }
+.neo-priority, .neo-lead { border-radius: 8px; padding-inline: 8px;
+  transition: background var(--ux-duration) ease; }
+.neo-priority:hover, .neo-lead:hover { background: var(--surface-2); }
+.neo-home button:focus-visible, .core-dock button:focus-visible,
+.theme-select:focus-visible { outline: 3px solid var(--ux-ring); outline-offset: 3px; }
+.neo-command-form:focus-within { border-color: var(--ux-ring); }
+.shell.light .neo-core-status { color: #28516c; }
+.shell.light .neo-error { color: #a2223a; }
+.shell.light .neo-stat-icon { color: #006b80; }
+.shell.light .neo-stat-icon.mint, .shell.light .neo-score { color: #087455; }
+.shell.light .neo-stat-icon.violet { color: #6530bc; }
+.shell.light .neo-stat-icon.amber { color: #8a500e; }
+@media (max-width: 580px) {
+  .neo-core { min-height: auto; }
+  .neo-core > p { font-size: 14px; }
+  .neo-command-form textarea { font-size: 16px; }
+  .neo-command-row { align-items: stretch; flex-direction: column; gap: 6px; }
+  .neo-ai-toggle { max-width: none; }
+  .neo-stat-header { font-size: 12px; }
+  .neo-stat strong { font-size: clamp(20px, 5vw, 28px); white-space: normal; overflow-wrap: anywhere; }
+  .neo-safety { align-items: flex-start; text-align: left; }
+  .neo-safety svg { flex: none; margin-top: 3px; }
+  .neo-eyebrow { flex-wrap: wrap; line-height: 1.5; }
+  .core-dock { bottom: calc(80px + env(safe-area-inset-bottom, 0px)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .neo-home *, .core-dock * { animation: none !important; transition: none !important; }
+}
+.auth-screen { --border:#354356; --surface-2:#171e29; --text:#eef5fc; --blue:#126c9a; --muted:#b7c8df; }
+.auth-screen .settings-form { align-items:stretch; margin-bottom:16px; }
+.auth-screen .settings-form label { width:100%; }
+.auth-screen .settings-form input { background:#171e29; color:#eef5fc; border:1px solid #354356; width:100%; }
+.auth-screen>.outline { margin:4px 0; }
+.auth-screen details { max-width:100%; margin:16px 0; }
+.auth-screen code { overflow-wrap:anywhere; }
+.auth-screen img { background:white; padding:8px; border-radius:10px; }

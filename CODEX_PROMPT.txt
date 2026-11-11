@@ -1,0 +1,17 @@
+Build RevenueOS v6 from the attached source as a functioning, polished application—not just a mockup.
+
+Repository: https://github.com/Rukkymarz/RevenueOS
+Archive: RevenueOS_v6_CODEX_BUILD.zip (extract at repo root; do not nest the repository).
+Read AGENTS.md, STATUS.md, docs/CYBER_EXECUTIVE_UI.md, and docs/VERCEL_SETUP.md first.
+
+EXECUTE NOW:
+1. Import the existing source onto branch `codex/revenueos-cyber-executive-v6`. Preserve all code, MIT license, icon assets, CI, API, and database migrations. The GitHub repository may contain only a README; do not assume the complete code is already in GitHub. Do not modify Express Cleaning Consult.
+2. Build the Cyber Executive UX fully: clean simplified dashboard, central interactive AI Core orb, persistent assistant dock, accessible navigation/workspaces, mobile bottom navigation, three-mode theme switcher, responsive performance, keyboard support, reduced-motion support. Use the supplied CSS animation as the design basis, but namespace duplicate `.loader` rules. Real business data only from authenticated APIs, otherwise explicit setup/empty states; no fabricated customer records or revenue.
+3. In `apps/web`, run `npm install --package-lock-only --ignore-scripts --no-audit --no-fund`, then `npm ci`, `npm run typecheck`, `npm run lint`, and `npm run build`. Commit generated `apps/web/package-lock.json`. Fix all failures; do not disable checks.
+4. In `apps/api`, install project test dependencies and run pytest. Execute `python scripts/check_release.py` (adjust for documented options) and run the PostgreSQL/RLS integration workflow in CI. Verify tenant isolation, RBAC, Keycloak/OIDC, email approvals, audit logs, AI quotas, and abuse controls.
+5. Implement working API integration for visible UI actions where backend routes already exist, including loading, empty, failure, forbidden, approval, and success states. Provider-dependent functionality must use real configured adapters or show honest 'not connected' states—never simulated success.
+6. Use Vercel for the Next.js frontend. Configure project Root Directory `apps/web`. The FastAPI/PostgreSQL/Keycloak/Redis stack must run separately. Inspect exact plan/pricing requirements and request approval before any paid service or production deployment. Create a preview deployment if safe and authorized, then verify the browser experience.
+7. Validate using browser tests at desktop and mobile widths, including command composer, theme persistence, navigation, approvals, sign-in/out, API failure states, no console errors, and basic accessibility. Secure the public configuration.
+8. Push to a feature branch and open a DRAFT PR, link the Vercel preview if one was created, and report all test outcomes and remaining blockers.
+
+NEVER deploy or merge unverified code into production, expose secrets, change repository visibility, charge accounts, or modify Express Cleaning Consult without approval. The goal is a genuinely working RevenueOS UI integrated with its existing backend—not a prettier static demo.

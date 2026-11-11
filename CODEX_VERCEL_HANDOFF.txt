@@ -1,0 +1,26 @@
+REVENUEOS — CYBER EXECUTIVE UI v6 / VERCEL HANDOFF
+
+Source archive: RevenueOS_Cyber_Executive_v6_CODEBASE.zip
+Repository: https://github.com/Rukkymarz/RevenueOS
+Platform: Next.js 15 (apps/web) on Vercel, FastAPI + Keycloak + Redis + PostgreSQL hosted separately
+
+OBJECTIVE
+Ship the included v6 UI and configure Vercel deployment without touching Express Cleaning or creating a second competing frontend. Preserve protected API and backend workflows.
+
+WORKFLOW
+1. Extract ZIP into a local clone of Rukkymarz/RevenueOS. Source contents are at the archive root.
+2. Create feature branch feat/revenueos-cyber-executive.
+3. Inspect diffs and keep secrets out of git. Do not publish real customer data.
+4. In apps/web run: npm install --package-lock-only; npm ci; npm run typecheck; npm run lint; npm run build.
+   Commit the real apps/web/package-lock.json. Never fabricate it or bypass tests.
+5. Run API suite: cd apps/api && pip install -e '.[test]' && pytest -q.
+6. Run python scripts/check_release.py and PostgreSQL RLS CI workflow; resolve failures.
+7. Push feature branch and open a draft PR, no direct main push.
+8. Link the repo to Vercel project `revenueos`, with project Root Directory apps/web and framework Next.js.
+9. Set only public variables NEXT_PUBLIC_API_URL and NEXT_PUBLIC_OIDC_ISSUER (both HTTPS on previews).
+10. Configure Keycloak callback URLs, server CORS allowlist, Redis, PostgreSQL, API host and backups OUTSIDE Vercel.
+11. Validate login, permissions, approvals, business switching and all critical workflows against preview URL.
+12. Report URL, build logs, security tests and all remaining blockers; request human approval before any production promotion, merge or paid provisioning.
+
+PRICING AND SAFETY
+Vercel Hobby is for personal, non-commercial use only. RevenueOS is intended for commercial use, so obtain approval for compliant Pro/Enterprise hosting and any service charges. Never expose provider secrets under NEXT_PUBLIC_. Never claim autonomous lead research or image/video inference is working without real integrations. Never modify Express Cleaning Consult.
