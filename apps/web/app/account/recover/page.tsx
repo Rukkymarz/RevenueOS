@@ -7,7 +7,7 @@ export default function Recovery(){
  const auth=useRevenueAuth();
  const [password,setPassword]=useState("");const [confirmation,setConfirmation]=useState("");const [error,setError]=useState("");const [busy,setBusy]=useState(false);const [done,setDone]=useState(false);
  return <main className="auth-screen"><p className="overline">REVENUEOS</p><h1>Reset your password</h1>
-  <p>Complete verified sign-in and your authenticator check before changing your password.</p>
+  <p>Use the recovery link sent to your verified email before changing your password.</p>
   {done?<><p role="status">Password updated and sessions signed out.</p><Link className="primary" href="/">Return to sign in</Link></>:<form className="settings-form" onSubmit={async event=>{
    event.preventDefault();setError("");if(password!==confirmation){setError("The passwords must match.");return;}setBusy(true);
    try{

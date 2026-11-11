@@ -6,7 +6,7 @@ export function checked<T>(result:{data:T;error:{code?:string;message:string}|nu
  if(result.error){
   const code=result.error.code;
   throw new ApiError(code==="42501"?403:code==="23505"?409:code==="P0002"||code==="PGRST116"?404:code==="54000"?429:code?.startsWith("22")||code?.startsWith("23")?422:503,
-   code==="42501"?"Access denied. Complete MFA and check your workspace role.":code==="23505"?"Record already exists or changed. Refresh and try again.":code==="P0002"||code==="PGRST116"?"Record not found":code==="54000"?"Request limit reached. Try again shortly.":code?.startsWith("22")||code?.startsWith("23")?"Invalid record or linked workspace record":"Data service temporarily unavailable");
+   code==="42501"?"Access denied. Check your workspace role.":code==="23505"?"Record already exists or changed. Refresh and try again.":code==="P0002"||code==="PGRST116"?"Record not found":code==="54000"?"Request limit reached. Try again shortly.":code?.startsWith("22")||code?.startsWith("23")?"Invalid record or linked workspace record":"Data service temporarily unavailable");
  }
  return result.data;
 }
@@ -20,9 +20,7 @@ export async function authenticate(request:Request){
  const db=createClient(url,key,{global:{headers:{Authorization:`Bearer ${token}`}},auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false}});
  const {data,error}=await db.auth.getUser(token);
  if(error||!data.user?.email_confirmed_at)throw new ApiError(401,"Verified sign-in required");
- // getClaims verifies the signature. The DB independently enforces MFA/session existence.
- const claims=await db.auth.getClaims(token);
- if(claims.error||claims.data?.claims.aal!=="aal2")throw new ApiError(403,"Complete authenticator verification");
+ // getUser validates the token; the DB independently checks verified email and live session.
  checked(await db.rpc("revenueos_rate_limit"));
  return {db,user:data.user};
 }

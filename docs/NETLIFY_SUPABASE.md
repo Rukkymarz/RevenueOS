@@ -103,8 +103,41 @@ Next file tracing includes it and the platform's FFmpeg binary for Netlify.
 
 ## Outstanding launch gates
 
-1. New Free organization, separate $0 project and its actual configuration.
-2. Apply/test schema on that project; check advisors, RLS and Storage policies.
+### Hosted setup verified November 11, 2026
+
+The owner subsequently requested removing mandatory authenticator enrollment.
+Migration `20261111081000_verified_email_signin.sql` replaces the actor gate
+with verified-email and live-session checks; workspace roles, tenant isolation,
+rate limits and immediate session revocation remain enforced. The Supabase web
+flow now uses email/password without an authenticator enrollment screen. This
+supersedes earlier references below to mandatory TOTP for this deployment.
+The hosted Site URL and exact `/account/recover` redirect are configured; email
+confirmation and a server-enforced minimum password length of 12 are enabled.
+
+The owner selected the new Netlify account and explicitly selected Supabase
+project `cnlvbusjqwepotvlqcgx` in organization `ytaurmibannzpgizaxph` (Revenue OS).
+Both organizations were verified on Free. The older project reference
+`mhowsmotisbphpgusjth` is superseded for this deployment.
+
+Netlify project `revenueos-rj` (ID `8275da7a-0401-4da0-8b2f-663caf25efc2`)
+imports this repository's `codex/revenueos-cyber-executive-v6` branch. Explicitly
+select the Next.js runtime in Build settings: the initial import omitted the
+runtime, resulting in a successful static upload but a 404. Selecting Next.js
+deployed the server function and restored the application route. The project
+remains private pending acceptance. No custom domain has been connected.
+
+After verifying the selected Supabase project's public/private schemas and
+migration history were empty, all three checked-in migrations were applied in
+one atomic migration named `revenueos_secure_baseline`. The owner-designated
+bootstrap email was configured privately. All 19 public tables enforce RLS.
+Security advisors reported only five informational notices for intentionally
+inaccessible tables with no policies; no security warnings or errors.
+Public Supabase URL/publishable key and auth-provider mode are configured on
+the new Netlify project. No service-role key is used. Hosted Auth settings,
+registration/MFA, tenant isolation acceptance and recovery remain unverified.
+
+1. Verify deployed environment configuration and private project access.
+2. Complete hosted RLS and Storage acceptance against the installed schema.
 3. Hosted Auth settings, real email confirmation, owner registration and TOTP.
 4. Netlify preview build on Linux; verify all traced assets and native packages.
 5. Real browser/API tests against hosted Supabase on desktop and mobile,

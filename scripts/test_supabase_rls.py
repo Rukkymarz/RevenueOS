@@ -45,7 +45,7 @@ def main():
             db.execute("insert into auth.sessions values(%s,%s,null)",(session,subject))
         db.execute("insert into private.configuration values(true,'owner@example.org')")
 
-        def query(subject,sql,parameters=(),aal="aal2",session=None):
+        def query(subject,sql,parameters=(),aal="aal1",session=None):
             with db.transaction():
                 db.execute("set local role authenticated")
                 db.execute("select set_config('request.jwt.claims',%s,true)",(json.dumps({"sub":subject,"aal":aal,"session_id":session or sessions[subject]}),))
@@ -59,7 +59,7 @@ def main():
             raise AssertionError("Operation unexpectedly permitted")
 
         denied(other,"select public.revenueos_create_workspace('Wrong owner','services',true)")
-        denied(admin,"select public.revenueos_create_workspace('First workspace','services',true)",aal="aal1")
+        denied(admin,"select public.revenueos_create_workspace('First workspace','services',true)",session=str(uuid.uuid4()))
         assert query(admin,"select public.revenueos_can_initialize()")[0][0] is True
         assert query(other,"select public.revenueos_can_initialize()")[0][0] is False
         first=query(admin,"select public.revenueos_create_workspace('First workspace','services',true)")[0][0]["id"]
@@ -76,7 +76,9 @@ def main():
         denied(other,insert,(first,))
         denied(admin,"update public.leads set business_id=%s where id=%s returning id",(second,lead))
         denied(other,"insert into public.memberships(business_id,subject,email,role) values(%s,%s,'other@example.org','admin')",(first,other))
-        denied(admin,"select * from public.leads",aal="aal1")
+        db.execute("update auth.users set email_confirmed_at=null where id=%s",(admin,))
+        denied(admin,"select * from public.leads")
+        db.execute("update auth.users set email_confirmed_at=now() where id=%s",(admin,))
         denied(admin,"select * from public.leads",session=str(uuid.uuid4()))
         denied(other,"select public.revenueos_export(%s)",(first,))
         with db.transaction():
@@ -109,7 +111,7 @@ def main():
         denied(admin,"select * from public.leads")
         # Revoking the first actor must not revoke another workspace user's session.
         assert query(other,"select public.revenueos_report(%s,false)",(second,))[0][0]["lead_volume"]==0
-    print("PASS: Supabase-compatible schema, MFA/session gates, RLS/RBAC, protected fields, approvals, atomic import and artifact isolation")
+    print("PASS: Supabase-compatible schema, verified-email/session gates, RLS/RBAC, protected fields, approvals, atomic import and artifact isolation")
 
 
 if __name__ == "__main__":
