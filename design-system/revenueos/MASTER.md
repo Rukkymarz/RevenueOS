@@ -11,7 +11,7 @@ with the repository's existing AI Core layout and theme support.
 
 ## Product decisions
 
-- Preserve background #080B12, cyan #00E5FF, purple #7C3AED and mint #10B981.
+- Owner update November 11: warm charcoal #1B1917, copper #D99D79 and cream #ECE1D0 replace cyan/violet; see DESIGN.md.
 - Retain system/Inter typography; use tabular figures for comparable metrics.
 - Keep one primary composer, four metrics, priority actions, and contextual tools.
 - Use restrained glow, clear surface boundaries and readable secondary text.
