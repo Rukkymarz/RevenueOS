@@ -266,7 +266,7 @@ function Workspace({me,businessId,setBusinessId,loadMe}:{me:Me;businessId:string
     <nav className="bottom-nav" inert={mobile&&sidebar} aria-label="Mobile navigation">{(["Dashboard","Leads","AI Assistant","Approvals","Tasks"] as Section[]).map(label=>{const entry=pages.find(x=>x.label===label)!;const Icon=entry.icon;return <button key={label} className={page===label?"active":""} aria-current={page===label?"page":undefined} onClick={()=>navigate(label)}><Icon size={21}/><span>{label==="AI Assistant"?"Command":label==="Dashboard"?"Home":label}</span></button>})}</nav>
   </div>;
 }
-function Empty({text}:{text:string}){return <div className="empty"><span className="empty-symbol"><Layers3 size={25}/></span><p>{text}</p></div>;}
+function Empty({text}:{text:string}){return <div className="empty"><span className="empty-illustration" aria-hidden="true"><i/><i/><i/><span className="empty-symbol"><Layers3 size={27}/></span></span><p>{text}</p></div>;}
 function renderRows(rows:Item[],page:Section,download:(p:string,n:string)=>Promise<void>,edit:(p:string,b:unknown)=>Promise<void>,saving:boolean,call:(p:string,m?:string,b?:unknown)=>Promise<unknown>,reload:()=>Promise<void>,setMessage:(s:string)=>void,setError:(s:string)=>void,onReview:(id:string)=>Promise<void>,onEdit:(item:Item)=>void){
   if(!rows.length)return <Empty text={page==="Leads"?"No leads yet. Create your first lead or import verified records.":"Nothing here yet. Use Create new to add your first record."}/>;
   return <div className="record-list">{rows.map(x=>{
