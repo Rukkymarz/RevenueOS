@@ -1,4 +1,4 @@
-"""Test harness: every test gets a fresh database cloned from a migrated template.
+"""Database test kit (imported by tests/conftest.py): every test gets a fresh database cloned from a migrated template.
 
 Talks to a real Postgres 16 through psql so the triggers and constraints under
 test are the production ones. Configure with REVENUEOS_PG_HOST / _PORT / _USER.
@@ -10,7 +10,7 @@ from pathlib import Path
 
 import pytest
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[1]
 MIGRATIONS = sorted((ROOT / "db" / "migrations").glob("*.sql"))
 HOST = os.environ.get("REVENUEOS_PG_HOST", "/tmp/pgsock")
 PORT = os.environ.get("REVENUEOS_PG_PORT", "5433")

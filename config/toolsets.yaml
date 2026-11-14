@@ -12,18 +12,17 @@ toolsets:
   media-studio:
     description: Higgsfield-style image and video generation, editing, upscaling, captions and voice
     front_door: photo-generator          # your existing generator, extended
-    members: [photo-generator, comfyui, diffusers, invokeai, flux, wan-video, ltx-video, framepack, open-sora,
-              liveportrait, upscayl, rembg, penpot, ffmpeg, moviepy, motion-canvas, video-use, moneyprinterturbo,
+    members: [photo-generator, comfyui, diffusers, invokeai, wan-video, ltx-video,
+              upscayl, rembg, penpot, ffmpeg, moviepy, video-use, moneyprinterturbo,
               shotcut, losslesscut, whisperx, chatterbox, obs-studio]
     tools: [image.generate, image.edit, image.inpaint, image.upscale, image.remove_background, image.style_lock,
-            video.generate, video.image_to_video, video.camera_motion, video.animate_portrait, video.edit,
-            video.cut, video.caption, video.short_from_topic, video.render_motion_graphics,
-            audio.transcribe, audio.speak, design.template]
+            video.generate, video.image_to_video, video.camera_motion, video.edit,
+            video.cut, video.caption, video.short_from_topic, audio.transcribe, audio.speak, design.template]
 
   scraping:
     description: Fetch, crawl, render, and extract structured data from the web
     front_door: scraper                  # your existing scraper, extended
-    members: [scraper, scrapling, crawl4ai, scrapy, crawlee, scrapegraph-ai, maxun, jina-reader, playwright,
+    members: [scraper, scrapling, crawl4ai, scrapy, crawlee, scrapegraph-ai, maxun, playwright, agent-reach, easyspider, api-anything, opengtm, keelead, dataforge,
               firecrawl, searxng]
     tools: [fetch, extract, crawl, paginate, render_js, extract_schema, search, to_markdown]
 
@@ -45,7 +44,7 @@ toolsets:
 
   social:
     description: Publishing, analytics, and the unified inbox
-    members: [social0, postmill-ai, postiz, chatwoot]
+    members: [social0, postmill-ai, postiz, chatwoot, openwa]
     tools: [publish, schedule, analytics_fetch, inbox_read, reply]
 
   documents:
@@ -56,7 +55,7 @@ toolsets:
   web-build:
     description: Website generation and design governance
     members: [deepagents-open-lovable, open-pages, nexity, syntheon, ui-ux-pro-max, frontend-design-skill,
-              chrome-devtools-mcp, design-linter, tastemaker]
+              chrome-devtools-mcp, design-linter, tastemaker, open-design, astryx, baseline-ui, penpot]
     tools: [generate_site, design_query, lint_design, scan_slop, screenshot_review]
 
   voice:
@@ -68,3 +67,23 @@ toolsets:
     description: Gmail, GitHub, Slack, Notion, Supabase and about 400 more
     members: [official-mcp-servers, mcptoon, mcpfinder, composio]
     tools: [connector_call]
+
+  engineering-skills:
+    description: Skill packs for coding agents (TDD, planning, SDLC, TypeScript, lead intelligence)
+    members: [superpowers, everything-claude-code, anthropic-skills-all, mattpocock-skills, agent-skills, planning-with-files]
+    tools: [skill_load, skill_list]
+
+  ads:
+    description: Paid-media audit and automation; writes need INV-06 approval
+    members: [claude-ads, google-ads-mcp]
+    tools: [ads_audit, ads_report, ads_update]
+
+  crm-and-sheets:
+    description: CRM system of record, spreadsheet backing store, AI spreadsheet, analytics
+    members: [twenty, nocodb, univer, plausible, umami]
+    tools: [crm_upsert, crm_query, sheet_read, sheet_write, analytics_query]
+
+  office:
+    description: Microsoft 365 substitute; documents, decks, sheets, calendar, files
+    members: [nextcloud, richdocuments]
+    tools: [doc_write, file_share, calendar_freebusy]

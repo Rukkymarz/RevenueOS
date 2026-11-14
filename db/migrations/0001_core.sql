@@ -229,10 +229,15 @@ CREATE TABLE tasks (
 -- Tasks must be born DRAFT.
 CREATE FUNCTION task_born_draft() RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN
-  IF NEW.state <> 'DRAFT' OR NEW.verification_id IS NOT NULL OR NEW.completed_at IS NOT NULL THEN
-    RAISE EXCEPTION 'state machine: tasks are created in DRAFT with no verification';
-  END IF;
-  RETURN NEW;
+  BEGIN
+    IF NEW.state <> 'DRAFT' OR NEW.verification_id IS NOT NULL OR NEW.completed_at IS NOT NULL THEN
+      RAISE EXCEPTION 'state machine: tasks are created in DRAFT with no verification';
+    END IF;
+    RETURN NEW;
+  EXCEPTION WHEN raise_exception OR check_violation THEN
+    PERFORM audit_reject('task.rejected', coalesce(NEW.id::text, 'new-task'), jsonb_build_object('error', SQLERRM, 'op', TG_OP));
+    RAISE;
+  END;
 END $$;
 CREATE TRIGGER trg_task_born_draft BEFORE INSERT ON tasks
   FOR EACH ROW EXECUTE FUNCTION task_born_draft();
@@ -277,17 +282,22 @@ ALTER TABLE tasks ADD CONSTRAINT tasks_verification_fk
 CREATE FUNCTION verification_guard() RETURNS trigger LANGUAGE plpgsql AS $$
 DECLARE exec_id uuid;
 BEGIN
-  SELECT executor_agent_id INTO exec_id FROM tasks WHERE id = NEW.task_id;
-  IF exec_id IS NULL THEN
-    RAISE EXCEPTION 'INV-03: task % has no executor; cannot verify', NEW.task_id;
-  END IF;
-  IF NEW.verifier_agent_id = exec_id THEN
-    RAISE EXCEPTION 'INV-03: verifier equals executor on task %', NEW.task_id;
-  END IF;
-  IF NEW.method_class = 'llm' AND NEW.verdict = 'PASS' THEN
-    RAISE EXCEPTION 'INV-04: an LLM verifier may veto but never confirm';
-  END IF;
-  RETURN NEW;
+  BEGIN
+    SELECT executor_agent_id INTO exec_id FROM tasks WHERE id = NEW.task_id;
+    IF exec_id IS NULL THEN
+      RAISE EXCEPTION 'INV-03: task % has no executor; cannot verify', NEW.task_id;
+    END IF;
+    IF NEW.verifier_agent_id = exec_id THEN
+      RAISE EXCEPTION 'INV-03: verifier equals executor on task %', NEW.task_id;
+    END IF;
+    IF NEW.method_class = 'llm' AND NEW.verdict = 'PASS' THEN
+      RAISE EXCEPTION 'INV-04: an LLM verifier may veto but never confirm';
+    END IF;
+    RETURN NEW;
+  EXCEPTION WHEN raise_exception OR check_violation THEN
+    PERFORM audit_reject('verification.rejected', NEW.task_id::text, jsonb_build_object('error', SQLERRM, 'op', TG_OP));
+    RAISE;
+  END;
 END $$;
 CREATE TRIGGER trg_verification_guard BEFORE INSERT ON verifications
   FOR EACH ROW EXECUTE FUNCTION verification_guard();
@@ -318,100 +328,105 @@ DECLARE
   ok boolean := false;
   v  verifications%ROWTYPE;
 BEGIN
-  IF NEW.state = OLD.state THEN
-    -- Non-state updates may not smuggle in completion fields.
-    IF NEW.verification_id IS DISTINCT FROM OLD.verification_id AND OLD.state <> 'VERIFYING' THEN
-      RAISE EXCEPTION 'state machine: verification_id may be linked only while VERIFYING';
+  BEGIN
+    IF NEW.state = OLD.state THEN
+      -- Non-state updates may not smuggle in completion fields.
+      IF NEW.verification_id IS DISTINCT FROM OLD.verification_id AND OLD.state <> 'VERIFYING' THEN
+        RAISE EXCEPTION 'state machine: verification_id may be linked only while VERIFYING';
+      END IF;
+      IF NEW.completed_at IS DISTINCT FROM OLD.completed_at THEN
+        RAISE EXCEPTION 'state machine: completed_at is set only by the COMPLETED transition';
+      END IF;
+      RETURN NEW;
     END IF;
-    IF NEW.completed_at IS DISTINCT FROM OLD.completed_at THEN
-      RAISE EXCEPTION 'state machine: completed_at is set only by the COMPLETED transition';
+
+    IF OLD.state IN ('COMPLETED','CANCELLED') THEN
+      RAISE EXCEPTION 'state machine: % is terminal', OLD.state;
     END IF;
+
+    -- Legality
+    IF NEW.state = 'CANCELLED' THEN
+      ok := true;
+    ELSIF task_is_paused(NEW.state) THEN
+      ok := task_is_active(OLD.state);
+      IF ok THEN NEW.resume_state := OLD.state; END IF;
+    ELSIF task_is_paused(OLD.state) THEN
+      ok := (NEW.state = OLD.resume_state)
+            OR (OLD.state = 'BLOCKED' AND NEW.state = 'EXECUTING' AND OLD.resume_state = 'FAILED_QC');
+      IF ok THEN NEW.resume_state := NULL; END IF;
+    ELSE
+      ok := EXISTS (SELECT 1 FROM task_transitions
+                     WHERE from_state = OLD.state AND to_state = NEW.state);
+    END IF;
+    IF NOT ok THEN
+      RAISE EXCEPTION 'state machine: illegal transition % -> %', OLD.state, NEW.state;
+    END IF;
+
+    -- Guards per transition
+    IF NEW.state = 'RESEARCHED' AND NEW.premise_bundle_id IS NULL THEN
+      RAISE EXCEPTION 'C07: premise bundle required to enter RESEARCHED';
+    END IF;
+
+    IF NEW.state = 'PLANNED' THEN
+      IF jsonb_typeof(NEW.acceptance_criteria) <> 'array'
+         OR jsonb_array_length(NEW.acceptance_criteria) = 0 THEN
+        RAISE EXCEPTION 'C11: machine-checkable acceptance criteria required to enter PLANNED';
+      END IF;
+      IF NEW.task_class = 'website' AND NOT EXISTS (
+           SELECT 1 FROM projects p WHERE p.id = NEW.project_id AND p.framework_contract_id IS NOT NULL) THEN
+        RAISE EXCEPTION 'D1: website task requires a framework contract before PLANNED';
+      END IF;
+    END IF;
+
+    IF NEW.state = 'EXECUTING' AND NEW.executor_agent_id IS NULL THEN
+      RAISE EXCEPTION 'state machine: executor required to enter EXECUTING';
+    END IF;
+
+    IF NEW.state = 'EVIDENCE_SUBMITTED' THEN
+      IF NOT EXISTS (SELECT 1 FROM evidence e
+                      WHERE e.task_id = NEW.id AND e.oracle_tier >= NEW.required_oracle_tier) THEN
+        RAISE EXCEPTION 'C11: evidence bundle does not meet required tier %', NEW.required_oracle_tier;
+      END IF;
+      IF NEW.task_class = 'website' AND NOT EXISTS (
+           SELECT 1 FROM websites w WHERE w.id = NEW.website_id AND w.gate_status = 'PASSED') THEN
+        RAISE EXCEPTION 'INV-13: website design gate has not PASSED';
+      END IF;
+    END IF;
+
+    IF NEW.state = 'VERIFYING' THEN
+      IF NEW.verifier_agent_id IS NULL OR NEW.verifier_agent_id = NEW.executor_agent_id THEN
+        RAISE EXCEPTION 'INV-03: distinct verifier required to enter VERIFYING';
+      END IF;
+    END IF;
+
+    IF NEW.state IN ('QC_PASSED', 'COMPLETED') THEN
+      SELECT * INTO v FROM verifications WHERE id = NEW.verification_id;
+      IF NOT FOUND
+         OR v.task_id <> NEW.id
+         OR v.verdict <> 'PASS'
+         OR v.method_class = 'llm'
+         OR v.tier < NEW.required_oracle_tier
+         OR v.verifier_agent_id = NEW.executor_agent_id THEN
+        RAISE EXCEPTION 'INV-01/INV-04: % requires a deterministic PASS verification at tier >= %',
+          NEW.state, NEW.required_oracle_tier;
+      END IF;
+    END IF;
+
+    IF NEW.state = 'FAILED_QC' THEN
+      NEW.verification_id := NULL;
+    END IF;
+    IF NEW.state = 'COMPLETED' THEN
+      NEW.completed_at := now();
+    ELSIF NEW.completed_at IS NOT NULL THEN
+      RAISE EXCEPTION 'state machine: completed_at only on COMPLETED';
+    END IF;
+
+    NEW.updated_at := now();
     RETURN NEW;
-  END IF;
-
-  IF OLD.state IN ('COMPLETED','CANCELLED') THEN
-    RAISE EXCEPTION 'state machine: % is terminal', OLD.state;
-  END IF;
-
-  -- Legality
-  IF NEW.state = 'CANCELLED' THEN
-    ok := true;
-  ELSIF task_is_paused(NEW.state) THEN
-    ok := task_is_active(OLD.state);
-    IF ok THEN NEW.resume_state := OLD.state; END IF;
-  ELSIF task_is_paused(OLD.state) THEN
-    ok := (NEW.state = OLD.resume_state)
-          OR (OLD.state = 'BLOCKED' AND NEW.state = 'EXECUTING' AND OLD.resume_state = 'FAILED_QC');
-    IF ok THEN NEW.resume_state := NULL; END IF;
-  ELSE
-    ok := EXISTS (SELECT 1 FROM task_transitions
-                   WHERE from_state = OLD.state AND to_state = NEW.state);
-  END IF;
-  IF NOT ok THEN
-    RAISE EXCEPTION 'state machine: illegal transition % -> %', OLD.state, NEW.state;
-  END IF;
-
-  -- Guards per transition
-  IF NEW.state = 'RESEARCHED' AND NEW.premise_bundle_id IS NULL THEN
-    RAISE EXCEPTION 'C07: premise bundle required to enter RESEARCHED';
-  END IF;
-
-  IF NEW.state = 'PLANNED' THEN
-    IF jsonb_typeof(NEW.acceptance_criteria) <> 'array'
-       OR jsonb_array_length(NEW.acceptance_criteria) = 0 THEN
-      RAISE EXCEPTION 'C11: machine-checkable acceptance criteria required to enter PLANNED';
-    END IF;
-    IF NEW.task_class = 'website' AND NOT EXISTS (
-         SELECT 1 FROM projects p WHERE p.id = NEW.project_id AND p.framework_contract_id IS NOT NULL) THEN
-      RAISE EXCEPTION 'D1: website task requires a framework contract before PLANNED';
-    END IF;
-  END IF;
-
-  IF NEW.state = 'EXECUTING' AND NEW.executor_agent_id IS NULL THEN
-    RAISE EXCEPTION 'state machine: executor required to enter EXECUTING';
-  END IF;
-
-  IF NEW.state = 'EVIDENCE_SUBMITTED' THEN
-    IF NOT EXISTS (SELECT 1 FROM evidence e
-                    WHERE e.task_id = NEW.id AND e.oracle_tier >= NEW.required_oracle_tier) THEN
-      RAISE EXCEPTION 'C11: evidence bundle does not meet required tier %', NEW.required_oracle_tier;
-    END IF;
-    IF NEW.task_class = 'website' AND NOT EXISTS (
-         SELECT 1 FROM websites w WHERE w.id = NEW.website_id AND w.gate_status = 'PASSED') THEN
-      RAISE EXCEPTION 'INV-13: website design gate has not PASSED';
-    END IF;
-  END IF;
-
-  IF NEW.state = 'VERIFYING' THEN
-    IF NEW.verifier_agent_id IS NULL OR NEW.verifier_agent_id = NEW.executor_agent_id THEN
-      RAISE EXCEPTION 'INV-03: distinct verifier required to enter VERIFYING';
-    END IF;
-  END IF;
-
-  IF NEW.state IN ('QC_PASSED', 'COMPLETED') THEN
-    SELECT * INTO v FROM verifications WHERE id = NEW.verification_id;
-    IF NOT FOUND
-       OR v.task_id <> NEW.id
-       OR v.verdict <> 'PASS'
-       OR v.method_class = 'llm'
-       OR v.tier < NEW.required_oracle_tier
-       OR v.verifier_agent_id = NEW.executor_agent_id THEN
-      RAISE EXCEPTION 'INV-01/INV-04: % requires a deterministic PASS verification at tier >= %',
-        NEW.state, NEW.required_oracle_tier;
-    END IF;
-  END IF;
-
-  IF NEW.state = 'FAILED_QC' THEN
-    NEW.verification_id := NULL;
-  END IF;
-  IF NEW.state = 'COMPLETED' THEN
-    NEW.completed_at := now();
-  ELSIF NEW.completed_at IS NOT NULL THEN
-    RAISE EXCEPTION 'state machine: completed_at only on COMPLETED';
-  END IF;
-
-  NEW.updated_at := now();
-  RETURN NEW;
+  EXCEPTION WHEN raise_exception OR check_violation THEN
+    PERFORM audit_reject('task.rejected', NEW.id::text, jsonb_build_object('error', SQLERRM, 'op', TG_OP));
+    RAISE;
+  END;
 END $$;
 CREATE TRIGGER trg_task_state_guard BEFORE UPDATE ON tasks
   FOR EACH ROW EXECUTE FUNCTION task_state_guard();
@@ -492,18 +507,23 @@ CREATE TABLE tool_calls (
 -- approval for exactly these arguments.
 CREATE FUNCTION tool_call_approval_guard() RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN
-  IF NEW.risk_class IN ('high','critical') THEN
-    IF NEW.approval_id IS NULL OR NOT EXISTS (
-         SELECT 1 FROM approvals a
-          WHERE a.id = NEW.approval_id AND a.status = 'used'
-            AND a.tool_call_args_hash = NEW.args_hash AND a.task_id = NEW.task_id) THEN
-      RAISE EXCEPTION 'INV-06: % tool call without a consumed, hash-bound approval', NEW.risk_class;
+  BEGIN
+    IF NEW.risk_class IN ('high','critical') THEN
+      IF NEW.approval_id IS NULL OR NOT EXISTS (
+           SELECT 1 FROM approvals a
+            WHERE a.id = NEW.approval_id AND a.status = 'used'
+              AND a.tool_call_args_hash = NEW.args_hash AND a.task_id = NEW.task_id) THEN
+        RAISE EXCEPTION 'INV-06: % tool call without a consumed, hash-bound approval', NEW.risk_class;
+      END IF;
+      IF EXISTS (SELECT 1 FROM tool_calls t WHERE t.approval_id = NEW.approval_id) THEN
+        RAISE EXCEPTION 'INV-06: approval % already used by another call', NEW.approval_id;
+      END IF;
     END IF;
-    IF EXISTS (SELECT 1 FROM tool_calls t WHERE t.approval_id = NEW.approval_id) THEN
-      RAISE EXCEPTION 'INV-06: approval % already used by another call', NEW.approval_id;
-    END IF;
-  END IF;
-  RETURN NEW;
+    RETURN NEW;
+  EXCEPTION WHEN raise_exception OR check_violation THEN
+    PERFORM audit_reject('tool.denied', NEW.mcp_server || '/' || NEW.tool, jsonb_build_object('error', SQLERRM, 'op', TG_OP));
+    RAISE;
+  END;
 END $$;
 CREATE TRIGGER trg_tool_call_approval_guard BEFORE INSERT ON tool_calls
   FOR EACH ROW EXECUTE FUNCTION tool_call_approval_guard();
@@ -695,6 +715,29 @@ RETURNS void LANGUAGE sql AS $$
   INSERT INTO audit_log(seq, prev_hash, hash, actor, action, target, payload)
   VALUES (0, '', '', p_actor, p_action, p_target, coalesce(p_payload, '{}'::jsonb))
 $$;
+
+-- Rejections roll back their own transaction, so they are recorded through a separate
+-- connection (dblink) that commits independently. If this transaction already holds the
+-- audit chain lock, a second session would wait on it forever, so the rejection is raised
+-- as a WARNING instead and the caller (API state machine) records it.
+CREATE EXTENSION IF NOT EXISTS dblink;
+CREATE FUNCTION audit_reject(p_action text, p_target text, p_payload jsonb) RETURNS void
+LANGUAGE plpgsql AS $$
+DECLARE
+  conn text := format('dbname=%s user=%s host=%s port=%s', current_database(), current_user,
+                      split_part(current_setting('unix_socket_directories'), ',', 1), current_setting('port'));
+  actor text := coalesce(nullif(current_setting('revenueos.actor', true), ''), session_user);
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_locks WHERE locktype = 'advisory' AND pid = pg_backend_pid()
+               AND objid = 7426001 AND granted) THEN
+    RAISE WARNING 'audit_reject: % on % not recorded autonomously (audit lock held); caller must log', p_action, p_target;
+    RETURN;
+  END IF;
+  PERFORM dblink_exec(conn, format('DO $r$ BEGIN PERFORM audit_append(%L, %L, %L, %L::jsonb); END $r$',
+                                    actor, p_action, p_target, p_payload::text));
+EXCEPTION WHEN others THEN
+  RAISE WARNING 'audit_reject: could not record % on %: %', p_action, p_target, SQLERRM;
+END $$;
 
 -- Append-only enforcement that holds even for table owners (REVOKE alone does not).
 CREATE FUNCTION forbid_mutation() RETURNS trigger LANGUAGE plpgsql AS $$

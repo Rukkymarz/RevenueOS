@@ -1,11 +1,10 @@
 # RevenueOS component map: the single source of truth for how every component
 # connects. Validated in CI by tests/connectivity/test_component_graph.py.
 #
-# Spec v3 R03/R04: every spec-named project is the primary implementation, pinned in
-# config/sources.yaml. Tools added beyond the spec are extensions (>= 10k stars).
-# Named projects that have no open-source license or no public repo are listed
-# there as blocked; their extensions provide the capability until the owner
-# resolves them. Hosted or closed services are `fallback` only.
+# Spec v4: every spec-named project is the primary implementation (R04 amended), pinned in
+# config/sources.yaml. Add-ons beyond the spec pass the star gate (>=10k stars, commit within
+# 90 days). Named projects with no usable repo or license are D1 exceptions: the documented
+# add-on is the official implementation and the named tool is re-evaluated every build cycle.
 
 buses:
   mcp-gateway:  {impl: forage+agent-discover, protocol: MCP,       contract: mcp.tool_call}
@@ -143,18 +142,13 @@ components:
   - {id: comfyui, component: C14, kind: service, role: primary, oss: true, license: GPL-3.0, buses: [mcp-gateway, event-store, telemetry]}
   - {id: diffusers, component: C14, kind: tool, role: specialist, oss: true, license: Apache-2.0, buses: [mcp-gateway, event-store]}
   - {id: invokeai, component: C14, kind: service, role: primary, oss: true, license: Apache-2.0, buses: [mcp-gateway, event-store, telemetry]}
-  - {id: flux, component: C14, kind: tool, role: specialist, oss: true, license: Apache-2.0, buses: [mcp-gateway, event-store]}
   - {id: wan-video, component: C14, kind: tool, role: primary, oss: true, license: Apache-2.0, buses: [mcp-gateway, event-store]}
   - {id: ltx-video, component: C14, kind: tool, role: specialist, oss: true, license: Apache-2.0, buses: [mcp-gateway, event-store]}
-  - {id: framepack, component: C14, kind: tool, role: specialist, oss: true, license: Apache-2.0, buses: [mcp-gateway, event-store]}
-  - {id: open-sora, component: C14, kind: tool, role: specialist, oss: true, license: Apache-2.0, buses: [mcp-gateway, event-store]}
-  - {id: liveportrait, component: C14, kind: tool, role: specialist, oss: true, license: MIT, buses: [mcp-gateway, event-store]}
   - {id: upscayl, component: C14, kind: tool, role: primary, oss: true, license: AGPL-3.0, buses: [mcp-gateway, event-store]}
   - {id: rembg, component: C14, kind: tool, role: primary, oss: true, license: MIT, buses: [mcp-gateway, event-store]}
   - {id: penpot, component: C14, kind: service, role: primary, oss: true, license: MPL-2.0, buses: [mcp-gateway, event-store, telemetry]}
   - {id: ffmpeg, component: C14, kind: tool, role: primary, oss: true, license: LGPL-2.1, buses: [mcp-gateway, event-store]}
   - {id: moviepy, component: C14, kind: tool, role: primary, oss: true, license: MIT, buses: [mcp-gateway, event-store]}
-  - {id: motion-canvas, component: C14, kind: tool, role: specialist, oss: true, license: MIT, buses: [mcp-gateway, event-store]}
   - {id: video-use, component: C14, kind: agent, role: primary, oss: true, license: MIT, buses: [mcp-gateway, a2a-bus, task-api, event-store]}
   - {id: moneyprinterturbo, component: C14, kind: agent, role: specialist, oss: true, license: MIT, buses: [mcp-gateway, a2a-bus, task-api, event-store]}
   - {id: shotcut, component: C14, kind: tool, role: specialist, oss: true, license: GPL-3.0, buses: [mcp-gateway, event-store]}
@@ -170,7 +164,6 @@ components:
   - {id: crawlee, component: C07, kind: tool, role: specialist, oss: true, license: Apache-2.0, buses: [mcp-gateway, event-store]}
   - {id: scrapegraph-ai, component: C07, kind: agent, role: specialist, oss: true, license: MIT, buses: [mcp-gateway, a2a-bus, task-api, event-store]}
   - {id: maxun, component: C07, kind: tool, role: specialist, oss: true, license: AGPL-3.0, buses: [mcp-gateway, event-store]}
-  - {id: jina-reader, component: C07, kind: tool, role: specialist, oss: true, license: Apache-2.0, buses: [mcp-gateway, event-store]}
   - {id: playwright, component: C02, kind: tool, role: primary, oss: true, license: Apache-2.0, buses: [mcp-gateway, event-store]}
 
   # ---------------- C10 email marketing
@@ -188,6 +181,52 @@ components:
   - {id: umami, component: C12, kind: service, role: primary, oss: true, license: MIT, buses: [mcp-gateway, event-store, telemetry]}
   - {id: livekit, component: C05, kind: service, role: primary, oss: true, license: Apache-2.0, buses: [mcp-gateway, event-store, telemetry]}
   - {id: livekit-agents, component: C05, kind: agent, role: primary, oss: true, license: Apache-2.0, buses: [mcp-gateway, a2a-bus, task-api, event-store]}
+
+  # ---------------- Addendum B: Claude Code skill packs
+  - {id: superpowers, component: C01, kind: tool, role: specialist, oss: true, license: MIT, buses: [mcp-gateway, event-store]}
+  - {id: everything-claude-code, component: C01, kind: tool, role: primary, oss: true, license: MIT, buses: [mcp-gateway, event-store]}
+  - {id: anthropic-skills-all, component: C01, kind: tool, role: specialist, oss: true, license: Apache-2.0, buses: [mcp-gateway, event-store]}
+  - {id: mattpocock-skills, component: C01, kind: tool, role: specialist, oss: true, license: MIT, buses: [mcp-gateway, event-store]}
+  - {id: agent-skills, component: C01, kind: tool, role: specialist, oss: true, license: MIT, buses: [mcp-gateway, event-store]}
+  - {id: planning-with-files, component: C06, kind: tool, role: specialist, oss: true, license: MIT, buses: [mcp-gateway, event-store]}
+
+  # ---------------- Addendum A: agency roster
+  - {id: agency-agents, component: C01, kind: framework, role: primary, oss: true, license: MIT, buses: [mcp-gateway, a2a-bus, task-api, event-store]}
+
+  # ---------------- Addendum B: design
+  - {id: open-design, component: C08, kind: service, role: primary, oss: true, license: Apache-2.0, buses: [mcp-gateway, event-store, telemetry]}
+  - {id: astryx, component: C08, kind: tool, role: primary, oss: true, license: MIT, buses: [mcp-gateway, event-store]}
+  - {id: baseline-ui, component: C08, kind: tool, role: specialist, oss: true, license: MIT, buses: [mcp-gateway, event-store]}
+
+  # ---------------- Addendum B/C/F: scraping and lead sources
+  - {id: agent-reach, component: C07, kind: tool, role: primary, oss: true, license: MIT, buses: [mcp-gateway, event-store]}
+  - {id: easyspider, component: C07, kind: tool, role: specialist, oss: true, license: AGPL-3.0, buses: [mcp-gateway, event-store]}
+  - {id: api-anything, component: C07, kind: tool, role: fallback-extractor, oss: true, license: MIT, buses: [mcp-gateway, event-store]}
+  - {id: opengtm, component: C07, kind: tool, role: specialist, oss: true, license: AGPL-3.0, buses: [mcp-gateway, event-store]}
+  - {id: keelead, component: C07, kind: tool, role: experimental, oss: true, license: MIT, buses: [mcp-gateway, event-store]}
+  - {id: dataforge, component: C07, kind: tool, role: specialist, oss: true, license: in-repo, buses: [mcp-gateway, event-store]}
+
+  # ---------------- Addendum B: ads
+  - {id: claude-ads, component: C10, kind: tool, role: primary, oss: true, license: MIT, buses: [mcp-gateway, event-store]}
+  - {id: google-ads-mcp, component: C10, kind: tool, role: primary, oss: true, license: Apache-2.0, buses: [mcp-gateway, event-store]}
+
+  # ---------------- Addendum B/D: CRM, spreadsheets, analytics, office
+  - {id: twenty, component: C10, kind: service, role: primary, oss: true, license: AGPL-3.0, buses: [mcp-gateway, event-store, telemetry]}
+  - {id: nocodb, component: C10, kind: service, role: primary, oss: true, license: AGPL-3.0, buses: [mcp-gateway, event-store, telemetry]}
+  - {id: univer, component: C10, kind: service, role: specialist, oss: true, license: Apache-2.0, buses: [mcp-gateway, event-store, telemetry]}
+  - {id: plausible, component: C12, kind: service, role: primary, oss: true, license: AGPL-3.0, buses: [mcp-gateway, event-store, telemetry]}
+  - {id: nextcloud, component: C01, kind: service, role: primary, oss: true, license: AGPL-3.0, buses: [mcp-gateway, event-store, telemetry]}
+  - {id: richdocuments, component: C01, kind: service, role: specialist, oss: true, license: AGPL-3.0, buses: [mcp-gateway, event-store, telemetry]}
+
+  # ---------------- Addendum E: WhatsApp (secondary channel)
+  - {id: openwa, component: C09, kind: service, role: secondary, oss: true, license: MIT, buses: [mcp-gateway, event-store, telemetry]}
+
+  # ---------------- Addendum H: security scanners (standing CI job)
+  - {id: autosecscan, component: C17, kind: service, role: primary, oss: true, license: MIT, buses: [event-store, telemetry]}
+  - {id: openhack, component: C17, kind: service, role: primary, oss: true, license: MIT, buses: [event-store, telemetry]}
+  - {id: open-kritt, component: C17, kind: service, role: primary, oss: true, license: AGPL-3.0, buses: [event-store, telemetry]}
+  - {id: vulnhunter, component: C17, kind: service, role: primary, oss: true, license: Apache-2.0, buses: [event-store, telemetry]}
+  - {id: strix, component: C17, kind: service, role: primary, oss: true, license: Apache-2.0, buses: [event-store, telemetry]}
 
 # Section 8 workflow as explicit connections. Each hop names the bus and the
 # contract carried; CI proves the path is unbroken from ingress to insight.

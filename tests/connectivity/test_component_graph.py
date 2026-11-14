@@ -124,15 +124,21 @@ def test_open_source_node_is_backed_by_pinned_repos(node):
 
 @pytest.mark.parametrize("node_id,src", list(SOURCES["nodes"].items()), ids=lambda x: x if isinstance(x, str) else "")
 def test_named_components_are_primary_and_blocks_are_explained(node_id, src):
+    if src["status"] == "reference-only":
+        assert node_id not in NODES, f"{node_id} is reference-only and must not run as a component"
+        return
     assert node_id in NODES, f"sources.yaml has {node_id}, which is not in the component map"
     assert src["status"] in SOURCES["statuses"]
     if src["status"] == "named":
         assert src["named"], f"{node_id} is spec-named but no named repo is pinned (R04: no substitution)"
     if src["status"] in ("named-unlicensed", "named-not-found"):
         assert src.get("blocked_reason"), f"{node_id} is blocked without a recorded reason"
+        assert src.get("d1", "").endswith("Add-On Replaces"), f"{node_id} lacks its D1 label"
         assert src["extensions"] or NODES[node_id]["license"] == "in-repo", f"{node_id} is blocked and nothing provides its capability"
     if src["status"] in ("added", "native"):
         assert not src["named"]
+    if src["status"] == "experimental":
+        assert NODES[node_id]["role"] == "experimental", f"{node_id} is experimental-only (D5)"
 
 
 def test_removed_components_are_gone():
@@ -218,12 +224,20 @@ def test_premise_contract_requires_labels_and_sources():
 TOOLSETS = yaml.safe_load((ROOT / "config" / "toolsets.yaml").read_text())
 
 
-def test_every_extension_repo_has_at_least_min_stars():
-    # spec-named projects are exempt (R04); everything added beyond the spec must clear the bar
-    floor = SOURCES["extension_min_stars"]
-    assert floor >= 10000
-    low = [(n, r["repo"], r["stars"]) for n, v in SOURCES["nodes"].items() for r in v["extensions"] if (r["stars"] or 0) < floor]
-    assert not low, f"repos below {floor} stars: {low}"
+def test_every_extension_repo_clears_the_star_gate():
+    # Addendum B: >=10k stars, OSI license, commit within 90 days at pin time.
+    # Spec-named projects are exempt (R04); everything added beyond the spec must clear it.
+    import datetime as dt
+    gate = SOURCES["star_gate"]
+    assert gate["min_stars"] >= 10000 and gate["max_days_since_commit"] <= 90
+    checked = dt.date.fromisoformat(SOURCES["checked_on"])
+    bad = []
+    for n, v in SOURCES["nodes"].items():
+        for r in v["extensions"]:
+            age = (checked - dt.date.fromisoformat(r["last_push"])).days if r.get("last_push") else 9999
+            if (r["stars"] or 0) < gate["min_stars"] or age > gate["max_days_since_commit"]:
+                bad.append((n, r["repo"], r["stars"], r.get("last_push")))
+    assert not bad, f"extensions failing the star gate: {bad}"
 
 
 def test_toolset_members_exist_and_sit_behind_the_gateway():

@@ -1,0 +1,17 @@
+@import "tailwindcss";
+
+/* OKLCH tokens from packages/design-system (tokens.color); concentric radii from tokens.radius. */
+@theme {
+  --color-bg: oklch(0.99 0.003 250);
+  --color-surface: oklch(0.97 0.005 250);
+  --color-fg: oklch(0.22 0.02 255);
+  --color-muted: oklch(0.46 0.02 255);
+  --color-accent: oklch(0.52 0.16 255);
+  --color-accent-fg: oklch(0.99 0.003 250);
+  --color-border: oklch(0.88 0.01 250);
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+}
+
+html, body { background: var(--color-bg); color: var(--color-fg); }

@@ -13,3 +13,9 @@ for f in "$DIR"/*.sql; do
   fi
 done
 echo "migrations up to date"
+# Seeds are idempotent and re-applied on every start.
+for s in "$(dirname "$DIR")"/seed/*.sql; do
+  [ -f "$s" ] || continue
+  echo "seeding $(basename "$s")"
+  psql -v ON_ERROR_STOP=1 -X -q -f "$s"
+done

@@ -1,0 +1,16 @@
+{
+  "name": "echo-probe",
+  "version": "0.1.0",
+  "description": "Test MCP server used to prove trace propagation and receipts end to end (Phase 1, spec 1.8).",
+  "resolution_mode": "native",
+  "status": "approved",
+  "transport": "streamable-http",
+  "endpoint": "/mcp",
+  "health": "/health",
+  "auth": { "type": "bearer", "secret_ref": "keychain://mcp-echo-probe-token" },
+  "requires": { "secrets": ["keychain://mcp-echo-probe-token"] },
+  "tools": [
+    { "name": "probe_echo", "risk_class": "low", "description": "Echo a message back" },
+    { "name": "probe_guarded", "risk_class": "high", "description": "High-risk probe that needs a hash-bound approval" }
+  ]
+}
