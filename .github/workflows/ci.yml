@@ -18,6 +18,7 @@ jobs:
       REVENUEOS_PG_USER: postgres
     steps:
       - uses: actions/checkout@v4
+        with: {fetch-depth: 0}
       - run: sudo apt-get install -y postgresql-client
       - uses: actions/setup-python@v5
         with: {python-version: "3.12"}
@@ -26,3 +27,5 @@ jobs:
         run: pytest tests -q
       - name: Q8 no literal secrets
         uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
