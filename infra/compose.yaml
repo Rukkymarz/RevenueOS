@@ -1,0 +1,61 @@
+# Phase 1 services. Later phases add their services to this file; every image is
+# open source and pinned by digest at Phase 4 (see docs/PINS.md).
+name: revenueos
+
+services:
+  postgres:
+    image: postgres:16-alpine            # PostgreSQL License
+    environment:
+      POSTGRES_DB: revenueos
+      POSTGRES_USER: revenueos_owner
+      POSTGRES_PASSWORD_FILE: /run/secrets/pg_owner_password
+    secrets: [pg_owner_password]
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U revenueos_owner -d revenueos"]
+      interval: 5s
+      retries: 20
+    networks: [core]
+
+  migrate:
+    image: postgres:16-alpine
+    depends_on:
+      postgres: {condition: service_healthy}
+    environment:
+      PGHOST: postgres
+      PGUSER: revenueos_owner
+      PGDATABASE: revenueos
+      PGPASSFILE: /run/secrets/pgpass
+    secrets: [pgpass]
+    volumes:
+      - ../db:/db:ro
+    entrypoint: ["/bin/sh", "/db/migrate.sh"]
+    networks: [core]
+
+  vault:
+    image: openbao/openbao:2            # MPL-2.0; dev mode only in Phase 1
+    command: ["server", "-dev", "-dev-listen-address=0.0.0.0:8200"]
+    cap_add: [IPC_LOCK]
+    healthcheck:
+      test: ["CMD", "bao", "status", "-address=http://127.0.0.1:8200"]
+      interval: 5s
+      retries: 20
+    networks: [core]
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.115.0   # Apache-2.0
+    networks: [core]
+
+volumes:
+  pgdata: {}
+
+networks:
+  core:
+    internal: true          # INV-11: no route to the internet; the egress proxy (Phase 2) is the only way out
+
+secrets:
+  pg_owner_password:
+    file: ./secrets/pg_owner_password      # created locally, git-ignored
+  pgpass:
+    file: ./secrets/pgpass

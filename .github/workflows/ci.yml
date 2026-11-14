@@ -1,0 +1,28 @@
+name: ci
+on: [push, pull_request]
+
+jobs:
+  invariants-and-connectivity:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-retries 20
+    env:
+      REVENUEOS_PG_HOST: localhost
+      REVENUEOS_PG_PORT: "5432"
+      REVENUEOS_PG_USER: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get install -y postgresql-client
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.12"}
+      - run: pip install pytest pyyaml jsonschema
+      - name: Q6 invariant suite + component connectivity + contracts
+        run: pytest tests -q
+      - name: Q8 no literal secrets
+        uses: gitleaks/gitleaks-action@v2

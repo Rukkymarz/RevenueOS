@@ -1,0 +1,175 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "revenueos/contracts/connections",
+  "title": "Payloads carried between RevenueOS components",
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "uuid": {"type": "string", "format": "uuid"},
+    "agentRef": {"type": "string", "pattern": "^agent:[a-z0-9-]+$"},
+    "secretRef": {"type": "string", "pattern": "^(vault|keychain)://"},
+
+    "mcp.tool_call": {
+      "type": "object",
+      "required": ["task_id", "agent", "server", "tool", "args", "args_hash", "risk_class", "trace_id"],
+      "additionalProperties": false,
+      "properties": {
+        "task_id": {"$ref": "#/$defs/uuid"},
+        "agent": {"$ref": "#/$defs/agentRef"},
+        "server": {"type": "string", "minLength": 1},
+        "tool": {"type": "string", "minLength": 1},
+        "args": {"type": "object"},
+        "args_hash": {"$ref": "#/$defs/sha256"},
+        "risk_class": {"enum": ["low", "medium", "high", "critical"]},
+        "approval_id": {"$ref": "#/$defs/uuid"},
+        "idempotency_key": {"type": "string"},
+        "trace_id": {"type": "string", "minLength": 16}
+      },
+      "if": {"properties": {"risk_class": {"enum": ["high", "critical"]}}},
+      "then": {"required": ["approval_id"]}
+    },
+
+    "receipt": {
+      "type": "object",
+      "required": ["tool_call_id", "task_id", "agent", "server", "tool", "args_hash", "result_hash", "latency_ms", "cost", "risk_class", "verdict"],
+      "properties": {
+        "tool_call_id": {"$ref": "#/$defs/uuid"},
+        "task_id": {"$ref": "#/$defs/uuid"},
+        "agent": {"$ref": "#/$defs/agentRef"},
+        "server": {"type": "string"},
+        "tool": {"type": "string"},
+        "args_hash": {"$ref": "#/$defs/sha256"},
+        "result_hash": {"$ref": "#/$defs/sha256"},
+        "latency_ms": {"type": "integer", "minimum": 0},
+        "cost": {"type": "number", "minimum": 0},
+        "risk_class": {"enum": ["low", "medium", "high", "critical"]},
+        "approval_id": {"$ref": "#/$defs/uuid"},
+        "verdict": {"type": "string"}
+      }
+    },
+
+    "a2a.message": {
+      "type": "object",
+      "required": ["from", "to", "task_id", "intent", "body", "trace_id"],
+      "properties": {
+        "from": {"$ref": "#/$defs/agentRef"},
+        "to": {"$ref": "#/$defs/agentRef"},
+        "task_id": {"$ref": "#/$defs/uuid"},
+        "intent": {"enum": ["delegate", "result", "question", "veto", "handoff"]},
+        "body": {"type": "object"},
+        "budget_slice": {"type": "number", "minimum": 0},
+        "trace_id": {"type": "string", "minLength": 16}
+      }
+    },
+
+    "task.command": {
+      "type": "object",
+      "required": ["task_id", "actor", "command"],
+      "properties": {
+        "task_id": {"$ref": "#/$defs/uuid"},
+        "actor": {"type": "string"},
+        "command": {"enum": ["create", "transition", "assign", "attach_evidence", "cancel", "pause", "resume", "run_eval"]},
+        "to_state": {"type": "string"},
+        "payload": {"type": "object"}
+      }
+    },
+
+    "approval.request": {
+      "type": "object",
+      "required": ["task_id", "requested_by", "args_hash", "args_preview", "risk_class", "expires_at"],
+      "properties": {
+        "task_id": {"$ref": "#/$defs/uuid"},
+        "requested_by": {"$ref": "#/$defs/agentRef"},
+        "args_hash": {"$ref": "#/$defs/sha256"},
+        "args_preview": {"type": "object"},
+        "risk_class": {"enum": ["high", "critical"]},
+        "expires_at": {"type": "string", "format": "date-time"}
+      }
+    },
+
+    "premise.bundle": {
+      "type": "object",
+      "required": ["research_run_id", "claims", "missing_data"],
+      "properties": {
+        "research_run_id": {"$ref": "#/$defs/uuid"},
+        "claims": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["text", "label"],
+            "properties": {
+              "text": {"type": "string", "minLength": 1},
+              "label": {"enum": ["verified", "inferred", "missing"]},
+              "source_ids": {"type": "array", "items": {"type": "string"}},
+              "confidence": {"type": "number", "minimum": 0, "maximum": 1}
+            },
+            "if": {"properties": {"label": {"const": "verified"}}},
+            "then": {"required": ["source_ids"], "properties": {"source_ids": {"minItems": 1}}}
+          }
+        },
+        "missing_data": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+
+    "verification": {
+      "type": "object",
+      "required": ["task_id", "verifier", "method", "method_class", "verdict", "tier"],
+      "properties": {
+        "task_id": {"$ref": "#/$defs/uuid"},
+        "verifier": {"$ref": "#/$defs/agentRef"},
+        "method": {"enum": ["gitreins", "veripipe", "evalforge", "manual"]},
+        "method_class": {"enum": ["deterministic", "structural", "terminal_state", "reproduction", "llm"]},
+        "verdict": {"enum": ["PASS", "FAIL", "VETO", "DO_NOT_FILE"]},
+        "tier": {"enum": ["L1", "L2", "L3", "L4"]},
+        "details": {"type": "object"}
+      },
+      "if": {"properties": {"method_class": {"const": "llm"}}},
+      "then": {"properties": {"verdict": {"enum": ["FAIL", "VETO", "DO_NOT_FILE"]}}}
+    },
+
+    "trajectory": {
+      "type": "object",
+      "required": ["task_id", "verification_id", "steps", "reward"],
+      "properties": {
+        "task_id": {"$ref": "#/$defs/uuid"},
+        "verification_id": {"$ref": "#/$defs/uuid"},
+        "steps": {"type": "array", "minItems": 1, "items": {"type": "object", "required": ["tool_call_id"]}},
+        "reward": {"type": "number"},
+        "cohort": {"enum": ["canary", "holdout"]}
+      }
+    },
+
+    "skill.recall": {
+      "type": "object",
+      "required": ["agent", "task_class", "skills"],
+      "properties": {
+        "agent": {"$ref": "#/$defs/agentRef"},
+        "task_class": {"type": "string"},
+        "skills": {"type": "array", "items": {"type": "object", "required": ["skill_id", "version", "instructions"]}},
+        "cohort": {"enum": ["canary", "holdout"]}
+      }
+    },
+
+    "timeline.event": {
+      "type": "object",
+      "required": ["thing_type", "thing_id", "event_type", "payload"],
+      "properties": {
+        "thing_type": {"enum": ["service", "repo", "customer", "job", "agent", "campaign", "website", "task", "project"]},
+        "thing_id": {"type": "string"},
+        "event_type": {"type": "string"},
+        "payload": {"type": "object"}
+      }
+    },
+
+    "otel.span": {
+      "type": "object",
+      "required": ["trace_id", "span_id", "name", "service"],
+      "properties": {
+        "trace_id": {"type": "string"},
+        "span_id": {"type": "string"},
+        "parent_span_id": {"type": "string"},
+        "name": {"type": "string"},
+        "service": {"type": "string"}
+      }
+    }
+  }
+}
