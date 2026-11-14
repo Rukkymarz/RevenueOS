@@ -28,6 +28,7 @@ test("POST /v1/probe rejects a payload that violates the contract", async () => 
     body: JSON.stringify({ task_id: "not-a-uuid", agent_id: "x", message: "hi" }),
   });
   assert.equal(r.status, 400);
-  const body = (await r.json()) as { message?: { error?: string } };
-  assert.equal(body.message?.error, "contract violation");
+  const body = (await r.json()) as { error?: string; issues?: unknown[] };
+  assert.equal(body.error, "contract violation");
+  assert.ok(Array.isArray(body.issues) && body.issues.length > 0, "zod issues are returned to the caller");
 });

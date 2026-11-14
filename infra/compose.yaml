@@ -45,7 +45,7 @@ services:
     networks: [core]
 
   otel-collector:
-    image: otel/opentelemetry-collector-contrib:0.115.0
+    image: otel/opentelemetry-collector-contrib:0.164.0
     command: ["--config=/etc/otel/collector.yaml"]
     volumes:
       - ./otel/collector.yaml:/etc/otel/collector.yaml:ro
@@ -82,7 +82,7 @@ services:
     healthcheck: { test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:9100/health').status==200 else 1)"], interval: 5s, retries: 30 }
 
   envoy:
-    image: envoyproxy/envoy:v1.32-latest
+    image: envoyproxy/envoy:v1.40.2
     command: ["envoy", "-c", "/etc/envoy/envoy.yaml", "--log-level", "warn"]
     volumes: [./egress/envoy.yaml:/etc/envoy/envoy.yaml:ro]
     ports: ["127.0.0.1:10000:10000", "127.0.0.1:9901:9901"]
