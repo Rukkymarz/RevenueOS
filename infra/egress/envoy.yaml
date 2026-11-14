@@ -35,7 +35,8 @@ static_resources:
                       "@type": type.googleapis.com/envoy.extensions.filters.http.lua.v3.Lua
                       default_source_code:
                         inline_string: |
-                          function envoy_on_request(h)
+                          -- Fail closed: any script error denies the request (Envoy would otherwise let it through).
+                          local function decide(h)
                             local hdrs = h:headers()
                             local check_headers = {
                               [":method"] = "POST", [":path"] = "/v1/check", [":authority"] = "egress-authz",
@@ -51,10 +52,24 @@ static_resources:
                                         body or '{"error":"egress denied"}')
                               return
                             end
-                            hdrs:remove("x-revenueos-agent")
-                            hdrs:remove("x-revenueos-task")
+                            -- httpCall yields: header handles taken before it are no longer valid.
+                            local out = h:headers()
+                            out:remove("x-revenueos-agent")
+                            out:remove("x-revenueos-task")
+                            local injected = 0
                             for name, value in string.gmatch(body or "", "([%w%-]+)=([^\n]*)\n") do
-                              hdrs:replace(name, value)
+                              out:replace(name, value)
+                              injected = injected + 1
+                            end
+                            h:logInfo("egress allowed; injected headers: " .. injected)
+                          end
+
+                          function envoy_on_request(h)
+                            local ok, err = pcall(decide, h)
+                            if not ok then
+                              h:logErr("egress filter error, denying: " .. tostring(err))
+                              h:respond({[":status"] = "403", ["content-type"] = "application/json"},
+                                        '{"error":"egress denied","reason":"proxy filter error (fail closed)"}')
                             end
                           end
                   - name: envoy.filters.http.dynamic_forward_proxy
