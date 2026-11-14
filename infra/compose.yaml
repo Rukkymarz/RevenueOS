@@ -87,7 +87,8 @@ services:
     volumes: [./egress/envoy.yaml:/etc/envoy/envoy.yaml:ro]
     ports: ["127.0.0.1:10000:10000", "127.0.0.1:9901:9901"]
     depends_on: { egress-authz: { condition: service_healthy } }
-    healthcheck: { test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/127.0.0.1/9901 && printf \"GET /ready HTTP/1.0\\r\\n\\r\\n\" >&3 && grep -q LIVE <&3'"], interval: 5s, retries: 30 }
+    # Envoy rejects HTTP/1.0, so the probe speaks HTTP/1.1 to the admin /ready endpoint.
+    healthcheck: { test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/127.0.0.1/9901 && printf \"GET /ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n\" >&3 && grep -q LIVE <&3'"], interval: 5s, retries: 30 }
     networks: [core, egress]
 
   sandbox-supervisor:

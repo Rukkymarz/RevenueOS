@@ -77,8 +77,14 @@ class RevenueOSMcpServer:
                 envelope = {"task_id": task_id, "agent_id": agent_id, "server": server.name, "tool": name,
                             "args": args, "risk_class": risk_class, "approval_id": approval_id,
                             "traceparent": traceparent}
-                validate_envelope(envelope)
-                server.bucket.take(agent_id)
+                try:
+                    validate_envelope(envelope)
+                    server.bucket.take(agent_id)
+                except Exception as e:  # boundary rejections are audited too: no silent failure
+                    server.receipts.deny(task_id=task_id, agent_id=agent_id, server=server.name, tool=name,
+                                         args=args if isinstance(args, dict) else {}, risk_class=risk_class,
+                                         reason=f"rejected:{type(e).__name__}", trace_id=None)
+                    raise
                 ctx = extract_context(traceparent)
                 with server.tracer.start_as_current_span(f"mcp.tool/{name}", context=ctx,
                                                          attributes=standard_attributes(task_id, agent_id, name, risk_class)) as span:
