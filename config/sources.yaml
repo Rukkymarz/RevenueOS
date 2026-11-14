@@ -1,0 +1,697 @@
+checked_on: '2026-11-14'
+method: GitHub search API for license/stars/activity; git ls-remote for commit; license files read where GitHub reported NOASSERTION
+removed:
+  social0: Abhishek-B-R/social0-oss has 4 stars; Postiz already covers the same 9 networks
+  pdf-viewer-editor: SuperiorAg/PDF_Viewer_Editor has 0 stars; Stirling-PDF and PDFCraft cover it
+nodes:
+  omnigent:
+    selection: named
+    repos:
+    - repo: omnigent-ai/omnigent
+      url: https://github.com/omnigent-ai/omnigent
+      license: Apache-2.0
+      commit_sha: 38a65dbdde2d79cc2eb02c223b21a02f69c8e7f5
+      stars: 11377
+      last_push: '2026-11-14'
+  langgraph:
+    selection: named
+    repos:
+    - repo: langchain-ai/langgraph
+      url: https://github.com/langchain-ai/langgraph
+      license: MIT
+      commit_sha: 08a2016953789a4f579b4d36bd1967941ec62012
+      stars: 44948
+      last_push: '2026-11-14'
+  crewai:
+    selection: named
+    repos:
+    - repo: crewAIInc/crewAI
+      url: https://github.com/crewAIInc/crewAI
+      license: MIT
+      commit_sha: d7dfa0ef5ade793bd48ff7357c6eb45a45294371
+      stars: 60878
+      last_push: '2026-11-13'
+  autogen-ag2:
+    selection: named
+    repos:
+    - repo: ag2ai/ag2
+      url: https://github.com/ag2ai/ag2
+      license: Apache-2.0
+      commit_sha: 4356a5ee64a7852257012617445ad5a4cd230aeb
+      stars: 5063
+      last_push: '2026-11-14'
+    reason: AG2 is the actively developed AutoGen line; microsoft/autogen code is MIT but docs CC-BY-4.0
+  harness-agent:
+    selection: replacement
+    repos:
+    - repo: letta-ai/letta
+      url: https://github.com/letta-ai/letta
+      license: Apache-2.0
+      commit_sha: 8816d3a8516893bfdc0fa14bfb1235226012e295
+      stars: 25434
+      last_push: '2026-10-18'
+    reason: no public repo found for Harness Agent; Letta provides hierarchical agents with persistent memory
+  astromesh:
+    selection: replacement
+    repos:
+    - repo: BerriAI/litellm
+      url: https://github.com/BerriAI/litellm
+      license: MIT
+      commit_sha: d81c55f4cc86d0303dd89ebb7dba0a745ce425b4
+      stars: 63242
+      last_push: '2026-11-14'
+      license_note: MIT outside litellm/enterprise/; do not use enterprise/
+    reason: monaccode/astromesh has 39 stars; LiteLLM is the standard open-source multi-provider router with budgets and cost tracking
+  erebots:
+    selection: replacement
+    repos:
+    - repo: a2aproject/A2A
+      url: https://github.com/a2aproject/A2A
+      license: Apache-2.0
+      commit_sha: 4d7cda4b1754ed410e41bf3be7ad9ebc62afe3d3
+      stars: 26538
+      last_push: '2026-11-13'
+    reason: aislab-hevs/erebots4.0 has 0 stars; the MCP+A2A split is implemented directly on the official A2A protocol
+  biro:
+    selection: replacement
+    repos:
+    - repo: paperclipai/paperclip
+      url: https://github.com/paperclipai/paperclip
+      license: MIT
+      commit_sha: c1451814c155adab79fd0181674a23b0dc2669e4
+      stars: 113796
+      last_push: '2026-11-14'
+    reason: no public Biro repo found; Paperclip provides org charts, budgets, heartbeats and tickets for agents
+  incagent:
+    selection: replacement
+    repos:
+    - repo: getlago/lago
+      url: https://github.com/getlago/lago
+      license: AGPL-3.0
+      commit_sha: 63d2ddfcf3c6085e1286b4aa7101339ae6ddcac6
+      stars: 10842
+      last_push: '2026-11-14'
+    - repo: documenso/documenso
+      url: https://github.com/documenso/documenso
+      license: AGPL-3.0
+      commit_sha: 1e2333d534e151578ffb05394428e2a7efea5f50
+      stars: 15761
+      last_push: '2026-11-14'
+    reason: incagent/incagent has no license; Lago handles invoicing and settlement, Documenso offers and contracts
+  hubzoid:
+    selection: replacement
+    repos:
+    - repo: openclaw/openclaw
+      url: https://github.com/openclaw/openclaw
+      license: MIT
+      commit_sha: 18892937f80232a5f7159092e264fb9e44ad6a10
+      stars: 394427
+      last_push: '2026-11-14'
+    reason: hubzoid/hubzoid has 18 stars; OpenClaw provides markdown-defined agents with Slack, WhatsApp, Telegram and webhook routing
+  harnis:
+    selection: replacement
+    repos:
+    - repo: humanlayer/humanlayer
+      url: https://github.com/humanlayer/humanlayer
+      license: Apache-2.0
+      commit_sha: b7ad8e1d383ff0f5fbec7bdc30425e4a59d5f789
+      stars: 12878
+      last_push: '2026-11-14'
+    - repo: open-policy-agent/opa
+      url: https://github.com/open-policy-agent/opa
+      license: Apache-2.0
+      commit_sha: 8d10da6e34b846269f990daa43f39003e79b9dc4
+      stars: 12470
+      last_push: '2026-11-14'
+    reason: karawash-projects/harnis has 6 stars; HumanLayer gives human approvals, OPA gives tenant and budget policy
+  ollama:
+    selection: named
+    repos:
+    - repo: ollama/ollama
+      url: https://github.com/ollama/ollama
+      license: MIT
+      commit_sha: a5864fcb33969705de3c0ebfedf4b2a16c970bcc
+      stars: 186934
+      last_push: '2026-11-14'
+  vllm:
+    selection: named
+    repos:
+    - repo: vllm-project/vllm
+      url: https://github.com/vllm-project/vllm
+      license: Apache-2.0
+      commit_sha: 2ab8e2f746696ad7aab6cc6178ee37afa072ec8e
+      stars: 96915
+      last_push: '2026-11-14'
+  composio:
+    selection: named
+    repos:
+    - repo: ComposioHQ/composio
+      url: https://github.com/ComposioHQ/composio
+      license: MIT
+      commit_sha: fdee7595166f8b5dcff026dc609760d1ce82b2e2
+      stars: 31064
+      last_push: '2026-11-14'
+  official-mcp-servers:
+    selection: named
+    repos:
+    - repo: modelcontextprotocol/servers
+      url: https://github.com/modelcontextprotocol/servers
+      license: MIT
+      commit_sha: e1dc4b18dbb948921da37f3d4224a628730b43b0
+      stars: 91982
+      last_push: '2026-11-12'
+      license_note: transitioning MIT to Apache-2.0; both permissive
+  omnipilot:
+    selection: replacement
+    repos:
+    - repo: trycua/cua
+      url: https://github.com/trycua/cua
+      license: MIT
+      commit_sha: fb2b0df98ef42d8f9c4bbb4a2b447a3e9e3ed3f4
+      stars: 32334
+      last_push: '2026-11-14'
+    reason: xrchris7/OmniPilot has 2 stars; Cua provides sandboxed desktop VMs and containers for computer-use agents
+  browser-use:
+    selection: named
+    repos:
+    - repo: browser-use/browser-use
+      url: https://github.com/browser-use/browser-use
+      license: MIT
+      commit_sha: e717df1839a2d7368b108de6694f01e9c659b0de
+      stars: 120984
+      last_push: '2026-11-14'
+  playwright-mcp:
+    selection: named
+    repos:
+    - repo: microsoft/playwright-mcp
+      url: https://github.com/microsoft/playwright-mcp
+      license: Apache-2.0
+      commit_sha: 78eca85361efb545a4c0f59b6140aef0721c5412
+      stars: 39621
+      last_push: '2026-11-13'
+  magenticlite:
+    selection: named
+    repos:
+    - repo: microsoft/magentic-ui
+      url: https://github.com/microsoft/magentic-ui
+      license: MIT
+      commit_sha: d3c9d13c39288257286a66daabf7c5b5fb72ee69
+      stars: 10117
+      last_push: '2026-09-23'
+  openclaw-heartbeat:
+    selection: named
+    repos:
+    - repo: openclaw/openclaw
+      url: https://github.com/openclaw/openclaw
+      license: MIT
+      commit_sha: 18892937f80232a5f7159092e264fb9e44ad6a10
+      stars: 394427
+      last_push: '2026-11-14'
+  nava:
+    selection: replacement
+    repos:
+    - repo: OpenHands/OpenHands
+      url: https://github.com/OpenHands/OpenHands
+      license: MIT
+      commit_sha: 830c0459e2f6056ab81e020c22970e782ae1be75
+      stars: 93455
+      last_push: '2026-11-14'
+    reason: no public NAVA repo found; OpenHands provides coding, terminal and browser agents; the 12-step mutation gateway is built in-repo
+  aegis-os:
+    selection: replacement
+    repos:
+    - repo: containers/bubblewrap
+      url: https://github.com/containers/bubblewrap
+      license: LGPL-2.1
+      commit_sha: 1fb0aa26d3eb66254f7742e704add7f82f41a582
+      stars: 9486
+      last_push: '2026-10-14'
+    - repo: google/gvisor
+      url: https://github.com/google/gvisor
+      license: Apache-2.0
+      commit_sha: ab5f509c9c6efd407cbc360ec427b0884329c019
+      stars: 20000
+      last_push: '2026-11-14'
+    reason: no reputable Aegis OS repo (largest has 2 stars); Bubblewrap and gVisor are the kernel sandboxes the spec calls for
+  openmuse:
+    selection: replacement
+    repos:
+    - repo: steel-dev/steel-browser
+      url: https://github.com/steel-dev/steel-browser
+      license: Apache-2.0
+      commit_sha: 552550af79742a75fef24c24b1134e43e99e3d5e
+      stars: 7963
+      last_push: '2026-11-14'
+    - repo: novnc/noVNC
+      url: https://github.com/novnc/noVNC
+      license: MPL-2.0
+      commit_sha: e8b5024d4603587b29ffede4fbd28b1fa2939829
+      stars: 14204
+      last_push: '2026-10-23'
+    reason: diggerhq/openmuse has no license; Steel gives persistent agent browsers, noVNC the human takeover console
+  forage:
+    selection: replacement
+    repos:
+    - repo: IBM/mcp-context-forge
+      url: https://github.com/IBM/mcp-context-forge
+      license: Apache-2.0
+      commit_sha: 26809f391bd99ccf609f39262877ef61bd97ffc8
+      stars: 4817
+      last_push: '2026-11-14'
+    reason: no public Forage repo found; ContextForge is a maintained MCP gateway, registry and proxy
+  agent-discover:
+    selection: replacement
+    repos:
+    - repo: IBM/mcp-context-forge
+      url: https://github.com/IBM/mcp-context-forge
+      license: Apache-2.0
+      commit_sha: 26809f391bd99ccf609f39262877ef61bd97ffc8
+      stars: 4817
+      last_push: '2026-11-14'
+    reason: keshrath/agent-discover has 7 stars; ContextForge includes registry, activation, health and per-tool metrics
+  mcptoon:
+    selection: replacement
+    repos:
+    - repo: docker/mcp-gateway
+      url: https://github.com/docker/mcp-gateway
+      license: MIT
+      commit_sha: 7e0f34277c91855ad861eeff536b4fdc77420593
+      stars: 1633
+      last_push: '2026-10-26'
+    reason: mcptoon has 430 stars and one maintainer; Docker's MCP gateway provides a vetted server catalog and one-command install
+  mcpfinder:
+    selection: replacement
+    repos:
+    - repo: modelcontextprotocol/registry
+      url: https://github.com/modelcontextprotocol/registry
+      license: MIT
+      commit_sha: 115f85225c9fac5281d8a2dc8551cf49b004d2f9
+      stars: 7465
+      last_push: '2026-11-13'
+      license_note: transitioning MIT to Apache-2.0
+    reason: mcpfinder has 14 stars; the official MCP Registry is the canonical source
+  agenticmail:
+    selection: named
+    repos:
+    - repo: agenticmail/agenticmail
+      url: https://github.com/agenticmail/agenticmail
+      license: MIT
+      commit_sha: af1e0ef546b5862c1f7134649e761f56356c688a
+      stars: 254
+      last_push: '2026-11-13'
+    reason: kept as specialist for SMS and phone; moderate adoption (about 250 stars), so Stalwart is the primary mailbox
+  stalwart-mail:
+    selection: named
+    repos:
+    - repo: stalwartlabs/stalwart
+      url: https://github.com/stalwartlabs/stalwart
+      license: AGPL-3.0
+      commit_sha: e7cde9b3fac32d2a254ef782efec56f2373ec5d4
+      stars: 15923
+      last_push: '2026-11-10'
+  allmail-mcp:
+    selection: replacement
+    repos:
+    - repo: Wh1isper/mcp-email-server
+      url: https://github.com/Wh1isper/mcp-email-server
+      license: BSD-3-Clause
+      commit_sha: cb1191e4fc6d98a86aa35b4d0f1de72ff230a31d
+      stars: 394
+      last_push: '2026-11-09'
+    reason: no public allmail-mcp repo found; mcp-email-server is a maintained multi-account IMAP/SMTP MCP server
+  mission-control:
+    selection: named
+    repos:
+    - repo: builderz-labs/mission-control
+      url: https://github.com/builderz-labs/mission-control
+      license: MIT
+      commit_sha: c1a846fe020567bb3ceb3b65db9f00db875618cd
+      stars: 6491
+      last_push: '2026-11-09'
+  agentic-pm:
+    selection: replacement
+    repos:
+    - repo: github/spec-kit
+      url: https://github.com/github/spec-kit
+      license: MIT
+      commit_sha: 2ee2b1e8005905db05f5717300a469b3068b908f
+      stars: 149752
+      last_push: '2026-11-12'
+    reason: no reputable agentic-pm repo; GitHub Spec Kit produces Spec, Plan and Tasks
+  piyaz:
+    selection: replacement
+    repos:
+    - repo: makeplane/plane
+      url: https://github.com/makeplane/plane
+      license: AGPL-3.0
+      commit_sha: 290383d7f92fa8995ea2adbd12442220b3b9b525
+      stars: 62433
+      last_push: '2026-11-13'
+    reason: FrkAk/piyaz has 200 stars; Plane is the established open-source project workspace
+  gsd-pi:
+    selection: replacement
+    repos:
+    - repo: temporalio/temporal
+      url: https://github.com/temporalio/temporal
+      license: MIT
+      commit_sha: 170fb83dca48fe82d69aa3ec3b6fe25acfc1791b
+      stars: 24396
+      last_push: '2026-11-14'
+    reason: gsd-build/get-shit-done and gsd-2 are archived; Temporal runs the durable plan-implement-verify loops
+  fist-mbt:
+    selection: replacement
+    repos:
+    - repo: temporalio/temporal
+      url: https://github.com/temporalio/temporal
+      license: MIT
+      commit_sha: 170fb83dca48fe82d69aa3ec3b6fe25acfc1791b
+      stars: 24396
+      last_push: '2026-11-14'
+    reason: vicTop-cw/FIST-Mbt has 1 star; Temporal provides claim, retry and watchdog semantics
+  llm-tracker:
+    selection: native
+    repos: []
+    reason: no reputable llm-tracker repo (largest has 2 stars); filesystem-as-database mode built in-repo
+  openbusiness:
+    selection: replacement
+    repos:
+    - repo: assafelovic/gpt-researcher
+      url: https://github.com/assafelovic/gpt-researcher
+      license: Apache-2.0
+      commit_sha: ddd4db36208d9c8e49f3b2436efda97baecb5433
+      stars: 30679
+      last_push: '2026-11-12'
+    reason: wanikua/OpenBusiness has 12 stars; GPT Researcher is the established open-source research agent
+  searxng:
+    selection: named
+    repos:
+    - repo: searxng/searxng
+      url: https://github.com/searxng/searxng
+      license: AGPL-3.0
+      commit_sha: a7128d5d1d5af2837a68fbeaaee9c3e8391aa9cf
+      stars: 39540
+      last_push: '2026-11-14'
+  firecrawl:
+    selection: named
+    repos:
+    - repo: firecrawl/firecrawl
+      url: https://github.com/firecrawl/firecrawl
+      license: AGPL-3.0
+      commit_sha: 71f430a2dabffaf718cef7091c340b7384b91178
+      stars: 201670
+      last_push: '2026-11-13'
+  deepagents-open-lovable:
+    selection: replacement
+    repos:
+    - repo: firecrawl/open-lovable
+      url: https://github.com/firecrawl/open-lovable
+      license: MIT
+      commit_sha: 806b8072f28afea11fa2b028cac1449eff74c511
+      stars: 28909
+      last_push: '2026-10-09'
+    - repo: langchain-ai/deepagents
+      url: https://github.com/langchain-ai/deepagents
+      license: MIT
+      commit_sha: a93aed4bca3a5e4d45bff393e16092222767e6c3
+      stars: 31279
+      last_push: '2026-11-14'
+    reason: emanueleielo/deepagents-open-lovable has no license; its two upstreams are used directly
+  open-pages:
+    selection: replacement
+    repos:
+    - repo: dyad-sh/dyad
+      url: https://github.com/dyad-sh/dyad
+      license: Apache-2.0
+      commit_sha: a15e23340ff3f12c24c3f54d5aaf28eac0366ca3
+      stars: 22296
+      last_push: '2026-11-14'
+      license_note: Apache-2.0 outside src/pro/; do not use src/pro/
+    reason: no public open-pages repo found; Dyad is a local open-source app builder with live preview
+  nexity:
+    selection: replacement
+    repos:
+    - repo: sanity-io/sanity
+      url: https://github.com/sanity-io/sanity
+      license: MIT
+      commit_sha: 08b506252df967bbe4f0e991485a51bf38a1aa79
+      stars: 6394
+      last_push: '2026-11-14'
+    reason: Pagepro/nexity has 26 stars; Next.js 16 plus Sanity is built directly
+  syntheon:
+    selection: replacement
+    repos:
+    - repo: dyad-sh/dyad
+      url: https://github.com/dyad-sh/dyad
+      license: Apache-2.0
+      commit_sha: a15e23340ff3f12c24c3f54d5aaf28eac0366ca3
+      stars: 22296
+      last_push: '2026-11-14'
+      license_note: Apache-2.0 outside src/pro/
+    reason: cognis-digital/syntheon has 0 stars and no license; Dyad runs fully local models
+  ui-ux-pro-max:
+    selection: named
+    repos:
+    - repo: nextlevelbuilder/ui-ux-pro-max-skill
+      url: https://github.com/nextlevelbuilder/ui-ux-pro-max-skill
+      license: MIT
+      commit_sha: 6ae86f61f520d6ca229d2f40e070410638c908c5
+      stars: 149276
+      last_push: '2026-11-10'
+  frontend-design-skill:
+    selection: named
+    repos:
+    - repo: anthropics/skills
+      url: https://github.com/anthropics/skills
+      license: Apache-2.0
+      commit_sha: 2c5958ecac7cee2b583967a2c4981d0f4a75c579
+      stars: 194339
+      last_push: '2026-11-14'
+      license_note: skills/frontend-design/LICENSE.txt is Apache-2.0; other skills in the repo differ
+  chrome-devtools-mcp:
+    selection: named
+    repos:
+    - repo: ChromeDevTools/chrome-devtools-mcp
+      url: https://github.com/ChromeDevTools/chrome-devtools-mcp
+      license: Apache-2.0
+      commit_sha: 8ba2ac945ebaf1adb92208c29f3a30e73a920956
+      stars: 55878
+      last_push: '2026-11-13'
+  design-linter:
+    selection: native
+    repos:
+    - repo: dequelabs/axe-core
+      url: https://github.com/dequelabs/axe-core
+      license: MPL-2.0
+      commit_sha: d991e05ac6eb42df88f9e61c1679692534bb92e2
+      stars: 7818
+      last_push: '2026-11-13'
+    reason: agent-design-skills has no public repo; linter built in-repo, axe-core for WCAG checks
+  tastemaker:
+    selection: native
+    repos: []
+    reason: the named 56-pattern scanner has no reputable repo (Harrypatria/tastemaker has 5 stars); slop catalog built in-repo
+  postiz:
+    selection: named
+    repos:
+    - repo: gitroomhq/postiz-app
+      url: https://github.com/gitroomhq/postiz-app
+      license: AGPL-3.0
+      commit_sha: 132859f32d854830ce44b509da87409c3ec10a77
+      stars: 41574
+      last_push: '2026-11-13'
+  postmill-ai:
+    selection: named
+    repos:
+    - repo: postmill-ai/postmill-app
+      url: https://github.com/postmill-ai/postmill-app
+      license: AGPL-3.0
+      commit_sha: e06b4796fe534697f4eef77180c7d1f58c9df7fb
+      stars: 315
+      last_push: '2026-11-14'
+    reason: secondary; moderate adoption (about 300 stars)
+  mautic:
+    selection: named
+    repos:
+    - repo: mautic/mautic
+      url: https://github.com/mautic/mautic
+      license: GPL-3.0
+      commit_sha: 6711577a1df4e46cadeb739415574b49c3345771
+      stars: 10985
+      last_push: '2026-11-13'
+  helio:
+    selection: replacement
+    repos:
+    - repo: PostHog/posthog
+      url: https://github.com/PostHog/posthog
+      license: MIT
+      commit_sha: e060b5d349184643f6b355aa9e865ed4895d4ae0
+      stars: 40777
+      last_push: '2026-11-14'
+      license_note: MIT outside ee/; do not use ee/
+    reason: achref-soua/helio has 24 stars; PostHog provides self-hosted CDP, segmentation and journeys
+  netsendo:
+    selection: replacement
+    repos:
+    - repo: knadh/listmonk
+      url: https://github.com/knadh/listmonk
+      license: AGPL-3.0
+      commit_sha: e735e0b23421192a4c1b18b6221f4708b872fcd5
+      stars: 24292
+      last_push: '2026-11-14'
+    reason: NetSendo has 19 stars and an unclear license; listmonk is the established self-hosted mailer
+  gitreins:
+    selection: replacement
+    repos:
+    - repo: pre-commit/pre-commit
+      url: https://github.com/pre-commit/pre-commit
+      license: MIT
+      commit_sha: ba5c4209a6d561b0dff5db24620778d2133d068e
+      stars: 15695
+      last_push: '2026-11-09'
+    reason: totalwindupflightsystems/gitreins has 1 star; git hooks via pre-commit, evaluator and resolution gate built in-repo
+  veripipe:
+    selection: native
+    repos: []
+    reason: no reputable repo (largest has 1 star); fail-closed verifier built in-repo and already enforced in the database
+  evalforge:
+    selection: replacement
+    repos:
+    - repo: promptfoo/promptfoo
+      url: https://github.com/promptfoo/promptfoo
+      license: MIT
+      commit_sha: 45f68f0d77db9435a0d1a5a7971b208cc71f8e26
+      stars: 27159
+      last_push: '2026-11-14'
+    reason: EvalForge repos have under 10 stars; promptfoo provides YAML suites, agent evals and CI regression gates
+  postgres:
+    selection: named
+    repos:
+    - repo: postgres/postgres
+      url: https://github.com/postgres/postgres
+      license: PostgreSQL
+      commit_sha: 70c4a57b64d39c526eb4c44a925eb92a6e56f3c5
+      stars: null
+      last_push: null
+  duckdb:
+    selection: named
+    repos:
+    - repo: duckdb/duckdb
+      url: https://github.com/duckdb/duckdb
+      license: MIT
+      commit_sha: b678afa97b529d5856731e115e31542a72d2d978
+      stars: 43055
+      last_push: '2026-11-13'
+  tares:
+    selection: native
+    repos:
+    - repo: duckdb/duckdb
+      url: https://github.com/duckdb/duckdb
+      license: MIT
+      commit_sha: b678afa97b529d5856731e115e31542a72d2d978
+      stars: 43055
+      last_push: '2026-11-13'
+    reason: no public Tares repo found; timeline writer built in-repo on DuckDB
+  myelinate:
+    selection: replacement
+    repos:
+    - repo: mem0ai/mem0
+      url: https://github.com/mem0ai/mem0
+      license: Apache-2.0
+      commit_sha: f1791daa86d469249c9b002f62644d58a1eb96a0
+      stars: 68950
+      last_push: '2026-11-06'
+    reason: myelinate repos have 7 stars; Mem0 is the established agent memory layer; canary and holdout built in-repo
+  curio:
+    selection: native
+    repos:
+    - repo: assafelovic/gpt-researcher
+      url: https://github.com/assafelovic/gpt-researcher
+      license: Apache-2.0
+      commit_sha: ddd4db36208d9c8e49f3b2436efda97baecb5433
+      stars: 30679
+      last_push: '2026-11-12'
+    reason: no public Curio repo found; gap detection built in-repo, filled by GPT Researcher
+  openspace:
+    selection: replacement
+    repos:
+    - repo: letta-ai/letta
+      url: https://github.com/letta-ai/letta
+      license: Apache-2.0
+      commit_sha: 8816d3a8516893bfdc0fa14bfb1235226012e295
+      stars: 25434
+      last_push: '2026-10-18'
+    reason: HKUDS/OpenSpace was not reachable; only an archived port exists; Letta provides self-editing agent memory over its API
+  agentjet:
+    selection: replacement
+    repos:
+    - repo: verl-project/verl
+      url: https://github.com/verl-project/verl
+      license: Apache-2.0
+      commit_sha: 4191e7f910d85d69acb8c45f4840f10faa535165
+      stars: 24229
+      last_push: '2026-11-14'
+    reason: modelscope/AgentJet has 243 stars; verl is the most widely used agentic RL trainer
+  openforgerl:
+    selection: replacement
+    repos:
+    - repo: OpenRLHF/OpenRLHF
+      url: https://github.com/OpenRLHF/OpenRLHF
+      license: Apache-2.0
+      commit_sha: 26494490bc237f6c3af62dab6117e6bbb0a78dba
+      stars: 10152
+      last_push: '2026-11-03'
+    reason: the OpenForgeRL repo has 2 stars and no license
+  orchard:
+    selection: replacement
+    repos:
+    - repo: huggingface/trl
+      url: https://github.com/huggingface/trl
+      license: Apache-2.0
+      commit_sha: 8ad18ec1b6493b85cf9fffbd87d376767ceb8611
+      stars: 19734
+      last_push: '2026-11-14'
+    reason: no public Orchard repo found; TRL provides SFT and preference training on partial trajectories
+  nib:
+    selection: replacement
+    repos:
+    - repo: Stirling-Tools/Stirling-PDF
+      url: https://github.com/Stirling-Tools/Stirling-PDF
+      license: MIT
+      commit_sha: ad38e38ce9bb59ee6b16cbc2d727b6a54c0fbda0
+      stars: 96552
+      last_push: '2026-11-13'
+      license_note: MIT core; proprietary portions excluded
+    - repo: ocrmypdf/OCRmyPDF
+      url: https://github.com/ocrmypdf/OCRmyPDF
+      license: MPL-2.0
+      commit_sha: 3343116ba204c99c9fee762d538dc1b668711bfb
+      stars: 35314
+      last_push: '2026-11-14'
+    reason: daniel-alexander4/nib has 10 stars; Stirling-PDF covers forms, redaction and signing, OCRmyPDF covers OCR
+  pdfcraft:
+    selection: named
+    repos:
+    - repo: storytold/pdfcraft
+      url: https://github.com/storytold/pdfcraft
+      license: Apache-2.0
+      commit_sha: dd6c625274e00220f6eab2df0ad0f5ea2ef9a204
+      stars: 20674
+      last_push: '2026-11-14'
+  openbao:
+    selection: named
+    repos:
+    - repo: openbao/openbao
+      url: https://github.com/openbao/openbao
+      license: MPL-2.0
+      commit_sha: 92de51f7a0586759215d299bc79118874ea54fb1
+      stars: 9008
+      last_push: '2026-11-12'
+  otel-collector:
+    selection: named
+    repos:
+    - repo: open-telemetry/opentelemetry-collector-contrib
+      url: https://github.com/open-telemetry/opentelemetry-collector-contrib
+      license: Apache-2.0
+      commit_sha: e0e1cb6463e1916b077bfa838fae2aaebed6ea62
+      stars: 5050
+      last_push: '2026-11-14'

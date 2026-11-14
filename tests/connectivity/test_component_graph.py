@@ -92,10 +92,43 @@ def test_model_router_defaults_to_open_weights():
     assert set(r["defaults"]["inference"]) <= {k for k, v in NODES.items() if v["oss"] is True}
 
 
-def test_licenses_never_guessed():
-    for n in CFG["components"]:
-        if n["oss"] == "verify":
-            assert n["license"] == "verify-at-pin", f"{n['id']}: unverified project carries a guessed license"
+SOURCES = yaml.safe_load((ROOT / "config" / "sources.yaml").read_text())
+OSI = {"MIT", "Apache-2.0", "BSD-3-Clause", "MPL-2.0", "LGPL-2.1", "GPL-3.0", "AGPL-3.0", "PostgreSQL"}
+SELF_LICENSED = {"in-repo", "owner", "public-data"}
+
+
+def test_no_unvetted_components_remain():
+    assert not [n["id"] for n in CFG["components"] if n["oss"] == "verify"]
+
+
+@pytest.mark.parametrize("node", [n for n in CFG["components"] if n["oss"] is True and n["license"] not in SELF_LICENSED],
+                         ids=lambda n: n["id"])
+def test_open_source_node_is_backed_by_a_pinned_vetted_repo(node):
+    src = SOURCES["nodes"].get(node["id"])
+    assert src, f"{node['id']} has no entry in config/sources.yaml"
+    assert src["repos"], f"{node['id']} lists no repo"
+    licenses = []
+    for r in src["repos"]:
+        assert r["license"] in OSI, f"{r['repo']}: {r['license']} is not an approved open-source license"
+        assert r["commit_sha"] and len(r["commit_sha"]) == 40 and all(c in "0123456789abcdef" for c in r["commit_sha"])
+        assert r["url"] == f"https://github.com/{r['repo']}"
+        if r["license"] not in licenses:
+            licenses.append(r["license"])
+    assert node["license"] == " + ".join(licenses), f"{node['id']} license disagrees with sources.yaml"
+
+
+@pytest.mark.parametrize("node_id,src", list(SOURCES["nodes"].items()), ids=lambda x: x if isinstance(x, str) else "")
+def test_replacements_and_natives_explain_themselves(node_id, src):
+    assert node_id in NODES, f"sources.yaml has {node_id}, which is not in the component map"
+    if src["selection"] in ("replacement", "native"):
+        assert src.get("reason"), f"{node_id} was replaced or built in-repo without a recorded reason"
+    if src["selection"] == "native":
+        assert NODES[node_id]["license"] == "in-repo"
+
+
+def test_removed_components_are_gone():
+    for rid in SOURCES["removed"]:
+        assert rid not in NODES
 
 
 # ------------------------------------------------------------- flows and contracts
