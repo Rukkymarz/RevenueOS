@@ -29,7 +29,7 @@ def run(cmd):
         r = subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True)
     except FileNotFoundError as e:
         return None, str(e)
-    return r.returncode, (r.stdout + r.stderr)[-4000:]
+    return r.returncode, (r.stdout + r.stderr)[-20000:]
 
 
 def main() -> int:
@@ -52,6 +52,8 @@ def main() -> int:
         else:
             verdict = "PASS" if code == 0 else "FAIL"
         results[gid] = {"name": g["name"], "verdict": verdict, "tail": out.strip().splitlines()[-3:]}
+        if verdict != "PASS":
+            print(f"----- {gid} output (last 120 lines) -----\n" + "\n".join(out.strip().splitlines()[-120:]), flush=True)
     out = ROOT / "docs" / "reviews" / f"phase-{PHASE}-qgates.json"
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(results, indent=2) + "\n")

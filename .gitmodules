@@ -1,0 +1,148 @@
+[submodule "vendor/obra__superpowers"]
+	path = vendor/obra__superpowers
+	url = https://github.com/obra/superpowers.git
+	shallow = true
+[submodule "vendor/affaan-m__everything-claude-code"]
+	path = vendor/affaan-m__everything-claude-code
+	url = https://github.com/affaan-m/everything-claude-code.git
+	shallow = true
+[submodule "vendor/anthropics__skills"]
+	path = vendor/anthropics__skills
+	url = https://github.com/anthropics/skills.git
+	shallow = true
+[submodule "vendor/mattpocock__skills"]
+	path = vendor/mattpocock__skills
+	url = https://github.com/mattpocock/skills.git
+	shallow = true
+[submodule "vendor/addyosmani__agent-skills"]
+	path = vendor/addyosmani__agent-skills
+	url = https://github.com/addyosmani/agent-skills.git
+	shallow = true
+[submodule "vendor/OthmanAdi__planning-with-files"]
+	path = vendor/OthmanAdi__planning-with-files
+	url = https://github.com/OthmanAdi/planning-with-files.git
+	shallow = true
+[submodule "vendor/nexu-io__open-design"]
+	path = vendor/nexu-io__open-design
+	url = https://github.com/nexu-io/open-design.git
+	shallow = true
+[submodule "vendor/meta__astryx"]
+	path = vendor/meta__astryx
+	url = https://github.com/meta/astryx.git
+	shallow = true
+[submodule "vendor/ibelick__ui-skills"]
+	path = vendor/ibelick__ui-skills
+	url = https://github.com/ibelick/ui-skills.git
+	shallow = true
+[submodule "vendor/Panniantong__Agent-Reach"]
+	path = vendor/Panniantong__Agent-Reach
+	url = https://github.com/Panniantong/Agent-Reach.git
+	shallow = true
+[submodule "vendor/NaiboWang__EasySpider"]
+	path = vendor/NaiboWang__EasySpider
+	url = https://github.com/NaiboWang/EasySpider.git
+	shallow = true
+[submodule "vendor/goodnight000__api-anything"]
+	path = vendor/goodnight000__api-anything
+	url = https://github.com/goodnight000/api-anything.git
+	shallow = true
+[submodule "vendor/debpalash__OpenGTM"]
+	path = vendor/debpalash__OpenGTM
+	url = https://github.com/debpalash/OpenGTM.git
+	shallow = true
+[submodule "vendor/Atum246__keelead"]
+	path = vendor/Atum246__keelead
+	url = https://github.com/Atum246/keelead.git
+	shallow = true
+[submodule "vendor/AgriciDaniel__claude-ads"]
+	path = vendor/AgriciDaniel__claude-ads
+	url = https://github.com/AgriciDaniel/claude-ads.git
+	shallow = true
+[submodule "vendor/googleads__google-ads-mcp"]
+	path = vendor/googleads__google-ads-mcp
+	url = https://github.com/googleads/google-ads-mcp.git
+	shallow = true
+[submodule "vendor/nextcloud__server"]
+	path = vendor/nextcloud__server
+	url = https://github.com/nextcloud/server.git
+	shallow = true
+[submodule "vendor/nextcloud__richdocuments"]
+	path = vendor/nextcloud__richdocuments
+	url = https://github.com/nextcloud/richdocuments.git
+	shallow = true
+[submodule "vendor/twentyhq__twenty"]
+	path = vendor/twentyhq__twenty
+	url = https://github.com/twentyhq/twenty.git
+	shallow = true
+[submodule "vendor/plausible__analytics"]
+	path = vendor/plausible__analytics
+	url = https://github.com/plausible/analytics.git
+	shallow = true
+[submodule "vendor/msitarzewski__agency-agents"]
+	path = vendor/msitarzewski__agency-agents
+	url = https://github.com/msitarzewski/agency-agents.git
+	shallow = true
+[submodule "vendor/dream-num__univer"]
+	path = vendor/dream-num__univer
+	url = https://github.com/dream-num/univer.git
+	shallow = true
+[submodule "vendor/rmyndharis__OpenWA"]
+	path = vendor/rmyndharis__OpenWA
+	url = https://github.com/rmyndharis/OpenWA.git
+	shallow = true
+[submodule "vendor/jhammant__AutoSecScan"]
+	path = vendor/jhammant__AutoSecScan
+	url = https://github.com/jhammant/AutoSecScan.git
+	shallow = true
+[submodule "vendor/openhackai__OpenHack"]
+	path = vendor/openhackai__OpenHack
+	url = https://github.com/openhackai/OpenHack.git
+	shallow = true
+[submodule "vendor/Kritt-ai__open-kritt"]
+	path = vendor/Kritt-ai__open-kritt
+	url = https://github.com/Kritt-ai/open-kritt.git
+	shallow = true
+[submodule "vendor/capitalone__VulnHunter"]
+	path = vendor/capitalone__VulnHunter
+	url = https://github.com/capitalone/VulnHunter.git
+	shallow = true
+[submodule "vendor/usestrix__strix"]
+	path = vendor/usestrix__strix
+	url = https://github.com/usestrix/strix.git
+	shallow = true
+[submodule "vendor/teableio__teable"]
+	path = vendor/teableio__teable
+	url = https://github.com/teableio/teable.git
+	shallow = true
+[submodule "vendor/nextlevelbuilder__ui-ux-pro-max-skill"]
+	path = vendor/nextlevelbuilder__ui-ux-pro-max-skill
+	url = https://github.com/nextlevelbuilder/ui-ux-pro-max-skill.git
+	shallow = true
+[submodule "vendor/penpot__penpot"]
+	path = vendor/penpot__penpot
+	url = https://github.com/penpot/penpot.git
+	shallow = true
+[submodule "vendor/knadh__listmonk"]
+	path = vendor/knadh__listmonk
+	url = https://github.com/knadh/listmonk.git
+	shallow = true
+[submodule "vendor/postalserver__postal"]
+	path = vendor/postalserver__postal
+	url = https://github.com/postalserver/postal.git
+	shallow = true
+[submodule "vendor/umami-software__umami"]
+	path = vendor/umami-software__umami
+	url = https://github.com/umami-software/umami.git
+	shallow = true
+[submodule "vendor/docling-project__docling"]
+	path = vendor/docling-project__docling
+	url = https://github.com/docling-project/docling.git
+	shallow = true
+[submodule "vendor/livekit__livekit"]
+	path = vendor/livekit__livekit
+	url = https://github.com/livekit/livekit.git
+	shallow = true
+[submodule "vendor/livekit__agents"]
+	path = vendor/livekit__agents
+	url = https://github.com/livekit/agents.git
+	shallow = true

@@ -146,3 +146,13 @@ def test_audit_export_writes_every_row(cli_env, world, tmp_path, capsys):
     lines = out.read_text().splitlines()
     assert len(lines) == int(cli_env.one("SELECT count(*) FROM audit_log"))
     assert all(len(json.loads(line)["hash"]) == 64 for line in lines)
+
+
+def test_existing_keychain_dir_is_verified_not_modified(tmp_path):
+    d = tmp_path / "ro"
+    d.mkdir(mode=0o700)
+    os.chmod(d, 0o500)  # read-only, owner-only: accepted without chmod
+    KeychainStore(d)
+    os.chmod(d, 0o755)
+    with pytest.raises(SecretError):
+        KeychainStore(d)

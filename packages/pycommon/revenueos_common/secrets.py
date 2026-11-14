@@ -34,8 +34,14 @@ class KeychainStore:
 
     def __init__(self, root):
         self.root = Path(root)
-        self.root.mkdir(parents=True, exist_ok=True)
-        os.chmod(self.root, 0o700)
+        if not self.root.exists():
+            self.root.mkdir(parents=True, mode=0o700)
+            os.chmod(self.root, 0o700)
+        # Never chmod an existing directory: it may be a read-only mount. Refuse it instead
+        # if anyone other than the owner can read or write it.
+        mode = stat.S_IMODE(self.root.stat().st_mode)
+        if mode & 0o077:
+            raise SecretError(f"keychain directory {self.root} is accessible by others (mode {oct(mode)})")
 
     def _path(self, name):
         if "/" in name:
