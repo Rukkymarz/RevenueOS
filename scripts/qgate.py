@@ -45,6 +45,7 @@ def main() -> int:
         if code == 0 and "then" in g:
             code, more = run(g["then"])
             out += "\n" + (more or "")
+            print(f"----- {gid} {' '.join(g['then'])} -----\n{(more or '').strip()}", flush=True)
         if code is None:
             verdict = "DO_NOT_FILE"
         elif code == 5:   # pytest: no tests collected -> no evidence

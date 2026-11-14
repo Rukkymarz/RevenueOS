@@ -98,7 +98,7 @@ jobs:
       - run: pip install pytest requests pyyaml
       - name: acceptance
         shell: bash
-        run: set -o pipefail; REVENUEOS_E2E=1 pytest -q tests/e2e -p no:cacheprovider 2>&1 | tee phase-1-acceptance.log
+        run: set -o pipefail; REVENUEOS_E2E=1 pytest -v -rA tests/e2e -p no:cacheprovider 2>&1 | tee phase-1-acceptance.log
       - if: always()
         run: docker compose -f infra/compose.yaml --profile test logs --no-color 2>&1 | tee compose.log | tail -300 || true
       - uses: actions/upload-artifact@v4
