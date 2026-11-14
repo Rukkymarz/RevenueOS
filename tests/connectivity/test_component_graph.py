@@ -93,7 +93,7 @@ def test_model_router_defaults_to_open_weights():
 
 
 SOURCES = yaml.safe_load((ROOT / "config" / "sources.yaml").read_text())
-OSI = {"MIT", "Apache-2.0", "BSD-3-Clause", "MPL-2.0", "LGPL-2.1", "GPL-3.0", "AGPL-3.0", "PostgreSQL"}
+OSI = {"MIT", "Apache-2.0", "BSD-2-Clause", "BSD-3-Clause", "MPL-2.0", "LGPL-2.1", "GPL-2.0", "GPL-3.0", "AGPL-3.0", "PostgreSQL"}
 SELF_LICENSED = {"in-repo", "owner", "public-data"}
 
 
@@ -101,29 +101,38 @@ def test_no_unvetted_components_remain():
     assert not [n["id"] for n in CFG["components"] if n["oss"] == "verify"]
 
 
+def _repos(src):
+    return src["named"] + src["extensions"]
+
+
 @pytest.mark.parametrize("node", [n for n in CFG["components"] if n["oss"] is True and n["license"] not in SELF_LICENSED],
                          ids=lambda n: n["id"])
-def test_open_source_node_is_backed_by_a_pinned_vetted_repo(node):
+def test_open_source_node_is_backed_by_pinned_repos(node):
     src = SOURCES["nodes"].get(node["id"])
     assert src, f"{node['id']} has no entry in config/sources.yaml"
-    assert src["repos"], f"{node['id']} lists no repo"
+    assert _repos(src), f"{node['id']} lists no repo"
     licenses = []
-    for r in src["repos"]:
+    for r in _repos(src):
         assert r["license"] in OSI, f"{r['repo']}: {r['license']} is not an approved open-source license"
         assert r["commit_sha"] and len(r["commit_sha"]) == 40 and all(c in "0123456789abcdef" for c in r["commit_sha"])
         assert r["url"] == f"https://github.com/{r['repo']}"
         if r["license"] not in licenses:
             licenses.append(r["license"])
-    assert node["license"] == " + ".join(licenses), f"{node['id']} license disagrees with sources.yaml"
+    expected = "in-repo" if src["status"] == "native" else " + ".join(licenses)
+    assert node["license"] == expected, f"{node['id']} license disagrees with sources.yaml"
 
 
 @pytest.mark.parametrize("node_id,src", list(SOURCES["nodes"].items()), ids=lambda x: x if isinstance(x, str) else "")
-def test_replacements_and_natives_explain_themselves(node_id, src):
+def test_named_components_are_primary_and_blocks_are_explained(node_id, src):
     assert node_id in NODES, f"sources.yaml has {node_id}, which is not in the component map"
-    if src["selection"] in ("replacement", "native"):
-        assert src.get("reason"), f"{node_id} was replaced or built in-repo without a recorded reason"
-    if src["selection"] == "native":
-        assert NODES[node_id]["license"] == "in-repo"
+    assert src["status"] in SOURCES["statuses"]
+    if src["status"] == "named":
+        assert src["named"], f"{node_id} is spec-named but no named repo is pinned (R04: no substitution)"
+    if src["status"] in ("named-unlicensed", "named-not-found"):
+        assert src.get("blocked_reason"), f"{node_id} is blocked without a recorded reason"
+        assert src["extensions"] or NODES[node_id]["license"] == "in-repo", f"{node_id} is blocked and nothing provides its capability"
+    if src["status"] in ("added", "native"):
+        assert not src["named"]
 
 
 def test_removed_components_are_gone():
@@ -203,3 +212,47 @@ def test_premise_contract_requires_labels_and_sources():
     _bad("premise.bundle", dict(good, claims=[{"text": "a"}]))
     _bad("premise.bundle", dict(good, claims=[{"text": "a", "label": "verified"}]))
     _bad("premise.bundle", dict(good, claims=[{"text": "a", "label": "verified", "source_ids": []}]))
+
+
+# ------------------------------------------------------------- adoption bar and toolsets
+TOOLSETS = yaml.safe_load((ROOT / "config" / "toolsets.yaml").read_text())
+
+
+def test_every_extension_repo_has_at_least_min_stars():
+    # spec-named projects are exempt (R04); everything added beyond the spec must clear the bar
+    floor = SOURCES["extension_min_stars"]
+    assert floor >= 10000
+    low = [(n, r["repo"], r["stars"]) for n, v in SOURCES["nodes"].items() for r in v["extensions"] if (r["stars"] or 0) < floor]
+    assert not low, f"repos below {floor} stars: {low}"
+
+
+def test_toolset_members_exist_and_sit_behind_the_gateway():
+    for name, ts in TOOLSETS["toolsets"].items():
+        assert ts["members"] and ts["tools"], f"toolset {name} is empty"
+        for m in ts["members"]:
+            assert m in NODES, f"toolset {name} lists unknown component {m}"
+            assert "mcp-gateway" in NODES[m]["buses"], f"{m} in toolset {name} is not on the MCP gateway"
+        if "front_door" in ts:
+            assert ts["front_door"] in ts["members"]
+
+
+def test_every_tool_belongs_to_a_toolset():
+    covered = {m for ts in TOOLSETS["toolsets"].values() for m in ts["members"]}
+    orphans = [n["id"] for n in CFG["components"] if n["kind"] == "tool" and n["role"] != "fallback" and n["id"] not in covered]
+    assert not orphans, f"tools no agent can reach through a toolset: {orphans}"
+
+
+def test_every_agent_can_reach_every_toolset():
+    assert TOOLSETS["grants"]["default"] == "all"
+    for n in CFG["components"]:
+        if n["kind"] in AI_KINDS:
+            assert "mcp-gateway" in n["buses"] or "a2a-bus" in n["buses"], f"{n['id']} cannot reach the gateway"
+    for agent, sets in TOOLSETS["grants"]["overrides"].items():
+        assert agent in NODES and set(sets) <= set(TOOLSETS["toolsets"])
+
+
+def test_media_studio_covers_photo_and_video_work():
+    tools = set(TOOLSETS["toolsets"]["media-studio"]["tools"])
+    for needed in ("image.generate", "image.edit", "image.upscale", "image.remove_background", "video.generate",
+                   "video.camera_motion", "video.edit", "video.caption", "audio.speak"):
+        assert needed in tools

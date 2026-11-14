@@ -1,0 +1,70 @@
+# Toolsets: what every agent can reach through the MCP gateway (FastMCP).
+# Each toolset is published as one MCP server; its members are mounted behind it.
+# Access is still governed per call: INV-10 (only approved/production servers in
+# production tasks), risk classes, and hash-bound approvals for high/critical
+# actions (INV-06). Granting a toolset never bypasses those.
+
+grants:
+  default: all            # every agent in config/agents.yaml gets every toolset
+  overrides: {}           # e.g. {verifier-agent: [browser, documents]} to narrow one agent
+
+toolsets:
+  media-studio:
+    description: Higgsfield-style image and video generation, editing, upscaling, captions and voice
+    front_door: photo-generator          # your existing generator, extended
+    members: [photo-generator, comfyui, diffusers, invokeai, flux, wan-video, ltx-video, framepack, open-sora,
+              liveportrait, upscayl, rembg, penpot, ffmpeg, moviepy, motion-canvas, video-use, moneyprinterturbo,
+              shotcut, losslesscut, whisperx, chatterbox, obs-studio]
+    tools: [image.generate, image.edit, image.inpaint, image.upscale, image.remove_background, image.style_lock,
+            video.generate, video.image_to_video, video.camera_motion, video.animate_portrait, video.edit,
+            video.cut, video.caption, video.short_from_topic, video.render_motion_graphics,
+            audio.transcribe, audio.speak, design.template]
+
+  scraping:
+    description: Fetch, crawl, render, and extract structured data from the web
+    front_door: scraper                  # your existing scraper, extended
+    members: [scraper, scrapling, crawl4ai, scrapy, crawlee, scrapegraph-ai, maxun, jina-reader, playwright,
+              firecrawl, searxng]
+    tools: [fetch, extract, crawl, paginate, render_js, extract_schema, search, to_markdown]
+
+  email-marketing:
+    description: Campaigns, sequences, templates, sending, and deliverability from the agent's own identity
+    front_door: outreach                 # your existing campaigns, extended
+    members: [outreach, listmonk, mautic, postal, mjml, react-email, stalwart-mail, allmail-mcp, helio]
+    tools: [sequence_create, audience_enroll, template_render, send, pause, report, inbox_read, deliverability_check]
+
+  research:
+    description: Evidence-labeled research and filings
+    members: [openbusiness, sec-edgar, searxng, firecrawl, crawl4ai, docling]
+    tools: [research_run, canvas, filings_search, source_capture]
+
+  browser:
+    description: Agent-driven browsing and inspection
+    members: [browser-use, playwright-mcp, chrome-devtools-mcp, magenticlite, playwright]
+    tools: [navigate, click, fill, snapshot, screenshot, console_read]
+
+  social:
+    description: Publishing, analytics, and the unified inbox
+    members: [social0, postmill-ai, postiz, chatwoot]
+    tools: [publish, schedule, analytics_fetch, inbox_read, reply]
+
+  documents:
+    description: PDF, OCR, forms, and document parsing
+    members: [nib, pdfcraft, docling, paddleocr]
+    tools: [pdf_fill, pdf_redact, pdf_sign, ocr, parse_document]
+
+  web-build:
+    description: Website generation and design governance
+    members: [deepagents-open-lovable, open-pages, nexity, syntheon, ui-ux-pro-max, frontend-design-skill,
+              chrome-devtools-mcp, design-linter, tastemaker]
+    tools: [generate_site, design_query, lint_design, scan_slop, screenshot_review]
+
+  voice:
+    description: Phone and voice agents
+    members: [agenticmail, livekit, livekit-agents, chatterbox, whisperx]
+    tools: [call_place, call_answer, speak, transcribe]
+
+  integrations:
+    description: Gmail, GitHub, Slack, Notion, Supabase and about 400 more
+    members: [official-mcp-servers, mcptoon, mcpfinder, composio]
+    tools: [connector_call]
