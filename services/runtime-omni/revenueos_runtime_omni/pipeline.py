@@ -16,6 +16,7 @@ import email.policy
 import imaplib
 import json
 import re
+import ssl
 import subprocess
 import time
 from dataclasses import dataclass, field
@@ -42,6 +43,12 @@ def _imap(host: str, port: int, login: str, password: str) -> imaplib.IMAP4:
     """Plain IMAP on the internal compose network, like allmail-mcp; the login is the Stalwart
     principal, not the address."""
     m = imaplib.IMAP4(host, port, timeout=20)
+    if "STARTTLS" in m.capabilities:
+        # Same as allmail-mcp: the self-hosted mail server inside the compose network presents
+        # Stalwart's generated certificate, so the channel is encrypted but not name-verified.
+        ctx = ssl.create_default_context()
+        ctx.check_hostname, ctx.verify_mode = False, ssl.CERT_NONE
+        m.starttls(ssl_context=ctx)
     m.login(login, password)
     return m
 

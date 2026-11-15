@@ -199,3 +199,22 @@ def test_egress_ca_rejects_bad_hosts_and_non_ca_certs(ca):
     assert leaf_ctx is not None
     with pytest.raises(Exception):
         EgressCA("not a cert", "not a key")
+
+
+@needs_sandbox
+def test_commit_keeps_inside_links_and_refuses_escaping_ones(tmp_path):
+    """Source trees carry relative symlinks; they commit. A link that leaves the workspace is an
+    escape and the whole commit is refused."""
+    ws = tmp_path / "ws"
+    ws.mkdir()
+    ok = run_in_sandbox(["sh", "-c", "echo data > real.txt && ln -s real.txt alias.txt"], ws, keep_shadow=True)
+    assert ok.status == "ok"
+    applied = commit(ok, ws, ok.changeset_hash)
+    assert "alias.txt" in applied and (ws / "alias.txt").is_symlink()
+    assert (ws / "alias.txt").read_text().strip() == "data"
+    for target in ("/etc/passwd", "../../outside"):
+        bad = run_in_sandbox(["ln", "-s", target, "evil"], ws, keep_shadow=True)
+        assert bad.status == "ok"
+        with pytest.raises(PermissionError, match="leaves the workspace"):
+            commit(bad, ws, bad.changeset_hash)
+        assert not (ws / "evil").is_symlink()

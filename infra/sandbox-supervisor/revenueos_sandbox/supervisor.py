@@ -261,7 +261,17 @@ def commit(result: SandboxResult, workspace: Path | str, approved_changeset_hash
             src = result.shadow / rel
             dst.parent.mkdir(parents=True, exist_ok=True)
             if src.is_symlink():
-                raise PermissionError(f"{rel}: symlinks are not committed")
+                # A link is committed only if it is relative and stays inside the workspace
+                # (source trees carry them); anything pointing out is an escape and is refused.
+                target = os.readlink(src)
+                landing = os.path.normpath(os.path.join(dst.parent, target))
+                if os.path.isabs(target) or not (landing + os.sep).startswith(str(ws) + os.sep):
+                    raise PermissionError(f"{rel}: symlink leaves the workspace")
+                if dst.is_symlink() or dst.exists():
+                    dst.unlink()
+                os.symlink(target, dst)
+                applied.append(rel)
+                continue
             shutil.copy2(src, dst)
         applied.append(rel)
     return applied
