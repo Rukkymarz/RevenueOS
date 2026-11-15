@@ -49,3 +49,11 @@ enable = true
 [authentication.fallback-admin]
 user = "admin"
 secret = "%{file:/run/secrets/stalwart_admin}%"
+
+# No runtime downloads (R03): Stalwart otherwise fetches its spam-filter rules from GitHub's
+# "latest" release at start. When that URL 404'd the whole configuration failed to build and
+# mailbox logins broke. Agent mailboxes receive only stack-internal mail in this phase.
+[spam-filter]
+enable = false
+resource = ""
+auto-update = false
