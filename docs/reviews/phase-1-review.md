@@ -130,3 +130,27 @@ orchestrator 91.4%; `services/qc` 100% (90% required); `packages/mcp-common` 89.
 - Keychain verifies, never modifies, mounted secret directories.
 - Per-unit coverage gate rather than one total.
 - Addendum repos pinned as submodule pointers at their exact commits.
+
+## Re-audit against spec v4 (all four spec files) — 2026-11-14
+
+The full v1, v3, v4 and Phase 14A files were re-read against the sealed build. Phase 1 scope gaps
+found, fixed and re-run through the gate (Step 5 loop):
+
+| # | Gap | Spec reference | Fix |
+| --- | --- | --- | --- |
+| R1 | Addendum H scanners were not a standing CI job | D10, Addendum H, 15.2 | `.github/workflows/security.yml`: AutoSecScan every commit, OpenHack every PR, open-kritt on `release/*`, VulnHunter pre-deploy, Strix on generated sites; unrun scan = DO_NOT_FILE and fails |
+| R2 | Approval hashes could differ between TS and Python | INV-06 | RFC 8785 canonical JSON in both languages, 8 shared vectors |
+| R3 | `packages/*` had no health self-check | layout: mcp-common "health" | `health()` in contracts, design-system, sdk, pycommon, mcp-common |
+| R4 | No DuckDB schema | layout: "DuckDB schemas"; 15.5 | `db/duckdb/0001_mirror.sql` with verified-only views |
+| R5 | THREATMODEL, RUNBOOK, TASK_CLASSES, LEARNING missing | layout section 6 | created; accurate to the Phase 1 build, extended per phase |
+| R6 | README components table had no purpose column | Addendum I | purpose column added; doc index lists all docs |
+| R7 | AutoSecScan action pulls a floating `:latest` image | R03 pins | image built from pinned SHA 881d960 |
+| R8 | 2 high: containers ran as root | AutoSecScan (trivy DS-0002) | non-root images; compose runs as host owner of secrets |
+| R9 | 2 high: expressions interpolated into workflow shell | AutoSecScan (semgrep) | event context and secrets only via env vars |
+
+Result: CI green (node, python Q-gates, contracts ts2, compose acceptance, secret scan) at the
+re-seal commit; AutoSecScan PASS (0 high/critical). OpenHack records DO_NOT_FILE on pull requests
+until `SECURITY_OPEN_MODEL_BASE_URL` / `_API_KEY` / `_NAME` secrets exist; VulnHunter, Strix and
+open-kritt need their secrets before they first apply (pre-deploy, Phase 9 sites, release
+branches). This is the D10 rule, not a defect.
+
