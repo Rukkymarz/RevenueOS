@@ -1,0 +1,17 @@
+[project]
+name = "revenueos-risk"
+version = "0.1.0"
+description = "Single-sourced risk classification for every RevenueOS runtime (spec 3.2)"
+requires-python = ">=3.12"
+# OmniPilot (named, C02) supplies the per-tool danger patterns; pinned to the reviewed commit.
+dependencies = ["omnipilot @ git+https://github.com/xrchris7/OmniPilot@2e3a6bd02f1e508275f7242accad065805993a22"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["revenueos_risk"]

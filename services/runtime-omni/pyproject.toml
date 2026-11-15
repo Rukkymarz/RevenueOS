@@ -3,13 +3,23 @@ name = "revenueos-runtime-omni"
 version = "0.1.0"
 description = "RevenueOS runtime-omni service (C02)"
 requires-python = ">=3.12"
-dependencies = ["revenueos-common"]
+dependencies = [
+  "revenueos-common", "revenueos-mcp-common", "revenueos-risk", "revenueos-sandbox-supervisor",
+  # OmniPilot (named, C02) with its desktop, system, server and MCP extras, at the reviewed commit
+  "omnipilot[gui,system,server,mcp] @ git+https://github.com/xrchris7/OmniPilot@2e3a6bd02f1e508275f7242accad065805993a22",
+]
 
 [project.scripts]
 revenueos-runtime-omni = "revenueos_runtime_omni.__main__:main"
 
 [tool.uv.sources]
 revenueos-common = { workspace = true }
+revenueos-mcp-common = { workspace = true }
+revenueos-risk = { workspace = true }
+revenueos-sandbox-supervisor = { workspace = true }
+
+[tool.hatch.metadata]
+allow-direct-references = true
 
 [build-system]
 requires = ["hatchling"]

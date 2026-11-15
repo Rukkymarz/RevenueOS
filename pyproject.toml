@@ -8,6 +8,7 @@ members = [
   "packages/pycommon",
   "packages/contracts/python",
   "packages/mcp-common",
+  "packages/risk",
   "services/*",
   "mcp/*",
   "infra/egress",
@@ -21,5 +22,5 @@ xfail_strict = true
 
 [tool.coverage.run]
 branch = true
-source = ["services", "packages/pycommon", "packages/mcp-common", "infra/egress", "infra/sandbox-supervisor", "mcp"]
+source = ["services", "packages/pycommon", "packages/mcp-common", "packages/risk", "infra/egress", "infra/sandbox-supervisor", "mcp"]
 omit = ["*/__main__.py", "*/tests/*"]

@@ -15,6 +15,7 @@ from revenueos_common.service import create_app
 from . import COMPONENT, SERVICE
 
 ECHO_PROBE_URL = os.environ.get("ECHO_PROBE_URL", "http://echo-probe:8201")
+RUNTIME_OMNI_URL = os.environ.get("RUNTIME_OMNI_URL", "http://runtime-omni:8102")
 
 
 async def info(_: Request) -> JSONResponse:
@@ -47,5 +48,35 @@ async def probe(request: Request) -> JSONResponse:
     return JSONResponse(body.model_dump(mode="json"))
 
 
+async def runtime_tool(request: Request) -> JSONResponse:
+    """Remote control (spec 3.6): orchestrator -> runtime REST -> tool call -> receipt -> span."""
+    import httpx
+    from opentelemetry import propagate
+    from revenueos_common.secrets import KeychainStore, SecretResolver
+    from revenueos_mcp_common import setup_tracing, standard_attributes
+
+    name = request.path_params["name"]
+    body = await request.json()
+    tracer = setup_tracing(SERVICE)
+    attrs = standard_attributes(str(body.get("task_id", "")), str(body.get("agent_id", "")), name, "unclassified")
+    with tracer.start_as_current_span("orchestrator.runtime_tool", context=propagate.extract(dict(request.headers)),
+                                      attributes=attrs) as span:
+        secrets = SecretResolver(KeychainStore(os.environ.get("REVENUEOS_KEYCHAIN_DIR", "/run/revenueos/keychain")))
+        token = secrets.get("keychain://runtime-omni-token")
+        if not token:
+            return JSONResponse({"error": "runtime-omni token not configured"}, status_code=503)
+        carrier: dict = {}
+        propagate.inject(carrier)
+        async with httpx.AsyncClient(timeout=180) as client:
+            r = await client.post(f"{RUNTIME_OMNI_URL}/v1/tools/{name}/invoke",
+                                  json={**body, "traceparent": carrier.get("traceparent")},
+                                  headers={"authorization": f"Bearer {token}"})
+        out = r.json()
+        if isinstance(out, dict) and out.get("risk_class"):
+            span.set_attribute("risk_class", out["risk_class"])
+        return JSONResponse({**out, "trace_id": format(span.get_span_context().trace_id, "032x")}, status_code=r.status_code)
+
+
 app = create_app(SERVICE, checks={"component_map": config_loaded},
-                 routes=[Route("/v1/info", info), Route("/v1/probe", probe, methods=["POST"])])
+                 routes=[Route("/v1/info", info), Route("/v1/probe", probe, methods=["POST"]),
+                         Route("/v1/runtime/tools/{name}", runtime_tool, methods=["POST"])])

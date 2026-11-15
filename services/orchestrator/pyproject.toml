@@ -3,7 +3,7 @@ name = "revenueos-orchestrator"
 version = "0.1.0"
 description = "RevenueOS orchestrator service (C01)"
 requires-python = ">=3.12"
-dependencies = ["revenueos-common", "revenueos-mcp-common", "revenueos-contracts"]
+dependencies = ["revenueos-common", "revenueos-mcp-common", "revenueos-contracts", "httpx>=0.27"]
 
 [project.scripts]
 revenueos-orchestrator = "revenueos_orchestrator.__main__:main"
