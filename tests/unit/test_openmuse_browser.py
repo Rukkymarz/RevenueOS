@@ -143,8 +143,10 @@ def test_pipeline_success_path_end_to_end_with_fakes(fake_playwright, tmp_path, 
 
     def fake_nib(args, timeout=60):
         if args[0] == "fill":
-            import json
-            filled_values.update(json.loads(Path(args[3]).read_text()))
+            import xml.etree.ElementTree as ET
+            ns = {"x": "http://ns.adobe.com/xfdf/"}
+            filled_values.update({f.get("name"): f.find("x:value", ns).text
+                                  for f in ET.fromstring(Path(args[3]).read_text()).iterfind(".//x:field", ns)})
             Path(args[-1]).write_bytes(b"%PDF-filled")
         else:
             Path(args[-1]).write_text("".join(f"<value>{v}</value>" for v in filled_values.values()))

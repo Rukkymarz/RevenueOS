@@ -14,7 +14,6 @@ from __future__ import annotations
 import email
 import email.policy
 import imaplib
-import json
 import re
 import ssl
 import subprocess
@@ -81,9 +80,17 @@ def nib(args: list[str], timeout: int = 60) -> str:
     return r.stdout
 
 
+def xfdf(values: dict[str, str]) -> str:
+    """Form data as XFDF, the Acrobat/Foxit interchange format nib reads and writes."""
+    from xml.sax.saxutils import escape, quoteattr
+    fields = "".join(f"<field name={quoteattr(k)}><value>{escape(v)}</value></field>" for k, v in values.items())
+    return ('<?xml version="1.0" encoding="UTF-8"?>'
+            f'<xfdf xmlns="http://ns.adobe.com/xfdf/" xml:space="preserve"><fields>{fields}</fields></xfdf>')
+
+
 def fill_form(pdf: Path, values: dict[str, str], out: Path) -> None:
-    data = out.with_suffix(".data.json")
-    data.write_text(json.dumps(values))
+    data = out.with_suffix(".data.xfdf")
+    data.write_text(xfdf(values))
     nib(["fill", str(pdf), "--data", str(data), "-o", str(out)])
 
 

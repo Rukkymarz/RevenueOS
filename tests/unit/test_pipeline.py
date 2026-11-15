@@ -18,10 +18,14 @@ def test_fill_form_invokes_nib_with_json_data(monkeypatch, tmp_path):
     calls = []
     monkeypatch.setattr(pl, "nib", lambda args, timeout=60: calls.append(args) or "")
     pdf, out = tmp_path / "in.pdf", tmp_path / "out.pdf"
-    pl.fill_form(pdf, {"name": "A", "email": "a@b"}, out)
+    pl.fill_form(pdf, {"name": "A & <B>", "email": "a@b"}, out)
     assert calls[0][:2] == ["fill", str(pdf)]
-    assert calls[0][2:4] == ["--data", str(out.with_suffix(".data.json"))]
-    assert json.loads(out.with_suffix(".data.json").read_text()) == {"name": "A", "email": "a@b"}
+    assert calls[0][2:4] == ["--data", str(out.with_suffix(".data.xfdf"))]
+    import xml.etree.ElementTree as ET
+    root = ET.fromstring(out.with_suffix(".data.xfdf").read_text())
+    ns = {"x": "http://ns.adobe.com/xfdf/"}
+    assert {f.get("name"): f.find("x:value", ns).text for f in root.iterfind(".//x:field", ns)} == \
+        {"name": "A & <B>", "email": "a@b"}
 
 
 def test_review_passes_only_when_every_field_round_trips(monkeypatch, tmp_path):
