@@ -186,7 +186,7 @@ def main() -> None:  # pragma: no cover - process entrypoint
     uvicorn.run(app, host="0.0.0.0", port=int(os.environ.get("PORT", 8400)))
 
 
-def build_all():
+def build_all(**kw):
     """All 15 servers in one Starlette app, each mounted at /<domain>/ with its own bearer token
     and its own receipts; one process for the whole suite (compose service nava-mcp)."""
     import contextlib
@@ -196,7 +196,7 @@ def build_all():
     from starlette.responses import JSONResponse
     from starlette.routing import Mount, Route
 
-    servers = {d: build(d) for d in DOMAINS}
+    servers = {d: build(d, **kw) for d in DOMAINS}
     apps = {d: s.http_app() for d, s in servers.items()}
 
     @contextlib.asynccontextmanager

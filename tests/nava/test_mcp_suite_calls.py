@@ -100,10 +100,10 @@ def test_http_errors_become_verdicts(wired, monkeypatch):
     assert out["status"] == "failed" and "502" in out["reason"]
 
 
-def test_all_fifteen_mount_in_one_app():
+def test_all_fifteen_mount_in_one_app(tmp_path):
     pytest.importorskip("httpx")
     from starlette.testclient import TestClient
-    app = suite.build_all()
+    app = suite.build_all(secrets=SecretResolver(KeychainStore(tmp_path / "kc")))
     with TestClient(app) as c:
         body = c.get("/health").json()
     assert body["count"] == 15 and set(body["servers"]) == set(suite.DOMAINS)
