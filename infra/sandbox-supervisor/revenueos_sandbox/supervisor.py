@@ -103,10 +103,20 @@ def _limits(q: Quotas) -> Callable[[], None]:
     def apply():
         resource.setrlimit(resource.RLIMIT_CPU, (q.cpu_seconds, q.cpu_seconds))
         resource.setrlimit(resource.RLIMIT_AS, (q.memory_mb << 20, q.memory_mb << 20))
-        resource.setrlimit(resource.RLIMIT_NPROC, (q.pids, q.pids))
+        # RLIMIT_NPROC is NOT set here: before the sandbox's user namespace exists it is counted
+        # against the host uid, which every RevenueOS container shares, so a busy host made
+        # bwrap fail with EAGAIN. It is applied inside the namespace instead (see _pid_cap).
         resource.setrlimit(resource.RLIMIT_FSIZE, (q.file_mb << 20, q.file_mb << 20))
         resource.setrlimit(resource.RLIMIT_CORE, (0, 0))
     return apply
+
+
+def _pid_cap(argv: list[str], q: Quotas) -> list[str]:
+    """Cap processes from inside the sandbox's own user namespace, where the kernel counts only
+    the sandbox's tasks (per-namespace accounting), so the quota is exact and a fork bomb is
+    contained whatever else the host uid is running. The sandbox has no capabilities, so the
+    hard limit cannot be raised again."""
+    return ["prlimit", f"--nproc={q.pids}:{q.pids}", "--", *argv]
 
 
 def bwrap_argv(argv: list[str], shadow_ws: Path, egress_dir: Path | None) -> list[str]:
@@ -190,7 +200,7 @@ def run_in_sandbox(argv: list[str], workspace: Path | str | None = None, *, yolo
         cmd = ["sandbox-exec", "-p", seatbelt_profile(shadow_ws, egress.socket_path if egress else None), *argv]
         backend, cwd = "seatbelt", shadow_ws
     else:
-        cmd = bwrap_argv(argv, shadow_ws, egress.dir if egress else None)
+        cmd = bwrap_argv(_pid_cap(argv, q), shadow_ws, egress.dir if egress else None)
         backend, cwd = "bubblewrap", None
     extra = []
     for k, v in (env or {}).items():

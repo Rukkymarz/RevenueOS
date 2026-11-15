@@ -123,6 +123,9 @@ def run_signup_pipeline(browser, agent_id: str, task_id: str, *, email_addr: str
         browser.goto(agent_id, signup_url + "/")
         browser.fill(agent_id, "#email", email_addr)
         browser.click(agent_id, "#submit")
+        page = browser.text(agent_id)["text"]
+        if 'id="sent"' not in page:      # e.g. the proxy refused the host: say so, don't wait for mail
+            raise RuntimeError("signup form was not accepted: " + page[:300])
         res.stage("signup.submitted", email=email_addr)
 
         code = wait_for_otp(imap_host, imap_port, login, password)

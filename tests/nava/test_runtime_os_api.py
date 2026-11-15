@@ -70,3 +70,35 @@ def test_inbox_and_syscall_isolation(api):
                       headers=hdr).json()["id"]
     assert client.get(f"/v1/syscalls/{sid}", headers=hdr2).status_code == 404
 
+
+
+def test_memory_subagent_and_plan_routes(api):
+    client, hdr, hdr2, nava = api
+    assert client.post("/v1/memory", json={"tier": "eternal", "key": "k", "value": {}}, headers=hdr).status_code == 400
+    mid = client.post("/v1/memory", json={"tier": "episodic", "key": "k", "value": {"v": 1}}, headers=hdr).json()["id"]
+    items = client.get("/v1/memory?tier=episodic&key=k", headers=hdr).json()["items"]
+    assert [i["id"] for i in items] == [mid]
+    assert client.get("/v1/memory?tier=episodic", headers=hdr2).json()["items"] == []      # not my memory
+    assert client.get("/v1/bus/inbox?after=x", headers=hdr).status_code == 400
+    assert client.post("/v1/bus/send", json={"to": "nope", "body": {}}, headers=hdr).status_code == 400
+    assert {t["name"] for t in client.get("/v1/tools", headers=hdr).json()["tools"]} >= {"fs.read", "sandbox.run"}
+    assert client.get("/v1/syscalls/not-a-uuid", headers=hdr).status_code == 400
+
+    assert client.post("/v1/subagents", json={}, headers=hdr).status_code == 400
+    child = client.post("/v1/subagents", json={"objective": "help", "ttl_s": 60, "denies": ["sandbox.*"]},
+                        headers=hdr).json()
+    chdr = {"authorization": f"Bearer {child['token']}"}
+    assert client.post("/v1/subagents", json={"objective": "nested"}, headers=chdr).status_code == 403
+
+    assert client.post("/v1/plans", json={"task_id": nava.task, "steps": []}, headers=hdr).status_code == 400
+    pid = client.post("/v1/plans", json={"task_id": nava.task, "objective": "o", "steps": [
+        {"tool": "fs.write", "args": {"workspace": "pl", "path": "a", "content": "1"}},
+        {"tool": "test.echo", "args": {"text": "x"}}]}, headers=hdr).json()["id"]
+    assert client.get(f"/v1/plans/{pid}", headers=hdr2).status_code == 404                  # not my plan
+    assert client.post(f"/v1/plans/{pid}/pause", headers=hdr, json={}).json()["status"] == "paused"
+    assert client.post(f"/v1/plans/{pid}/run", headers=hdr, json={}).json()["status"] == "paused"
+    done = client.post(f"/v1/plans/{pid}/resume", headers=hdr, json={}).json()
+    assert done["status"] == "completed"
+    assert client.post(f"/v1/plans/{pid}/retry", headers=hdr, json={}).json()["status"] == "completed"
+    assert client.post(f"/v1/plans/{pid}/explode", headers=hdr, json={}).status_code == 404
+    assert client.get(f"/v1/plans/{pid}", headers=hdr).json()["steps"][0]["status"] == "done"

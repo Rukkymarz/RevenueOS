@@ -309,8 +309,8 @@ def test_openmuse_pipeline_signup_to_reviewed_draft_unattended(pipeline_agent):
     task = psql("INSERT INTO tasks(objective, task_class, acceptance_criteria) VALUES "
                 "('openmuse signup pipeline', 'identity.signup', '[{\"check\":\"pipeline\"}]') RETURNING id").splitlines()[0]
     status, out = omni_http("POST", "/v1/openmuse/pipeline/signup", {"task_id": task, "agent_id": agent})
-    assert status == 200, out
-    assert out["status"] == "completed" and out["review"]["verdict"] == "PASS", out
+    assert status == 200, json.dumps(out)[-2000:]
+    assert out["status"] == "completed" and out["review"]["verdict"] == "PASS", json.dumps(out)[-2000:]
     stages = [s["stage"] for s in out["stages"]]
     assert stages == ["browser.open", "signup.submitted", "otp.extracted", "signup.verified",
                       "form.downloaded", "form.filled", "review", "reply.drafted"], stages

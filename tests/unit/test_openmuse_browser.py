@@ -40,7 +40,7 @@ class FakePage:
         return f"text of {sel}"
 
     def content(self):
-        return "<html>fake</html>"
+        return '<html>fake <p id="sent">ok</p></html>'
 
     def expect_download(self, timeout=None):
         page = self
