@@ -11,6 +11,10 @@ gen "$DIR/pg_owner_password"
 gen "$DIR/keychain/mcp-echo-probe-token"
 gen "$DIR/keychain/upstream-echo-token"
 gen "$DIR/keychain/egress-identity-hmac"   # signs identity-pinned egress (supervisor -> egress-authz)
+# Mail stack (spec 2.1). Stalwart reads its admin secret from a file, byte for byte: no newline.
+[ -f "$DIR/keychain/stalwart-admin-password" ] || { umask 077; printf '%s' "$(openssl rand -hex 24)" > "$DIR/keychain/stalwart-admin-password"; }
+[ -f "$DIR/keychain/agenticmail-master-key" ] || { umask 077; printf 'mk_%s' "$(openssl rand -hex 32)" > "$DIR/keychain/agenticmail-master-key"; }
+chmod 600 "$DIR/keychain/stalwart-admin-password" "$DIR/keychain/agenticmail-master-key"
 # API bearer tokens (spec 2.5 RBAC). The API reads only their sha256 digests from api-principals.
 gen "$DIR/keychain/api-token-owner"         # human:owner  - approver, auditor
 gen "$DIR/keychain/api-token-probe-agent"   # agent:probe  - requester

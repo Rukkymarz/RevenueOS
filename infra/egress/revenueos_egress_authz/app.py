@@ -86,6 +86,8 @@ def decide(agent: str, task: str, authority: str, method: str, path: str, policy
             rendered = b.get("format", "{}").replace("{}", value)
             if not SAFE_VALUE.match(rendered):
                 return False, "secret value contains a line break (refused)", {}
+            if b["header"].lower() in inject:
+                return False, f"ambiguous secret bindings for {b['header']} (fail closed)", {}
             inject[b["header"].lower()] = rendered
     return True, "allowlisted", inject
 

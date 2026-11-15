@@ -178,3 +178,57 @@ def test_expired_approval_is_refused_and_logged():
 def test_approver_list_and_role_separation():
     assert api("GET", "/v1/approvals?status=pending", "owner").status_code == 200
     assert api("GET", "/v1/approvals", "probe-agent").status_code == 403
+
+
+# --------------------------------------------------------------------------- identity + leads agent
+def identity_cli(*args) -> dict:
+    r = subprocess.run([*COMPOSE, "exec", "-T", "identity", "revenueos-identity", *args],
+                       capture_output=True, text=True, timeout=300)
+    assert r.stdout.strip(), r.stderr
+    return json.loads(r.stdout)
+
+
+@pytest.fixture(scope="module")
+def leads():
+    name = f"leads-{uuid.uuid4().hex[:6]}"
+    out = identity_cli("provision", "--name", name, "--role", "leads", "--allow", "signup-test:8090")
+    return out
+
+
+def test_one_command_provisions_email_calendar_browser_and_reports_phone(leads):
+    ids = leads["identities"]
+    assert ids["email"]["status"] == "active" and ids["email"]["address"].endswith("@agents.revenueos.test")
+    assert ids["calendar"]["status"] == "active" and ids["calendar"]["address"].startswith("http://stalwart:8080/")
+    assert ids["browser_profile"]["status"] == "active"
+    ls = subprocess.run([*COMPOSE, "exec", "-T", "identity", "ls", ids["browser_profile"]["profile_path"]],
+                        capture_output=True, text=True)
+    assert "user-data" in ls.stdout and "profile.json" in ls.stdout
+    # A phone number is a paid carrier resource: without carrier credentials it is pending, never faked.
+    assert ids["phone"]["status"] == "pending" and "carrier" in ids["phone"]["reason"]
+    agent = leads["agent_id"]
+    assert psql(f"SELECT count(*) FROM agent_identities WHERE agent_id='{agent}' AND status='active'") == "3"
+    key_ref = psql(f"SELECT secret_ref FROM agent_identities WHERE agent_id='{agent}' AND kind='email'")
+    assert key_ref.startswith("keychain://") and "ak_" not in json.dumps(leads)
+
+
+def _task(objective: str) -> str:
+    return psql(f"INSERT INTO tasks(objective, task_class, acceptance_criteria) VALUES ('{objective}', 'identity.signup', "
+                f"'[{{\"check\":\"signup_verified\"}}]') RETURNING id").splitlines()[0]
+
+
+@pytest.mark.parametrize("mode", ["otp", "magic-link"])
+def test_leads_agent_signs_up_unattended_from_its_own_inbox(leads, mode):
+    agent, task = leads["agent_id"], _task(f"sign up ({mode})")
+    out = identity_cli("leads-signup", "--agent-id", agent, "--task-id", task,
+                       "--service", "http://signup-test:8090", "--mode", mode)
+    assert out["status"] == "ok", out
+    assert [s["step"] for s in out["steps"]] == ["start", "inbox_access", "signup", "verification_email", "extract",
+                                                 "verify", "complete"]
+    assert all(s["status"] == "ok" for s in out["steps"])
+    # every step on the task timeline and in the audit ledger
+    assert psql(f"SELECT count(*) FROM timeline_events e JOIN timelines t ON t.id=e.timeline_id WHERE t.thing_id='{task}'") == "7"
+    assert psql(f"SELECT count(*) FROM audit_log WHERE target='{task}' AND action LIKE 'leads.signup.%'") == "7"
+    # the inbox was reached through the pinned proxy with the key injected; the agent never saw it
+    assert psql(f"SELECT count(*) > 0 FROM egress_log WHERE agent_id='{agent}' AND task_id='{task}' "
+                f"AND host='agenticmail:3829' AND decision='allow' AND injected_secrets=1") == "t"
+    assert "ak_" not in json.dumps(out)

@@ -1,0 +1,51 @@
+# Stalwart v0.15.5 for AgenticMail (spec 2.1). Same listeners and storage as AgenticMail's own
+# template (pinned at 0.15.5 upstream; 0.16+ moved to JSON config), with one change: the admin
+# secret is read from a mounted secret file, never written here.
+
+[server]
+hostname = "mail.agents.revenueos.test"
+
+[server.listener.smtp]
+bind = ["0.0.0.0:25"]
+protocol = "smtp"
+
+[server.listener.submission]
+bind = ["0.0.0.0:587"]
+protocol = "smtp"
+tls.implicit = false
+
+[server.listener.imap]
+bind = ["0.0.0.0:143"]
+protocol = "imap"
+tls.implicit = false
+
+[server.listener.http]
+bind = ["0.0.0.0:8080"]
+protocol = "http"
+tls.implicit = false
+
+[storage]
+data = "rocksdb"
+fts = "rocksdb"
+blob = "rocksdb"
+lookup = "rocksdb"
+directory = "internal"
+
+[store.rocksdb]
+type = "rocksdb"
+path = "/opt/stalwart/data"
+compression = "lz4"
+
+[directory.internal]
+type = "internal"
+store = "rocksdb"
+
+[tracer.stdout]
+type = "stdout"
+level = "info"
+ansi = false
+enable = true
+
+[authentication.fallback-admin]
+user = "admin"
+secret = "%{file:/run/secrets/stalwart_admin}%"

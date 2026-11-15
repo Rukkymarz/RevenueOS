@@ -129,7 +129,7 @@ CREATE TABLE secret_bindings (
   format     text NOT NULL DEFAULT '{}' CHECK (position('{}' in format) > 0),
   agent_ids  uuid[],                                    -- NULL = any agent allowed to reach the host
   created_at timestamptz NOT NULL DEFAULT now(),
-  UNIQUE (host, header)
+  UNIQUE (host, header, secret_ref)                     -- per-agent keys for one host are separate rows
 );
 
 -- A session is the unit of identity pinning: the supervisor's forwarder signs every request

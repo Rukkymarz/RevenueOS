@@ -21,4 +21,4 @@ ON CONFLICT DO NOTHING;
 INSERT INTO secret_bindings(secret_ref, host, header, format, agent_ids)
 VALUES ('keychain://upstream-echo-token', 'upstream-echo:8080', 'authorization', 'Bearer {}',
         ARRAY['7a1c2e30-0001-4000-8000-000000000001']::uuid[])
-ON CONFLICT (host, header) DO NOTHING;
+ON CONFLICT (host, header, secret_ref) DO NOTHING;

@@ -92,7 +92,8 @@ services:
 
   sandbox-supervisor:
     <<: *python
-    build: { context: .., dockerfile: infra/docker/python.Dockerfile, args: { PACKAGES: "./infra/sandbox-supervisor" } }
+    # The identity package is installed too: the leads agent runs from it inside the sandbox.
+    build: { context: .., dockerfile: infra/docker/python.Dockerfile, args: { PACKAGES: "./infra/sandbox-supervisor ./services/identity" } }
     command: ["python", "-m", "uvicorn", "revenueos_sandbox_supervisor.app:app", "--host", "0.0.0.0", "--port", "8300"]
     environment: { <<: *pyenv, EGRESS_PROXY: "envoy:10000", REVENUEOS_WORKSPACE_ROOT: /var/lib/revenueos/workspaces }
     # Bubblewrap nests unprivileged user namespaces inside this container. Docker's default
@@ -107,6 +108,57 @@ services:
       otel-collector: { condition: service_healthy }
       envoy: { condition: service_healthy }
     healthcheck: { test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8300/health').status==200 else 1)"], interval: 5s, retries: 30 }
+
+  # ---------------- C05 identity: AgenticMail (named, pinned build) on Stalwart v0.15.5
+  stalwart:
+    image: stalwartlabs/stalwart:v0.15.5
+    volumes:
+      - stalwart-data:/opt/stalwart
+      - ./mail/stalwart.toml:/opt/stalwart/etc/config.toml:ro
+    secrets: [stalwart_admin]
+    healthcheck: { test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/127.0.0.1/143 && exec 4<>/dev/tcp/127.0.0.1/25'"], interval: 5s, retries: 40 }
+    networks: [core]
+
+  agenticmail:
+    build: { context: .., dockerfile: infra/mail/agenticmail.Dockerfile }
+    user: "${REVENUEOS_UID:-1000}:0"
+    environment:
+      STALWART_URL: http://stalwart:8080
+      STALWART_ADMIN_USER: admin
+      SMTP_HOST: stalwart
+      SMTP_PORT: "587"
+      IMAP_HOST: stalwart
+      IMAP_PORT: "143"
+      AGENTICMAIL_API_HOST: 0.0.0.0
+      AGENTICMAIL_API_PORT: "3829"
+      REVENUEOS_KEYCHAIN_DIR: /run/revenueos/keychain
+    volumes:
+      - ./secrets/keychain:/run/revenueos/keychain:ro
+      - agenticmail-data:/data
+    depends_on: { stalwart: { condition: service_healthy } }
+    healthcheck: { test: ["CMD", "node", "-e", "fetch('http://localhost:3829/api/agenticmail/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"], interval: 5s, retries: 40 }
+    networks: [core]
+
+  identity:
+    <<: *python
+    build: { context: .., dockerfile: infra/docker/python.Dockerfile, args: { PACKAGES: "./services/identity" } }
+    command: ["revenueos-identity"]
+    environment:
+      <<: *pyenv
+      PORT: "8105"
+      AGENTICMAIL_URL: http://agenticmail:3829
+      STALWART_URL: http://stalwart:8080
+      SANDBOX_SUPERVISOR_URL: http://sandbox-supervisor:8300
+      REVENUEOS_PROFILE_ROOT: /var/lib/revenueos/profiles
+    # The identity service is the one writer of agent credentials (vault by reference).
+    volumes:
+      - ./secrets/keychain:/run/revenueos/keychain
+      - profiles:/var/lib/revenueos/profiles
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      agenticmail: { condition: service_healthy }
+      sandbox-supervisor: { condition: service_healthy }
+    healthcheck: { test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8105/health').status==200 else 1)"], interval: 5s, retries: 30 }
 
   api:
     build: { context: .., dockerfile: infra/docker/node.Dockerfile, args: { APP: "@revenueos/api", APP_DIR: apps/api } }
@@ -145,8 +197,21 @@ services:
     healthcheck: { test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/health')"], interval: 3s, retries: 20 }
     networks: [egress]
 
+  # Stands in for a third-party product the leads agent signs up for (Acceptance 2).
+  signup-test:
+    profiles: [test]
+    image: python:3.12-slim
+    command: ["python", "/srv/server.py"]
+    environment: { SMTP_HOST: stalwart, PUBLIC_URL: "http://signup-test:8090" }
+    volumes: [./test-signup/server.py:/srv/server.py:ro]
+    healthcheck: { test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8090/health')"], interval: 3s, retries: 20 }
+    networks: [core]
+
 volumes:
   workspaces: {}
+  profiles: {}
+  stalwart-data: {}
+  agenticmail-data: {}
   pgdata: {}
   duckdb: {}
 
@@ -157,3 +222,4 @@ networks:
 secrets:
   pg_owner_password: { file: ./secrets/pg_owner_password }
   pgpass: { file: ./secrets/pgpass }
+  stalwart_admin: { file: ./secrets/keychain/stalwart-admin-password }

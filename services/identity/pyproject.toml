@@ -3,7 +3,7 @@ name = "revenueos-identity"
 version = "0.1.0"
 description = "RevenueOS identity service (C05)"
 requires-python = ">=3.12"
-dependencies = ["revenueos-common"]
+dependencies = ["revenueos-common", "requests>=2.31"]
 
 [project.scripts]
 revenueos-identity = "revenueos_identity.__main__:main"

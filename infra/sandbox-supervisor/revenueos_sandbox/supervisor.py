@@ -130,9 +130,12 @@ def bwrap_argv(argv: list[str], shadow_ws: Path, egress_dir: Path | None) -> lis
     a += ["--proc", "/proc", "--dev", "/dev", "--tmpfs", "/tmp",
           "--bind", str(shadow_ws), "/workspace", "--chdir", "/workspace",
           "--setenv", "HOME", "/workspace", "--setenv", "PATH", path, "--setenv", "LANG", "C.UTF-8"]
+    egress_mounts = ["--ro-bind", str(RELAY), "/run/revenueos/relay.py", "--bind", str(egress_dir),
+                     "/run/revenueos/egress"] if egress_dir is not None else []
+    # Root (bwrap's tmpfs holding the mount points) read-only: only /workspace and /tmp are writable.
+    a += egress_mounts + ["--remount-ro", "/"]
     if egress_dir is not None:
         proxy = "http://127.0.0.1:3128"
-        a += ["--ro-bind", str(RELAY), "/run/revenueos/relay.py", "--bind", str(egress_dir), "/run/revenueos/egress"]
         for k in ("HTTP_PROXY", "http_proxy", "HTTPS_PROXY", "https_proxy"):
             a += ["--setenv", k, proxy]
         a += ["--setenv", "NO_PROXY", "", "--setenv", "no_proxy", ""]

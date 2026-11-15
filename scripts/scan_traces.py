@@ -12,7 +12,8 @@ import re
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tests" / "threats"))
+ROOT = Path(__file__).resolve().parents[1]
+sys.path[:0] = [str(ROOT / "packages" / "pycommon"), str(ROOT / "tests" / "threats")]
 from test_secret_hygiene import PATTERNS  # noqa: E402  (one pattern list for repo and traces)
 
 MIN_LEN = 8

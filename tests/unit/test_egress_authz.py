@@ -131,3 +131,22 @@ def test_policy_is_built_from_postgres(env):
     p = mod.load_policy()
     assert p["agents"][ids["agent"]] == {"allow": ["upstream-echo:8080"], "tasks": {ids["task"]: ["task-only:80"]}}
     assert p["secret_bindings"][0]["agents"] == [ids["agent"]]
+
+
+def test_two_bindings_for_one_header_fail_closed(env):
+    mod, c, db, ids = env
+    mod._secrets().put("keychain://other-token", "another-value")
+    db.q(f"INSERT INTO secret_bindings(secret_ref, host, header, agent_ids) "
+         f"VALUES ('keychain://other-token','upstream-echo:8080','authorization',ARRAY['{ids['agent']}']::uuid[])")
+    r = c.post("/v1/check", headers=hdrs(ids))
+    assert r.status_code == 403 and "ambiguous" in r.json()["reason"]
+
+
+def test_per_agent_keys_for_the_same_host_go_to_their_own_agent(env):
+    mod, c, db, ids = env
+    other = db.one("INSERT INTO agents(name, role, framework, budget_monthly) VALUES ('o','x','langgraph',1) RETURNING id")
+    mod._secrets().put("keychain://other-token", "value-for-the-other-agent")
+    db.q(f"INSERT INTO secret_bindings(secret_ref, host, header, format, agent_ids) "
+         f"VALUES ('keychain://other-token','upstream-echo:8080','authorization','Bearer {{}}',ARRAY['{other}']::uuid[])")
+    r = c.post("/v1/check", headers=hdrs(ids))
+    assert r.status_code == 200 and "value-for-the-other-agent" not in r.text
