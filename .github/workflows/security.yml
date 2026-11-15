@@ -95,6 +95,9 @@ jobs:
           # The `openhack` CLI insists on an OpenHack account key even when another provider is
           # selected; its headless scanner (same pipeline) only needs the provider above.
           timeout 60m python -c 'import asyncio, sys; from openhack.headless_scan import run_headless_scan; asyncio.run(run_headless_scan(sys.argv[1]))' "$GITHUB_WORKSPACE" || echo "openhack exited $?"
+          echo "--- openhack logs (tail) ---"
+          find ~/.openhack -type f \( -name '*.log' -o -name '*.jsonl' \) 2>/dev/null | head -5 | while read -r f; do
+            echo "== $f"; grep -i -E 'error|fail|exception|denied|status' "$f" | tail -n 25 | cut -c1-400; done
           mkdir -p .security
           report=$(ls -t ~/.openhack/scans/*.json 2>/dev/null | head -1)
           [ -n "$report" ] && cp "$report" .security/openhack.json
