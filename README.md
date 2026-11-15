@@ -203,11 +203,17 @@ is a task, not a cell. Details: [docs/LEAD_PIPELINE.md](docs/LEAD_PIPELINE.md).
 
 ## Security
 
-- **Sandbox:** per-agent copy-on-write workspace with no host mounts; destructive operations
-  blocked in every mode (Phase 2).
-- **Egress:** all agent traffic through Envoy; per-agent allowlists; secrets injected by
-  reference so agents never hold them; every decision audited.
-- **Approvals:** hash-bound, expiring, single-use, requester cannot approve.
+- **Sandbox:** every agent command runs under Bubblewrap with a copy-on-write workspace, no
+  host mounts, a read-only root, no network of its own, and CPU/memory/process/time quotas;
+  destructive commands are refused in every mode, YOLO included.
+- **Egress:** the sandbox's only way out is a per-session socket whose forwarder signs the
+  agent, task and session; Envoy and egress-authz allow only that agent's or task's hosts
+  (Postgres rules), inject secrets by reference (even the agent's own inbox key), and log
+  every decision.
+- **Identity:** each agent has its own mailbox (AgenticMail on Stalwart), calendar and private
+  browser profile; human browser profiles are refused.
+- **Approvals:** bound to the exact arguments, the task and the tool; expiring, single-use,
+  requester cannot approve; role-based API; every refusal logged with its reason.
 - **Scanners:** standing `security` workflow (D10): AutoSecScan on every commit, OpenHack on
   every PR, open-kritt on release branches, VulnHunter before deploys, Strix on generated
   sites. A scan that did not run records DO_NOT_FILE and fails the check; it never passes.
