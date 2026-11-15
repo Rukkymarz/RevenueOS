@@ -31,10 +31,9 @@ def test_service_health_and_info(name):
     assert info["component"] == meta.COMPONENT and info["hosts"], f"{name} hosts no components"
 
 
-def test_sandbox_supervisor_reports_kernel_capabilities():
+def test_sandbox_supervisor_info():
     mod = importlib.import_module("revenueos_sandbox_supervisor.app")
-    info = TestClient(mod.app).get("/v1/info").json()
-    assert set(info["capabilities"]) == {"unshare", "overlayfs", "bubblewrap", "user_namespaces"}
+    assert TestClient(mod.app).get("/v1/info").json()["backend"] == "bubblewrap"
 
 
 def test_no_empty_directories_in_the_workspace():

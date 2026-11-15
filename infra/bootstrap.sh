@@ -10,6 +10,7 @@ gen() { [ -f "$1" ] || { umask 077; openssl rand -hex 32 > "$1"; }; chmod 600 "$
 gen "$DIR/pg_owner_password"
 gen "$DIR/keychain/mcp-echo-probe-token"
 gen "$DIR/keychain/upstream-echo-token"
+gen "$DIR/keychain/egress-identity-hmac"   # signs identity-pinned egress (supervisor -> egress-authz)
 PW="$(cat "$DIR/pg_owner_password")"
 umask 077
 printf '*:*:*:revenueos_owner:%s\n' "$PW" > "$DIR/pgpass"

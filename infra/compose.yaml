@@ -97,6 +97,18 @@ services:
     <<: *python
     build: { context: .., dockerfile: infra/docker/python.Dockerfile, args: { PACKAGES: "./infra/sandbox-supervisor" } }
     command: ["python", "-m", "uvicorn", "revenueos_sandbox_supervisor.app:app", "--host", "0.0.0.0", "--port", "8300"]
+    environment: { <<: *pyenv, EGRESS_PROXY: "envoy:10000", REVENUEOS_WORKSPACE_ROOT: /var/lib/revenueos/workspaces }
+    # Bubblewrap nests unprivileged user namespaces inside this container. Docker's default
+    # seccomp and masked /proc forbid that, so the supervisor alone runs without them; it stays
+    # a non-root user with no added capabilities, and every agent process is boxed by bwrap.
+    security_opt: ["seccomp=unconfined", "apparmor=unconfined", "systempaths=unconfined"]
+    volumes:
+      - ./secrets/keychain:/run/revenueos/keychain:ro
+      - workspaces:/var/lib/revenueos/workspaces
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      otel-collector: { condition: service_healthy }
+      envoy: { condition: service_healthy }
     healthcheck: { test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8300/health').status==200 else 1)"], interval: 5s, retries: 30 }
 
   api:
@@ -135,6 +147,7 @@ services:
     networks: [egress]
 
 volumes:
+  workspaces: {}
   pgdata: {}
   duckdb: {}
 

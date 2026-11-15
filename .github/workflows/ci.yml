@@ -44,12 +44,13 @@ jobs:
       REVENUEOS_PG_HOST: localhost
       REVENUEOS_PG_PORT: "5432"
       REVENUEOS_PG_USER: postgres
+      REVENUEOS_REQUIRE_SANDBOX: "1"   # sandbox tests must run here; a missing bwrap fails, never skips
     steps:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with: { name: contracts, path: packages/contracts-artifacts }
       - run: cp -r packages/contracts-artifacts/packages/contracts/* packages/contracts/ && rm -rf packages/contracts-artifacts
-      - run: sudo apt-get update && sudo apt-get install -y postgresql-client
+      - run: sudo apt-get update && sudo apt-get install -y postgresql-client bubblewrap
       - uses: actions/setup-python@v5
         with: { python-version: "3.12" }
       - run: >-
@@ -91,6 +92,9 @@ jobs:
       - uses: actions/checkout@v4
       - run: sudo apt-get update && sudo apt-get install -y postgresql-client
       - run: sh infra/bootstrap.sh
+      # The sandbox supervisor nests unprivileged user namespaces (Bubblewrap) inside its
+      # container; Ubuntu's AppArmor userns restriction would refuse that (see docs/RUNBOOK.md).
+      - run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0 || true
       - run: docker compose -f infra/compose.yaml --profile test build
       - run: docker compose -f infra/compose.yaml --profile test up -d --wait --wait-timeout 300
       - uses: actions/setup-python@v5

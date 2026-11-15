@@ -1,13 +1,15 @@
 """INV-11: all agent egress passes through the L7 proxy with secret injection.
 
 The decision service is tested here directly; the Envoy proof (denied-and-logged and
-allowed-with-injected-secret) runs against the live stack in tests/e2e. The sandbox that
-removes every other route lands in Phase 2."""
+allowed-with-injected-secret) runs against the live stack in tests/e2e. The sandbox removes
+every other route: its only way out is the per-session relay to the supervisor's forwarder."""
 import importlib
 import os
 import sys
 
 import pytest
+
+from sandbox_kit import needs_sandbox
 
 AGENT = "7a1c2e30-0001-4000-8000-000000000001"
 
@@ -59,7 +61,7 @@ def test_secret_with_line_break_is_refused(authz):
     assert not ok and "line break" in reason
 
 
-@pytest.mark.xfail(strict=True, raises=ImportError, reason="control lands in Phase 2 (sandbox with no network route)")
+@needs_sandbox
 def test_direct_socket_from_sandbox_fails():
     from revenueos_sandbox.supervisor import run_in_sandbox
     result = run_in_sandbox(["python3", "-c", "import socket; socket.create_connection(('1.1.1.1', 53), 3)"])
