@@ -87,7 +87,9 @@ jobs:
             echo "model: GitHub Models $OPEN_MODEL"
           fi
           export PROMPT_CACHING=false
-          timeout 60m openhack --scan "$GITHUB_WORKSPACE" || echo "openhack exited $?"
+          # The `openhack` CLI insists on an OpenHack account key even when another provider is
+          # selected; its headless scanner (same pipeline) only needs the provider above.
+          timeout 60m python -c 'import asyncio, sys; from openhack.headless_scan import run_headless_scan; asyncio.run(run_headless_scan(sys.argv[1]))' "$GITHUB_WORKSPACE" || echo "openhack exited $?"
           mkdir -p .security
           report=$(ls -t ~/.openhack/scans/*.json 2>/dev/null | head -1)
           [ -n "$report" ] && cp "$report" .security/openhack.json
