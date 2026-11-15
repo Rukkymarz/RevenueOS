@@ -1,0 +1,96 @@
+# Phase 1 acceptance log
+# CI run https://github.com/Rukkymarz/RevenueOS/actions/runs/43653421009 (commit 688eccf), 2026-11-14T23:35Z
+
+## compose up --wait + tests/e2e (live stack)
+============================= test session starts ==============================
+platform linux -- Python 3.12.16, pytest-9.2.0, pluggy-1.7.0 -- /opt/hostedtoolcache/Python/3.12.16/x64/bin/python
+rootdir: /home/runner/work/RevenueOS/RevenueOS
+configfile: pyproject.toml
+collecting ... collected 8 items
+
+tests/e2e/test_phase1_stack.py::test_api_health_200 PASSED               [ 12%]
+tests/e2e/test_phase1_stack.py::test_command_center_renders_shell PASSED [ 25%]
+tests/e2e/test_phase1_stack.py::test_all_compose_services_healthy PASSED [ 37%]
+tests/e2e/test_phase1_stack.py::test_otel_span_chain_api_to_orchestrator_to_mcp_with_all_four_attributes PASSED [ 50%]
+tests/e2e/test_phase1_stack.py::test_envoy_denies_unlisted_host_and_logs_it PASSED [ 62%]
+tests/e2e/test_phase1_stack.py::test_envoy_injects_secret_the_agent_never_sees PASSED [ 75%]
+tests/e2e/test_phase1_stack.py::test_unidentified_agent_is_denied_by_envoy PASSED [ 87%]
+tests/e2e/test_phase1_stack.py::test_audit_chain_intact_after_the_run PASSED [100%]
+
+==================================== PASSES ====================================
+=========================== short test summary info ============================
+PASSED tests/e2e/test_phase1_stack.py::test_api_health_200
+PASSED tests/e2e/test_phase1_stack.py::test_command_center_renders_shell
+PASSED tests/e2e/test_phase1_stack.py::test_all_compose_services_healthy
+PASSED tests/e2e/test_phase1_stack.py::test_otel_span_chain_api_to_orchestrator_to_mcp_with_all_four_attributes
+PASSED tests/e2e/test_phase1_stack.py::test_envoy_denies_unlisted_host_and_logs_it
+PASSED tests/e2e/test_phase1_stack.py::test_envoy_injects_secret_the_agent_never_sees
+PASSED tests/e2e/test_phase1_stack.py::test_unidentified_agent_is_denied_by_envoy
+PASSED tests/e2e/test_phase1_stack.py::test_audit_chain_intact_after_the_run
+============================== 8 passed in 8.38s ===============================
+
+## node: contracts ts1 + package tests
+ok 1 - contrast: black on white is 21:1, white on white is 1:1
+ok 2 - every required token pair meets WCAG AA
+ok 3 - all token colors are OKLCH
+ok 4 - concentric radius: inner = max(0, outer - padding)
+ok 5 - five mandatory UI states
+ok 6 - sentence case keeps acronyms and brand casing
+ok 7 - slop scanner flags a default gradient hero and raw hex
+ok 8 - DESIGN.md merge adds new tokens but refuses to change committed ones
+# tests 8
+# pass 8
+# fail 0
+ok 1 - health response is validated against the contract
+ok 2 - probe request is rejected before it leaves the client when invalid
+# tests 2
+# pass 2
+# fail 0
+contracts round trip ts1: 39 checks passed
+ok 1 - GET /health returns a contract-valid body
+ok 2 - POST /v1/probe rejects a payload that violates the contract
+# tests 2
+# pass 2
+# fail 0
+ok 1 - next build produced the shell page and health route
+# tests 1
+# pass 1
+# fail 0
+ok 1 - next build produced the shell page and health route
+# tests 1
+# pass 1
+# fail 0
+
+## contracts ts2
+contracts round trip ts1: 39 checks passed
+
+## python: Q-gates
+----- Q2 python scripts/coverage_gate.py coverage.json -----
+infra/egress                               96.8%  (need 80%)
+infra/sandbox-supervisor                  100.0%  (need 80%)
+mcp/echo-probe                            100.0%  (need 80%)
+packages/mcp-common                        89.4%  (need 80%)
+packages/pycommon                          81.9%  (need 80%)
+services/discovery                        100.0%  (need 80%)
+services/identity                         100.0%  (need 80%)
+services/insight                          100.0%  (need 80%)
+services/learning                         100.0%  (need 80%)
+services/marketing                        100.0%  (need 80%)
+services/media                            100.0%  (need 80%)
+services/orchestrator                      91.4%  (need 80%)
+services/outreach                         100.0%  (need 80%)
+services/pm                               100.0%  (need 80%)
+services/qc                               100.0%  (need 90%)
+services/research                         100.0%  (need 80%)
+services/runtime-omni                     100.0%  (need 80%)
+services/runtime-os                       100.0%  (need 80%)
+services/scrape                           100.0%  (need 80%)
+services/social                           100.0%  (need 80%)
+services/web                              100.0%  (need 80%)
+Q1 PASS            schema validation of every payload
+Q2 PASS            unit + integration tests with coverage
+Q3 NOT_APPLICABLE  EvalForge suites, no regression
+Q4 NOT_APPLICABLE  GitReins resolution gate
+Q5 NOT_APPLICABLE  veripipe fail-closed (missing telemetry -> DO_NOT_FILE)
+Q6 PASS            invariant suite INV-01..INV-15
+Q7 PASS            threat-model tests + secret scan

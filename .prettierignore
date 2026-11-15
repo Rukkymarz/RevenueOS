@@ -1,0 +1,8 @@
+**/dist
+**/.next
+**/generated
+**/out
+pnpm-lock.yaml
+docs
+config
+db

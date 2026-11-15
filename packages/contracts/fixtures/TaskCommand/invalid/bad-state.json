@@ -1,0 +1,6 @@
+{
+  "task_id": "0b9b3a52-6f2e-4c61-9a3b-1f2e3d4c5b6a",
+  "actor": "x",
+  "command": "transition",
+  "to_state": "DONE"
+}

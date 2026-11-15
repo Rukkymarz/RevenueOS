@@ -1,0 +1,8 @@
+{
+  "task_id": "0b9b3a52-6f2e-4c61-9a3b-1f2e3d4c5b6a",
+  "verifier_agent_id": "1c8a2b41-5e1d-4b50-8a2a-0e1d2c3b4a59",
+  "method": "veripipe",
+  "method_class": "llm",
+  "verdict": "PASS",
+  "tier": "L4"
+}

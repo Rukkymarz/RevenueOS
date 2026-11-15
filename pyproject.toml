@@ -1,0 +1,25 @@
+[project]
+name = "revenueos-workspace"
+version = "0.1.0"
+requires-python = ">=3.12"
+
+[tool.uv.workspace]
+members = [
+  "packages/pycommon",
+  "packages/contracts/python",
+  "packages/mcp-common",
+  "services/*",
+  "mcp/*",
+  "infra/egress",
+  "infra/sandbox-supervisor",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests", "packages/contracts/python/tests"]
+markers = ["e2e: needs the running compose stack (REVENUEOS_E2E=1)"]
+xfail_strict = true
+
+[tool.coverage.run]
+branch = true
+source = ["services", "packages/pycommon", "packages/mcp-common", "infra/egress", "infra/sandbox-supervisor", "mcp"]
+omit = ["*/__main__.py", "*/tests/*"]
