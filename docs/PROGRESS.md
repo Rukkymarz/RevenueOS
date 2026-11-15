@@ -41,3 +41,18 @@
 - **Pins added:** Stalwart `v0.15.5` image, AgenticMail build `af1e0ef`, Bubblewrap build
   `1fb0aa2` (compose + CI), AutoSecScan build `881d960`.
 
+## Phase 3: computer-use runtime + agent OS (in progress, branch `build/phase-3`)
+
+- **Done, proven live (CI run 43694352166, 30/30 e2e, trace scan PASS):**
+  - 3.2 shared risk library (`packages/risk`): one classification for every runtime. Critical
+    is blocked in every mode including YOLO; high always needs a hash-bound approval; the
+    sandbox blocklist now lives here.
+  - 3.1 / 3.6 `runtime-omni`: OmniPilot's 41 tools (pinned `2e3a6bd`) on a real X11 desktop,
+    driven one call at a time by remote control (orchestrator -> runtime REST -> tool ->
+    receipt -> span). All 41 leave a receipt on the orchestrator's trace; `rm -rf /` blocked
+    and audited in ask, auto and YOLO; the runtime has no route out except the pinned proxy.
+- **Next:** 3.4 Aegis OS (large repo clone inside the sandbox), 3.5 OpenMuse (persistent
+  browser, human takeover console, durable plans, attachment -> PDF -> form -> reply with
+  Nib), runaway-process kill report and transactional rollback, 3.3 NAVA layer and its 21
+  invariants, then Acceptance 3 and the gate.
+
