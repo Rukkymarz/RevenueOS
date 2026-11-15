@@ -183,9 +183,9 @@ def test_nava_runaway_process_is_killed_and_reported(nava_token):
     status, out = nava_http("POST", "/v1/syscalls", {
         "task_id": TASK, "tool": "sandbox.run", "timeout_s": 3,
         "args": {"workspace": "e2e", "argv": ["sh", "-c", "while true; do :; done"], "timeout_s": 3}}, nava_token)
-    assert status in (409, 422), out
+    assert status in (409, 422), json.dumps(out)[-1500:]
     assert out["status"] in ("rolled_back", "failed")
-    assert "quota" in (out["reason"] or "") or "timeout" in (out["reason"] or ""), out
+    assert "quota" in (out["reason"] or "") or "timeout" in (out["reason"] or ""), json.dumps(out)[-1500:]
     assert psql(f"SELECT count(*) FROM syscalls WHERE id='{out['id']}' AND status IN ('rolled_back','failed') "
                 "AND reason IS NOT NULL") == "1"
 
@@ -337,10 +337,10 @@ def test_aegis_large_repo_clone_inside_sandbox(nava_token):
          f"('{AGENT}', 'codeload.github.com:443', 'e2e') ON CONFLICT DO NOTHING")
     status, out = nava_http("POST", "/v1/syscalls", {
         "task_id": TASK, "tool": "sandbox.run", "timeout_s": 300,
-        "args": {"workspace": "aegis", "timeout_s": 300,
+        "args": {"workspace": "aegis", "timeout_s": 300, "network": True,
                  "argv": ["git", "clone", "--depth", "1", "https://github.com/python/cpython", "clone"]},
         "expect": [{"exit_code": 0}, {"file_exists": "clone/README.rst"}]}, nava_token)
-    assert status == 200 and out["status"] == "committed", out
+    assert status == 200 and out["status"] == "committed", json.dumps(out)[-1500:]
     _, listing = nava_http("POST", "/v1/syscalls", {
         "task_id": TASK, "tool": "sandbox.run",
         "args": {"workspace": "aegis", "argv": ["sh", "-c", "du -sm clone | cut -f1"]}}, nava_token)

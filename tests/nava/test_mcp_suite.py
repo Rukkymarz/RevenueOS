@@ -15,9 +15,10 @@ def test_exactly_fifteen_domains():
 
 
 @pytest.mark.parametrize("domain", sorted(EXPECTED))
-def test_each_server_builds_with_its_tools(domain, monkeypatch):
+def test_each_server_builds_with_its_tools(domain, monkeypatch, tmp_path):
+    from revenueos_common.secrets import KeychainStore, SecretResolver
     monkeypatch.setenv("OTEL_EXPORTER_OTLP_ENDPOINT", "")
-    srv = build(domain)
+    srv = build(domain, secrets=SecretResolver(KeychainStore(tmp_path / "kc")))
     assert srv.name == f"nava-{domain}" and srv.tools, domain
     # the facade never raises its own risk: NAVA is the single enforcement point (spec 3.2)
     assert set(srv.tools.values()) == {"low"}

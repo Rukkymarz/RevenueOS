@@ -60,6 +60,23 @@ def fs_delete(ctx: CallContext, args: dict):
     return {"path": args["path"], "deleted": True}
 
 
+def _egress_session(agent_id: str, task_id: str):
+    from revenueos_common import egress_identity
+    from revenueos_common.db import Database
+    from revenueos_common.secrets import KeychainStore, SecretResolver
+    from revenueos_sandbox.egress import EgressSession
+    from revenueos_sandbox.records import egress_hooks
+    from revenueos_sandbox.tls import EgressCA
+    secrets = SecretResolver(KeychainStore(os.environ.get("REVENUEOS_KEYCHAIN_DIR", "/run/revenueos/keychain")))
+    key = secrets.get(egress_identity.KEY_REF)
+    if not key:
+        raise ToolError("egress identity key unavailable (fail closed)")
+    host, _, port = os.environ.get("EGRESS_PROXY", "envoy:10000").rpartition(":")
+    opened, closed = egress_hooks(Database(actor="runtime-os"))
+    return EgressSession(agent_id, task_id, key, (host, int(port)), on_open=opened, on_close=closed,
+                         ca=EgressCA.from_vault(secrets))
+
+
 def shell_run(ctx: CallContext, args: dict):
     """argv runs in a fresh bubblewrap sandbox over a copy of the workspace (no network, quotas);
     a successful run's changeset is then applied to the workspace. A timeout or quota kill is
@@ -68,9 +85,17 @@ def shell_run(ctx: CallContext, args: dict):
     ws = ctx.workspaces.path(ctx.agent_id, args["workspace"])
     ws.mkdir(parents=True, exist_ok=True)
     wall = max(1, min(int(args.get("timeout_s", ctx.timeout_s)), MAX_SHELL_S))
-    r = run_in_sandbox(args["argv"], ws, agent_id=ctx.agent_id, task_id=ctx.task_id,
-                       quotas=Quotas(wall_seconds=wall, cpu_seconds=wall), keep_shadow=True,
-                       yolo=ctx.mode == "yolo")
+    # CPU budget sits just above the wall clock so a runaway is reported as the wall-clock
+    # timeout it is, while a multi-threaded burner is still bounded.
+    kw = dict(agent_id=ctx.agent_id, task_id=ctx.task_id, quotas=Quotas(wall_seconds=wall, cpu_seconds=wall + 5),
+              keep_shadow=True, yolo=ctx.mode == "yolo")
+    if args.get("network"):
+        # The sandbox's only route out: an identity-pinned egress session for this agent and task
+        # (rules, secret injection and logging happen at the proxy, as for every agent process).
+        with _egress_session(ctx.agent_id, ctx.task_id) as session:
+            r = run_in_sandbox(args["argv"], ws, egress=session, **kw)
+    else:
+        r = run_in_sandbox(args["argv"], ws, **kw)
     out = {"status": r.status, "exit_code": r.exit_code, "stdout": r.stdout[-65536:], "stderr": r.stderr[-65536:],
            "reason": r.reason, "changes": r.changes, "changeset_hash": r.changeset_hash}
     try:
@@ -104,7 +129,8 @@ def builtin_tools() -> dict[str, ToolSpec]:
                  risk="medium", mutating=True, resources=_ws_res),
         ToolSpec("sandbox.run", shell_run, {"type": "object", "required": ["workspace", "argv"], "additionalProperties": False,
                                           "properties": {"workspace": WS, "argv": {"type": "array", "items": {"type": "string"}},
-                                                         "timeout_s": {"type": "integer"}}},
+                                                         "timeout_s": {"type": "integer"},
+                                                         "network": {"type": "boolean"}}},
                  risk="medium", mutating=True, resources=_ws_res),
     ]
     return {s.name: s for s in t}

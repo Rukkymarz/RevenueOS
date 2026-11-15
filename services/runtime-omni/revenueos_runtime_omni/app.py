@@ -19,6 +19,7 @@ from revenueos_common.secrets import KeychainStore, SecretResolver
 from revenueos_common.service import create_app, postgres_check
 
 from . import COMPONENT, SERVICE
+from .runtime import SERVER
 
 UUID = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")
 db = Database(actor=SERVICE)
