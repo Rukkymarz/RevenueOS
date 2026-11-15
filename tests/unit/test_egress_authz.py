@@ -107,7 +107,7 @@ def test_unlisted_host_is_denied_logged_and_audited(env):
 def test_policy_or_database_failure_fails_closed(env, monkeypatch):
     mod, c, _, ids = env
 
-    def boom():
+    def boom(fresh=False):
         raise RuntimeError("db down")
     monkeypatch.setattr(mod, "cached_policy", boom)
     r = c.post("/v1/check", headers=hdrs(ids))
@@ -150,3 +150,10 @@ def test_per_agent_keys_for_the_same_host_go_to_their_own_agent(env):
          f"VALUES ('keychain://other-token','upstream-echo:8080','authorization','Bearer {{}}',ARRAY['{other}']::uuid[])")
     r = c.post("/v1/check", headers=hdrs(ids))
     assert r.status_code == 200 and "value-for-the-other-agent" not in r.text
+
+
+def test_a_rule_added_after_the_cache_was_filled_applies_immediately(env):
+    _, c, db, ids = env
+    assert c.post("/v1/check", headers=hdrs(ids, host="new-host:443")).status_code == 403   # fills the cache
+    db.q(f"INSERT INTO egress_rules(agent_id, host, created_by) VALUES ('{ids['agent']}','new-host:443','t')")
+    assert c.post("/v1/check", headers=hdrs(ids, host="new-host:443")).status_code == 200

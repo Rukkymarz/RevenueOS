@@ -61,8 +61,8 @@ def load_policy(database: Database | None = None) -> dict:
     return policy
 
 
-def cached_policy() -> dict:
-    if _cache["policy"] is None or time.monotonic() - _cache["at"] > POLICY_TTL_S:
+def cached_policy(fresh: bool = False) -> dict:
+    if fresh or _cache["policy"] is None or time.monotonic() - _cache["at"] > POLICY_TTL_S:
         _cache.update(policy=load_policy(), at=time.monotonic())
     return _cache["policy"]
 
@@ -145,6 +145,9 @@ async def check(request: Request):
             allowed = False
         else:
             allowed, reason, inject = decide(agent, task, host, method, path, cached_policy())
+            if not allowed and ("not allowlisted" in reason or "no egress policy" in reason):
+                # A rule added in the last cache window must take effect now: re-read before denying.
+                allowed, reason, inject = decide(agent, task, host, method, path, cached_policy(fresh=True))
     except Exception as e:  # any failure denies: the proxy fails closed
         allowed, reason, inject = False, f"policy error: {type(e).__name__}", {}
     record(session, agent, task, host, method, path, allowed, reason, inject)
