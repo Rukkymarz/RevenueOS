@@ -23,10 +23,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       # Built from the pinned source commit rather than the action's floating :latest image (R03).
-      - uses: actions/checkout@v4
-        with: { repository: jhammant/AutoSecScan, ref: 881d9602bfa1e45d8e0df021df4dd6b247df92f0, path: .scanners/autosecscan }
-      - name: build pinned image
-        run: docker build -q -t revenueos/autosecscan:881d960 .scanners/autosecscan
+      - name: build pinned image (outside the workspace so it is not scanned)
+        run: |
+          git clone -q https://github.com/jhammant/AutoSecScan "$RUNNER_TEMP/autosecscan"
+          git -C "$RUNNER_TEMP/autosecscan" checkout -q 881d9602bfa1e45d8e0df021df4dd6b247df92f0
+          docker build -q -t revenueos/autosecscan:881d960 "$RUNNER_TEMP/autosecscan"
       - name: scan
         continue-on-error: true
         run: |
@@ -34,6 +35,7 @@ jobs:
           docker run --rm -v "$GITHUB_WORKSPACE:/work:ro" -v "$GITHUB_WORKSPACE/.security:/reports" \
             --entrypoint sh revenueos/autosecscan:881d960 -c \
             'autosecscan authorize add-repo /work >/dev/null 2>&1 || true; autosecscan scan --repo /work --no-net --i-have-permission --format sarif,json --fail-on none --out /reports'
+          sudo chown -R "$(id -u):$(id -g)" .security
       - name: verdict
         run: python3 scripts/autosecscan_verdict.py .security
       - uses: actions/upload-artifact@v4
