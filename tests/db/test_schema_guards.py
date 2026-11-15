@@ -25,8 +25,8 @@ class TestResearchAndPins:
                    "VALUES ('x','https://github.com/a/b','abc123','MIT','upstream','e')", "commit_sha")
 
     def test_literal_secret_rejected(self, db, world):
-        db.rejects(f"INSERT INTO agent_identities(agent_id, kind, provider, secret_ref) "
-                   f"VALUES ('{world['exec']}','email','stalwart','hunter2')", "agent_identities_secret_ref_check")
+        db.rejects(f"INSERT INTO agent_identities(agent_id, kind, provider, address, secret_ref) "
+                   f"VALUES ('{world['exec']}','email','stalwart','x2@agents.revenueos.test','hunter2')", "agent_identities_secret_ref_check")
 
 
 # ---------------------------------------------------------------- audit chain (C18)

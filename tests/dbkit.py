@@ -82,6 +82,11 @@ def world(db):
                        "VALUES ('executor','coder','langgraph',100) RETURNING id")
     w["ver"] = db.one("INSERT INTO agents(name, role, framework, budget_monthly) "
                       "VALUES ('verifier','qc','langgraph',100) RETURNING id")
+    for role in ("exec", "ver"):   # INV-09: every agent owns an email identity and a browser profile
+        db.q(f"INSERT INTO agent_identities(agent_id, kind, provider, address) "
+             f"VALUES ('{w[role]}','email','stalwart','{role}@agents.revenueos.test')")
+        db.q(f"INSERT INTO agent_identities(agent_id, kind, provider, profile_path) "
+             f"VALUES ('{w[role]}','browser_profile','chromium','/var/lib/revenueos/profiles/{w[role]}/default')")
     rr = db.one("INSERT INTO research_runs(target, pack) VALUES ('acme','local-services') RETURNING id")
     w["premise"] = db.one(
         "INSERT INTO premise_bundles(research_run_id, claims, missing_data) VALUES "

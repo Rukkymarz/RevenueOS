@@ -59,7 +59,7 @@ class Database:
         body = self._bind(sql.strip().rstrip(";"))
         script = (
             "SELECT set_config('revenueos.actor', (:'__p'::jsonb ->> '__actor'), false) \\gset __ignored_\n"
-            f"WITH _q AS ({body}) SELECT coalesce(json_agg(_q), '[]'::json) FROM _q;\n"
+            f"WITH _q AS ({body}) SELECT coalesce(jsonb_agg(_q), '[]'::jsonb) FROM _q;  -- jsonb prints on one line\n"
         )
         out = self._run(script, params).strip()
         return json.loads(out.splitlines()[-1]) if out else []
