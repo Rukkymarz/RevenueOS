@@ -28,4 +28,10 @@ COPY --from=contracts /src/packages/contracts/generated packages/contracts/gener
 RUN pip install --no-cache-dir "datamodel-code-generator>=0.26" \
  && ./scripts/gen-python-contracts.sh \
  && pip install --no-cache-dir ./packages/pycommon ./packages/contracts/python $PACKAGES
-ENV REVENUEOS_CONFIG_DIR=/src/config PYTHONUNBUFFERED=1
+ENV REVENUEOS_CONFIG_DIR=/src/config PYTHONUNBUFFERED=1 HOME=/home/revenueos
+# Non-root runtime. compose runs it as the host owner of infra/secrets (REVENUEOS_UID, group 0) so
+# secrets stay 0600/0700; writable dirs are group-0 writable (the arbitrary-UID pattern).
+RUN useradd --uid 10001 --gid 0 --home-dir /home/revenueos --create-home revenueos \
+ && mkdir -p /var/lib/revenueos/duckdb \
+ && chgrp -R 0 /var/lib/revenueos /home/revenueos && chmod -R g=u /var/lib/revenueos /home/revenueos
+USER 10001

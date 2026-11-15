@@ -12,6 +12,12 @@ on:
         type: boolean
         default: false
 
+# Event context reaches scripts only through env vars, never `${{ }}` inside `run:` (injection).
+env:
+  EVENT_NAME: ${{ github.event_name }}
+  REF_NAME: ${{ github.ref_name }}
+  PRE_DEPLOY: ${{ inputs.pre_deploy }}
+
 permissions:
   contents: read
   security-events: write
@@ -54,7 +60,7 @@ jobs:
       - name: applicability and credentials
         id: gate
         run: |
-          if [ "${{ github.event_name }}" != "pull_request" ]; then
+          if [ "$EVENT_NAME" != "pull_request" ]; then
             python3 scripts/security_verdict.py openhack NOT_APPLICABLE "runs on pull requests"; echo "run=false" >> "$GITHUB_OUTPUT"
           elif [ -z "$OPENAI_API_KEY" ] || [ -z "$OPENAI_BASE_URL" ]; then
             python3 scripts/security_verdict.py openhack DO_NOT_FILE "SECURITY_OPEN_MODEL_BASE_URL / _API_KEY secrets not set"
@@ -91,18 +97,20 @@ jobs:
   open-kritt:
     name: open-kritt (release branches)
     runs-on: ubuntu-latest
+    env:
+      KRITT_HOST_REPORT_URL: ${{ secrets.KRITT_HOST_REPORT_URL }}
     steps:
       - uses: actions/checkout@v4
       - run: |
-          case "${{ github.ref_name }}" in
+          case "$REF_NAME" in
             release/*)
               # open-kritt's `scan create` is an interactive guided flow on an operator-provisioned host
               # (its threat model requires a dedicated VM); CI cannot start it unattended.
-              if [ -z "${{ secrets.KRITT_HOST_REPORT_URL }}" ]; then
+              if [ -z "$KRITT_HOST_REPORT_URL" ]; then
                 python3 scripts/security_verdict.py open-kritt DO_NOT_FILE "no operator open-kritt host report for this release"
               else
-                curl -fsSL "${{ secrets.KRITT_HOST_REPORT_URL }}/${{ github.sha }}.json" -o kritt.json \
-                  || python3 scripts/security_verdict.py open-kritt DO_NOT_FILE "no export for ${{ github.sha }}"
+                curl -fsSL "$KRITT_HOST_REPORT_URL/$GITHUB_SHA.json" -o kritt.json \
+                  || python3 scripts/security_verdict.py open-kritt DO_NOT_FILE "no export for $GITHUB_SHA"
                 python3 -c "import json,sys; f=json.load(open('kritt.json')).get('findings',[]); h=[x for x in f if str(x.get('severity','')).lower() in ('high','critical')]; sys.exit(1 if h else 0)" \
                   && python3 scripts/security_verdict.py open-kritt PASS "export has no high/critical finding" \
                   || python3 scripts/security_verdict.py open-kritt FAIL "high/critical findings in export"
@@ -120,7 +128,7 @@ jobs:
       - name: applicability and credentials
         id: gate
         run: |
-          if [ "${{ inputs.pre_deploy }}" != "true" ] && [[ "${{ github.ref_name }}" != release/* ]]; then
+          if [ "$PRE_DEPLOY" != "true" ] && [[ "$REF_NAME" != release/* ]]; then
             python3 scripts/security_verdict.py vulnhunter NOT_APPLICABLE "runs before a deploy (release branch or pre_deploy dispatch)"; echo "run=false" >> "$GITHUB_OUTPUT"
           elif [ -z "$ANTHROPIC_API_KEY" ]; then
             python3 scripts/security_verdict.py vulnhunter DO_NOT_FILE "VULNHUNTER_ANTHROPIC_API_KEY secret not set"
@@ -135,7 +143,7 @@ jobs:
         run: |
           git clone https://github.com/capitalone/VulnHunter /tmp/vulnhunter && git -C /tmp/vulnhunter checkout 6d25b5c58b7820809b391ecda6a102537effe3ba
           cd /tmp/vulnhunter/vulnhunter-agent && python -m pip install -e . && cd -
-          python -m agent "https://github.com/${{ github.repository }}" --no-publish --no-issues \
+          python -m agent "https://github.com/$GITHUB_REPOSITORY" --no-publish --no-issues \
             && python3 scripts/security_verdict.py vulnhunter PASS "no verified exploitable finding" \
             || python3 scripts/security_verdict.py vulnhunter FAIL "verified exploitable finding or scanner error"
 

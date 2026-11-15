@@ -14,3 +14,6 @@ WORKDIR /src
 COPY --from=build /src /src
 WORKDIR /src/${APP_DIR}
 ENV NODE_ENV=production
+# Non-root runtime (the image's built-in `node` user); compose may override the UID to read secrets.
+ENV HOME=/tmp
+USER node

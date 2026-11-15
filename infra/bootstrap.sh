@@ -15,4 +15,6 @@ umask 077
 printf '*:*:*:revenueos_owner:%s\n' "$PW" > "$DIR/pgpass"
 printf '127.0.0.1:5432:*:revenueos_owner:%s\n' "$PW" > "$DIR/pgpass_host"
 chmod 600 "$DIR/pgpass" "$DIR/pgpass_host"
+# Containers run as this (non-root) host user so they can read the 0600/0700 secrets above.
+printf 'REVENUEOS_UID=%s\n' "$(id -u)" > "$(dirname "$DIR")/.env"
 echo "secrets ready in $DIR"
