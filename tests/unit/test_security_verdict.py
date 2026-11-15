@@ -49,7 +49,13 @@ def oh(tmp_path, report):
 
 
 def test_openhack_completed_clean_scan_passes(tmp_path):
-    assert oh(tmp_path, {"status": "completed", "findings": []}) == (0, "PASS")
+    assert oh(tmp_path, {"status": "completed", "findings": [], "cost": {"total_tokens": 120000}}) == (0, "PASS")
+
+
+def test_openhack_scan_without_any_model_call_is_do_not_file(tmp_path):
+    rep = {"status": "completed", "findings": [], "cost": {"total_tokens": 0},
+           "trace": [{"agent": "recon", "content": "error: 403 no access to model"}]}
+    assert oh(tmp_path, rep) == (1, "DO_NOT_FILE")
 
 
 def test_openhack_unfinished_or_missing_scan_is_do_not_file(tmp_path):

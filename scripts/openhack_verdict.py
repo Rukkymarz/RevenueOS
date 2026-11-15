@@ -26,6 +26,11 @@ def main(path: str) -> int:
         return subprocess.call(VERDICT + ["FAIL", f"{len(high)} high/critical of {len(findings)}"])
     if data.get("status") != "completed":
         return subprocess.call(VERDICT + ["DO_NOT_FILE", f"scan did not complete (status {data.get('status')!r})"])
+    tokens = (data.get("cost") or {}).get("total_tokens") or 0
+    if tokens <= 0:   # every step "completed" without one model call: the scan never looked at anything
+        for e in [t for t in data.get("trace", []) if "error" in str(t).lower()][-10:]:
+            print(f"::warning title=OpenHack trace::{str(e)[:400]}")
+        return subprocess.call(VERDICT + ["DO_NOT_FILE", "scan made no model calls (0 tokens): nothing was analysed"])
     return subprocess.call(VERDICT + ["PASS", f"completed; 0 high/critical of {len(findings)}"])
 
 

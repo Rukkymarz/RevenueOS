@@ -85,6 +85,11 @@ jobs:
           else
             export LLM_PROVIDER=github-models GITHUB_MODELS_MODEL="$OPEN_MODEL" GITHUB_TOKEN="$GH_MODELS_TOKEN"
             echo "model: GitHub Models $OPEN_MODEL"
+            # Preflight: one tiny call, so a model the token cannot reach is reported, not silently skipped.
+            code=$(curl -sS -o /tmp/preflight.json -w '%{http_code}' https://models.github.ai/inference/chat/completions \
+              -H "authorization: Bearer $GH_MODELS_TOKEN" -H 'content-type: application/json' \
+              -d "{\"model\":\"$OPEN_MODEL\",\"messages\":[{\"role\":\"user\",\"content\":\"reply ok\"}],\"max_tokens\":5}")
+            echo "preflight HTTP $code: $(head -c 300 /tmp/preflight.json)"
           fi
           export PROMPT_CACHING=false
           # The `openhack` CLI insists on an OpenHack account key even when another provider is
