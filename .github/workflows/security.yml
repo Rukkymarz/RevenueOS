@@ -22,22 +22,23 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - id: scan
+      # Built from the pinned source commit rather than the action's floating :latest image (R03).
+      - uses: actions/checkout@v4
+        with: { repository: jhammant/AutoSecScan, ref: 881d9602bfa1e45d8e0df021df4dd6b247df92f0, path: .scanners/autosecscan }
+      - name: build pinned image
+        run: docker build -q -t revenueos/autosecscan:881d960 .scanners/autosecscan
+      - name: scan
         continue-on-error: true
-        uses: jhammant/AutoSecScan@881d9602bfa1e45d8e0df021df4dd6b247df92f0
-        with: { repo: ".", fail-on: "high", format: "sarif,json", out: ".security" }
-      - name: verdict
         run: |
-          if [ "${{ steps.scan.outcome }}" = "success" ] && ls .security/*.json >/dev/null 2>&1; then
-            python3 scripts/security_verdict.py autosecscan PASS "no finding at or above high"
-          elif ls .security/*.json >/dev/null 2>&1; then
-            python3 scripts/security_verdict.py autosecscan FAIL "finding at or above high; see SARIF"
-          else
-            python3 scripts/security_verdict.py autosecscan DO_NOT_FILE "scanner produced no report"
-          fi
+          mkdir -p .security
+          docker run --rm -v "$GITHUB_WORKSPACE:/work:ro" -v "$GITHUB_WORKSPACE/.security:/reports" \
+            --entrypoint sh revenueos/autosecscan:881d960 -c \
+            'autosecscan authorize add-repo /work >/dev/null 2>&1 || true; autosecscan scan --repo /work --no-net --i-have-permission --format sarif,json --fail-on none --out /reports'
+      - name: verdict
+        run: python3 scripts/autosecscan_verdict.py .security
       - uses: actions/upload-artifact@v4
         if: always()
-        with: { name: autosecscan, path: .security }
+        with: { name: autosecscan, path: .security, include-hidden-files: true }
 
   openhack:
     name: OpenHack (every PR; open models only)
@@ -83,7 +84,7 @@ jobs:
           PY
       - uses: actions/upload-artifact@v4
         if: always()
-        with: { name: openhack, path: .security }
+        with: { name: openhack, path: .security, include-hidden-files: true }
 
   open-kritt:
     name: open-kritt (release branches)
