@@ -132,3 +132,95 @@ def test_runtime_has_no_direct_route_out():
     status, out = remote("python.run_python", {"code": "import socket\ntry:\n socket.create_connection(('1.1.1.1', 443), 5)\n "
                                                        "print('CONNECTED')\nexcept OSError as e:\n print('BLOCKED', e)"})
     assert status == 200 and "BLOCKED" in out["output"] and "CONNECTED" not in out["output"]
+
+
+# ---------------------------------------------------------------------------------------------
+# NAVA (runtime-os): the 12-step managed syscall against the live stack (docs/NAVA.md).
+# ---------------------------------------------------------------------------------------------
+def nava_http(method: str, path: str, body: dict | None, token: str) -> tuple[int, dict]:
+    code = ("import json,sys,urllib.request as u,urllib.error as e\n"
+            "m,p,tok=sys.argv[1],sys.argv[2],sys.argv[3]\n"
+            "data=sys.stdin.buffer.read() or None\n"
+            "req=u.Request(f'http://runtime-os:8103{p}',data=data,method=m,"
+            "headers={'content-type':'application/json','authorization':f'Bearer {tok}'})\n"
+            "try:\n r=u.urlopen(req,timeout=330);print(r.status);print(r.read().decode())\n"
+            "except e.HTTPError as x:\n print(x.code);print(x.read().decode())\n")
+    r = subprocess.run([*COMPOSE, "exec", "-T", "orchestrator", "python", "-c", code, method, path, token],
+                       input=json.dumps(body) if body is not None else "", capture_output=True, text=True, timeout=360)
+    assert r.returncode == 0, r.stderr
+    status, payload = r.stdout.split("\n", 1)
+    return int(status), json.loads(payload)
+
+
+@pytest.fixture(scope="module")
+def nava_token():
+    import hashlib
+    import secrets as s
+    tok = "nava_" + s.token_urlsafe(24)
+    psql(f"INSERT INTO nava_tokens(digest, agent_id) VALUES ('{hashlib.sha256(tok.encode()).hexdigest()}', '{AGENT}') "
+         "ON CONFLICT DO NOTHING")
+    return tok
+
+
+def test_nava_syscall_commits_with_receipt_and_12_steps(nava_token):
+    status, out = nava_http("POST", "/v1/syscalls", {
+        "task_id": TASK, "tool": "fs.write", "args": {"workspace": "e2e", "path": "nava.txt", "content": "governed"},
+        "expect": [{"file_exists": "nava.txt"}, {"file_contains": ["nava.txt", "governed"]}]}, nava_token)
+    assert status == 200 and out["status"] == "committed", out
+    assert psql(f"SELECT count(*) FROM tool_calls WHERE id='{out['receipt_id']}' AND mcp_server='runtime-os'") == "1"
+    assert psql(f"SELECT count(*) FROM syscall_steps WHERE syscall_id='{out['id']}'") == "12"
+
+
+def test_nava_unauthenticated_and_foreign_tokens_fail_closed(nava_token):
+    status, _ = nava_http("POST", "/v1/syscalls", {"task_id": TASK, "tool": "fs.list", "args": {"workspace": "e2e"}},
+                          "nava_forged")
+    assert status == 401
+
+
+def test_nava_runaway_process_is_killed_and_reported(nava_token):
+    """Acceptance 3.3: a runaway command dies at its wall-clock quota; the syscall rolls back and
+    says why."""
+    status, out = nava_http("POST", "/v1/syscalls", {
+        "task_id": TASK, "tool": "sandbox.run", "timeout_s": 3,
+        "args": {"workspace": "e2e", "argv": ["sh", "-c", "while true; do :; done"], "timeout_s": 3}}, nava_token)
+    assert status in (409, 422), out
+    assert out["status"] in ("rolled_back", "failed")
+    assert "quota" in (out["reason"] or "") or "timeout" in (out["reason"] or ""), out
+    assert psql(f"SELECT count(*) FROM syscalls WHERE id='{out['id']}' AND status IN ('rolled_back','failed') "
+                "AND reason IS NOT NULL") == "1"
+
+
+def test_nava_failed_mutation_rolls_back_transactionally(nava_token):
+    """Acceptance 3.4: a command that mutates then fails leaves the workspace exactly as before."""
+    status, _ = nava_http("POST", "/v1/syscalls", {
+        "task_id": TASK, "tool": "fs.write", "args": {"workspace": "e2e", "path": "state.txt", "content": "before"}},
+        nava_token)
+    assert status == 200
+    status, out = nava_http("POST", "/v1/syscalls", {
+        "task_id": TASK, "tool": "sandbox.run",
+        "args": {"workspace": "e2e", "argv": ["sh", "-c", "echo damaged > state.txt; touch junk; exit 1"]}}, nava_token)
+    assert status == 409 and out["status"] == "rolled_back" and out["restored_hash"] == out["snapshot_hash"], out
+    _, read = nava_http("POST", "/v1/syscalls", {
+        "task_id": TASK, "tool": "fs.read", "args": {"workspace": "e2e", "path": "state.txt"}}, nava_token)
+    assert read["output"]["content"] == "before"
+    _, listing = nava_http("POST", "/v1/syscalls", {
+        "task_id": TASK, "tool": "fs.list", "args": {"workspace": "e2e"}}, nava_token)
+    assert "junk" not in listing["output"]["files"]
+
+
+def test_nava_rm_rf_is_critical_in_every_mode(nava_token):
+    for mode in ("ask", "auto", "yolo"):
+        status, out = nava_http("POST", "/v1/syscalls", {
+            "task_id": TASK, "tool": "sandbox.run", "mode": mode,
+            "args": {"workspace": "e2e", "argv": ["rm", "-rf", "/"]}}, nava_token)
+        assert status == 403 and out["risk_class"] == "critical", (mode, out)
+
+
+def test_nava_a2a_bus_and_memory(nava_token):
+    status, out = nava_http("POST", "/v1/bus/send", {"to": AGENT, "channel": "e2e", "body": {"ping": 1},
+                                                     "task_id": TASK}, nava_token)
+    assert status == 200 and out["seq"] >= 1
+    status, inbox = nava_http("GET", "/v1/bus/inbox?after=0", None, nava_token)
+    assert status == 200 and any(m["channel"] == "e2e" for m in inbox["messages"])
+    status, mem = nava_http("POST", "/v1/memory", {"tier": "episodic", "key": "e2e", "value": {"ok": True}}, nava_token)
+    assert status == 200 and mem["id"]

@@ -56,3 +56,14 @@
   Nib), runaway-process kill report and transactional rollback, 3.3 NAVA layer and its 21
   invariants, then Acceptance 3 and the gate.
 
+### NAVA kernel (C03, runtime-os) — 2026-11-15
+- `db/migrations/0003_nava.sql`: syscalls + 12 step records with order/precondition triggers,
+  resource locks, A2A bus, four-tier memory, JIT subagents, durable plans, agent tokens.
+- `services/runtime-os`: `Gateway.syscall` (the 12-step managed syscall: validate → … → record),
+  snapshot/rollback on content hashes, crash reaper, `Kernel` (bus, memory, subagents, plans),
+  HTTP surface with per-agent bearer tokens; OmniPilot desktop tools delegated to runtime-omni
+  under the same gateway (`nava_delegation` binds the executor call to the live syscall).
+- The 21 NAVA invariants are defined in `docs/NAVA.md`, each enforced in Postgres or the gateway
+  and proven in `tests/nava/` (21 invariant tests + plans/units/API; 51 local tests green).
+- e2e additions: NAVA syscall loop, runaway-process kill (Acceptance 3.3), transactional
+  rollback (Acceptance 3.4), rm -rf critical in every mode, bus + memory.

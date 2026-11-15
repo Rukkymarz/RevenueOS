@@ -67,6 +67,29 @@ services:
       - duckdb:/var/lib/revenueos/duckdb
     healthcheck: { test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8101/health').status==200 else 1)"], interval: 5s, retries: 30 }
 
+  # ---------------- C03 runtime-os: the NAVA kernel — every agent tool call is a 12-step
+  # managed syscall with locks, quotas, snapshot/rollback and a receipt (spec 3.3; docs/NAVA.md).
+  runtime-os:
+    <<: *python
+    build: { context: .., dockerfile: infra/docker/python.Dockerfile, args: { PACKAGES: "./packages/mcp-common ./infra/sandbox-supervisor ./services/runtime-os" } }
+    command: ["revenueos-runtime-os"]
+    environment:
+      <<: *pyenv
+      PORT: "8103"
+      RUNTIME_OMNI_URL: "http://runtime-omni:8102"
+      REVENUEOS_WORKSPACE_ROOT: /var/lib/revenueos/workspaces
+      EGRESS_PROXY: "envoy:10000"
+    networks: [core, runtime]
+    # Same reason as sandbox-supervisor: shell syscalls run inside nested bubblewrap namespaces.
+    security_opt: ["seccomp=unconfined", "apparmor=unconfined", "systempaths=unconfined"]
+    volumes:
+      - ./secrets/keychain:/run/revenueos/keychain:ro
+      - workspaces:/var/lib/revenueos/workspaces
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      otel-collector: { condition: service_healthy }
+    healthcheck: { test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8103/health').status==200 else 1)"], interval: 5s, retries: 30 }
+
   echo-probe:
     <<: *python
     build: { context: .., dockerfile: infra/docker/python.Dockerfile, args: { PACKAGES: "./packages/mcp-common ./mcp/echo-probe" } }

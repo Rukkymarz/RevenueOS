@@ -2,9 +2,6 @@
 import os
 
 from opentelemetry import propagate, trace
-from opentelemetry.sdk.resources import Resource
-from opentelemetry.sdk.trace import TracerProvider
-from opentelemetry.sdk.trace.export import BatchSpanProcessor, SimpleSpanProcessor
 
 # Standard attributes (spec 1.8). Every tool-call span sets all four.
 TASK_ID, AGENT_ID, TOOL, RISK_CLASS = "task_id", "agent_id", "tool", "risk_class"
@@ -16,6 +13,10 @@ def setup_tracing(service_name: str) -> trace.Tracer:
     """Configure the global tracer provider once; exports OTLP/HTTP to OTEL_EXPORTER_OTLP_ENDPOINT."""
     global _configured
     if not _configured:
+        # The SDK loads here, not at import: receipt writers that never trace don't need it.
+        from opentelemetry.sdk.resources import Resource
+        from opentelemetry.sdk.trace import TracerProvider
+        from opentelemetry.sdk.trace.export import BatchSpanProcessor, SimpleSpanProcessor
         provider = TracerProvider(resource=Resource.create({"service.name": service_name}))
         endpoint = os.environ.get("OTEL_EXPORTER_OTLP_ENDPOINT")
         if endpoint:

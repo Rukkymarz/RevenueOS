@@ -76,6 +76,17 @@ async def invoke(request: Request) -> JSONResponse:
     rt = await run_in_threadpool(runtime)
     if rt.registry.get(name) is None:
         return JSONResponse({"error": f"unknown tool {name}"}, status_code=404)
+    syscall = request.headers.get("x-nava-syscall")
+    if syscall:
+        # a NAVA-delegated call must match a live syscall that has passed snapshot (0003: nava_delegation)
+        if not UUID.match(syscall):
+            return JSONResponse({"error": "x-nava-syscall must be a UUID"}, status_code=400)
+        from revenueos_mcp_common.receipts import args_hash as _h
+        ok = await run_in_threadpool(
+            lambda: db.scalar("SELECT nava_delegation($s::uuid, $a::uuid, $t::uuid, $tool, $h) IS NOT NULL AS ok",
+                              s=syscall, a=agent, t=task, tool=name, h=_h(args)))
+        if not ok:
+            return JSONResponse({"error": "no live NAVA syscall matches this delegated call"}, status_code=403)
 
     def go():
         from opentelemetry import trace
