@@ -1,29 +1,30 @@
-# Phase 2 acceptance: live compose stack (CI run 43670554824, job 132679417928, commit f761003)
+# Phase 2 acceptance: live compose stack (CI run 43687465373, job 132730826323, commit c7f4426)
 # REVENUEOS_E2E=1 pytest -v -rA tests/e2e
 tests/e2e/test_phase1_stack.py::test_api_health_200 PASSED               [  4%]
 tests/e2e/test_phase1_stack.py::test_command_center_renders_shell PASSED [  8%]
-tests/e2e/test_phase1_stack.py::test_all_compose_services_healthy PASSED [ 13%]
-tests/e2e/test_phase1_stack.py::test_otel_span_chain_api_to_orchestrator_to_mcp_with_all_four_attributes PASSED [ 17%]
-tests/e2e/test_phase1_stack.py::test_envoy_denies_unlisted_host_and_logs_it PASSED [ 21%]
-tests/e2e/test_phase1_stack.py::test_envoy_injects_secret_the_agent_never_sees PASSED [ 26%]
-tests/e2e/test_phase1_stack.py::test_unidentified_agent_is_denied_by_envoy PASSED [ 30%]
-tests/e2e/test_phase1_stack.py::test_self_declared_agent_without_a_signed_stamp_is_denied PASSED [ 34%]
-tests/e2e/test_phase1_stack.py::test_audit_chain_intact_after_the_run PASSED [ 39%]
-tests/e2e/test_phase2_stack.py::test_sandbox_supervisor_is_healthy_with_bubblewrap PASSED [ 43%]
-tests/e2e/test_phase2_stack.py::test_direct_egress_from_sandbox_is_blocked_and_logged PASSED [ 47%]
-tests/e2e/test_phase2_stack.py::test_allowed_host_via_proxy_gets_secret_the_agent_never_sees PASSED [ 52%]
-tests/e2e/test_phase2_stack.py::test_disallowed_domain_via_proxy_is_blocked_and_logged PASSED [ 56%]
-tests/e2e/test_phase2_stack.py::test_host_path_write_lands_only_in_the_shadow PASSED [ 60%]
-tests/e2e/test_phase2_stack.py::test_destructive_command_is_blocked_in_yolo_and_audited PASSED [ 65%]
-tests/e2e/test_phase2_stack.py::test_high_risk_call_without_approval_is_refused PASSED [ 69%]
-tests/e2e/test_phase2_stack.py::test_approval_flow_single_use_and_rejections_are_logged PASSED [ 73%]
-tests/e2e/test_phase2_stack.py::test_expired_approval_is_refused_and_logged PASSED [ 78%]
-tests/e2e/test_phase2_stack.py::test_approver_list_and_role_separation PASSED [ 82%]
-tests/e2e/test_phase2_stack.py::test_one_command_provisions_email_calendar_browser_and_reports_phone PASSED [ 86%]
+tests/e2e/test_phase1_stack.py::test_all_compose_services_healthy PASSED [ 12%]
+tests/e2e/test_phase1_stack.py::test_otel_span_chain_api_to_orchestrator_to_mcp_with_all_four_attributes PASSED [ 16%]
+tests/e2e/test_phase1_stack.py::test_envoy_denies_unlisted_host_and_logs_it PASSED [ 20%]
+tests/e2e/test_phase1_stack.py::test_envoy_injects_secret_the_agent_never_sees PASSED [ 25%]
+tests/e2e/test_phase1_stack.py::test_unidentified_agent_is_denied_by_envoy PASSED [ 29%]
+tests/e2e/test_phase1_stack.py::test_self_declared_agent_without_a_signed_stamp_is_denied PASSED [ 33%]
+tests/e2e/test_phase1_stack.py::test_audit_chain_intact_after_the_run PASSED [ 37%]
+tests/e2e/test_phase2_stack.py::test_sandbox_supervisor_is_healthy_with_bubblewrap PASSED [ 41%]
+tests/e2e/test_phase2_stack.py::test_direct_egress_from_sandbox_is_blocked_and_logged PASSED [ 45%]
+tests/e2e/test_phase2_stack.py::test_allowed_host_via_proxy_gets_secret_the_agent_never_sees PASSED [ 50%]
+tests/e2e/test_phase2_stack.py::test_disallowed_domain_via_proxy_is_blocked_and_logged PASSED [ 54%]
+tests/e2e/test_phase2_stack.py::test_https_is_inspected_allowlisted_and_validated_upstream PASSED [ 58%]
+tests/e2e/test_phase2_stack.py::test_host_path_write_lands_only_in_the_shadow PASSED [ 62%]
+tests/e2e/test_phase2_stack.py::test_destructive_command_is_blocked_in_yolo_and_audited PASSED [ 66%]
+tests/e2e/test_phase2_stack.py::test_high_risk_call_without_approval_is_refused PASSED [ 70%]
+tests/e2e/test_phase2_stack.py::test_approval_flow_single_use_and_rejections_are_logged PASSED [ 75%]
+tests/e2e/test_phase2_stack.py::test_expired_approval_is_refused_and_logged PASSED [ 79%]
+tests/e2e/test_phase2_stack.py::test_approver_list_and_role_separation PASSED [ 83%]
+tests/e2e/test_phase2_stack.py::test_one_command_provisions_email_calendar_browser_and_reports_phone PASSED [ 87%]
 tests/e2e/test_phase2_stack.py::test_leads_agent_signs_up_unattended_from_its_own_inbox[otp] PASSED [ 91%]
 tests/e2e/test_phase2_stack.py::test_leads_agent_signs_up_unattended_from_its_own_inbox[magic-link] PASSED [ 95%]
 tests/e2e/test_phase2_stack.py::test_allmail_mcp_reads_the_agents_own_inbox_and_send_needs_approval PASSED [100%]
-============================= 23 passed in 21.92s ==============================
+============================= 24 passed in 25.59s ==============================
 
 # trace secret scan (spec 2.4)
 {"verdict": "PASS", "findings": []}
@@ -33,7 +34,7 @@ tests/e2e/test_phase2_stack.py::test_allmail_mcp_reads_the_agents_own_inbox_and_
 #                                                               test_one_command_provisions_email_calendar_browser_and_reports_phone
 # 2 leads agent signs up unattended, OTP from own inbox          PASS  test_leads_agent_signs_up_unattended_from_its_own_inbox[otp|magic-link]
 # 3 direct egress from sandbox blocked + logged                  PASS  test_direct_egress_from_sandbox_is_blocked_and_logged
-# 4 disallowed domain blocked + logged; allowed gets injected    PASS  test_disallowed_domain_via_proxy_is_blocked_and_logged,
+# 4 disallowed domain blocked + logged (HTTP and HTTPS); allowed  PASS  test_disallowed_domain_via_proxy_is_blocked_and_logged,
 #   secret the agent never sees                                        test_allowed_host_via_proxy_gets_secret_the_agent_never_sees
 # 5 high-risk needs approval; reuse/expiry/mismatch rejected     PASS  test_high_risk_call_without_approval_is_refused,
 #                                                                      test_approval_flow_single_use_and_rejections_are_logged,

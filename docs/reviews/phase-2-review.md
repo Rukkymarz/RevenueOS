@@ -1,7 +1,7 @@
 # Phase 2 gate review: identity, sandbox, egress, approvals
 
 Evidence: CI on branch `build/phase-2` (all five jobs) and `docs/reviews/phase-2-acceptance.log`
-(live compose stack, 23 tests across Phase 1 and Phase 2). Gate verdict: **6 of 7 acceptance
+(live compose stack, 24 tests across Phase 1 and Phase 2). Gate verdict: **6 of 7 acceptance
 items PASS; 1 DO_NOT_FILE (phone number: needs a carrier account; see (h)). Not sealed.**
 
 ## (a) Component coverage matrix
