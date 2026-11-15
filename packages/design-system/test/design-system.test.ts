@@ -53,3 +53,8 @@ test("DESIGN.md merge adds new tokens but refuses to change committed ones", () 
   assert.match(document, /"lg": 16/);
   assert.doesNotMatch(document, /0\.6 0\.2 30/);
 });
+
+test("package health self-check", async () => {
+  const { health } = await import("../src/index.js");
+  assert.deepEqual(health().checks, { contrast: "ok" });
+});

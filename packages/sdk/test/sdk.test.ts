@@ -16,3 +16,8 @@ test("probe request is rejected before it leaves the client when invalid", async
   const c = new RevenueOSClient("http://api", fake(200, {}));
   await assert.rejects(c.probe({ task_id: "nope", agent_id: "nope", message: "hi" }));
 });
+
+test("package health self-check", async () => {
+  const { health } = await import("../src/index.js");
+  assert.equal(health().status, "ok");
+});

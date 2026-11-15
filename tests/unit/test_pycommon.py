@@ -156,3 +156,21 @@ def test_existing_keychain_dir_is_verified_not_modified(tmp_path):
     os.chmod(d, 0o755)
     with pytest.raises(SecretError):
         KeychainStore(d)
+
+
+def test_rfc8785_vectors_shared_with_typescript():
+    from pathlib import Path
+    vectors = json.loads((Path(__file__).resolve().parents[2] / "packages/contracts/fixtures-canonical/vectors.json").read_text())
+    for v in vectors:
+        assert canonical.canonical_json(v["input"]).decode() == v["canonical"]
+        assert canonical.args_hash(v["input"]) == v["sha256"]
+
+
+def test_integers_beyond_the_ieee_safe_range_are_refused():
+    with pytest.raises(ValueError):
+        canonical.canonical_json({"n": 2 ** 53})
+
+
+def test_package_health_self_check():
+    from revenueos_common.health import health
+    assert health() == {"service": "revenueos-common", "status": "ok", "version": "0.1.0", "checks": {"canonical": "ok"}}

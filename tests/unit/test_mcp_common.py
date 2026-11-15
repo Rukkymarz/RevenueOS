@@ -190,3 +190,8 @@ def test_orchestrator_probe_rejects_contract_violations_and_missing_token(tmp_pa
     ok = {"task_id": "7a1c2e30-0002-4000-8000-000000000001", "agent_id": "7a1c2e30-0001-4000-8000-000000000001", "message": "hi"}
     r = c.post("/v1/probe", json=ok)
     assert r.status_code == 503 and "token" in r.json()["error"]
+
+
+def test_mcp_common_package_health():
+    from revenueos_mcp_common.health import health
+    assert health()["status"] == "ok"

@@ -1,0 +1,165 @@
+# Standing security job (decision D10, Addendum H, Q7 extension).
+# Findings at or above `high` block merge. A scan that did not run is DO_NOT_FILE, never PASS,
+# and DO_NOT_FILE fails the check. Each scanner runs where Addendum H places it.
+name: security
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      pre_deploy:
+        description: "Run the VulnHunter pre-deploy gate"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  autosecscan:
+    name: AutoSecScan (every commit; semgrep, trivy, gitleaks, osv-scanner)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - id: scan
+        continue-on-error: true
+        uses: jhammant/AutoSecScan@881d9602bfa1e45d8e0df021df4dd6b247df92f0
+        with: { repo: ".", fail-on: "high", format: "sarif,json", out: ".security" }
+      - name: verdict
+        run: |
+          if [ "${{ steps.scan.outcome }}" = "success" ] && ls .security/*.json >/dev/null 2>&1; then
+            python3 scripts/security_verdict.py autosecscan PASS "no finding at or above high"
+          elif ls .security/*.json >/dev/null 2>&1; then
+            python3 scripts/security_verdict.py autosecscan FAIL "finding at or above high; see SARIF"
+          else
+            python3 scripts/security_verdict.py autosecscan DO_NOT_FILE "scanner produced no report"
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: autosecscan, path: .security }
+
+  openhack:
+    name: OpenHack (every PR; open models only)
+    runs-on: ubuntu-latest
+    env:
+      OPENAI_BASE_URL: ${{ secrets.SECURITY_OPEN_MODEL_BASE_URL }}
+      OPENAI_API_KEY: ${{ secrets.SECURITY_OPEN_MODEL_API_KEY }}
+      OPENHACK_MODEL: ${{ secrets.SECURITY_OPEN_MODEL_NAME }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: applicability and credentials
+        id: gate
+        run: |
+          if [ "${{ github.event_name }}" != "pull_request" ]; then
+            python3 scripts/security_verdict.py openhack NOT_APPLICABLE "runs on pull requests"; echo "run=false" >> "$GITHUB_OUTPUT"
+          elif [ -z "$OPENAI_API_KEY" ] || [ -z "$OPENAI_BASE_URL" ]; then
+            python3 scripts/security_verdict.py openhack DO_NOT_FILE "SECURITY_OPEN_MODEL_BASE_URL / _API_KEY secrets not set"
+          else
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          fi
+      - if: steps.gate.outputs.run == 'true'
+        uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - if: steps.gate.outputs.run == 'true'
+        name: scan
+        run: |
+          pip install "git+https://github.com/openhackai/OpenHack@6a0675ebd1287e8d7a651cccffae9b8f5d1e02a2"
+          openhack --scan "$GITHUB_WORKSPACE" || true
+          report=$(ls -t ~/.openhack/scans/*.json 2>/dev/null | head -1)
+          if [ -z "$report" ]; then
+            python3 scripts/security_verdict.py openhack DO_NOT_FILE "no report produced"
+          fi
+          mkdir -p .security && cp "$report" .security/openhack.json
+          python3 - "$report" <<'PY'
+          import json, subprocess, sys
+          data = json.load(open(sys.argv[1]))
+          findings = data.get("findings") or data.get("vulnerabilities")
+          if not isinstance(findings, list):
+              sys.exit(subprocess.call(["python3", "scripts/security_verdict.py", "openhack", "DO_NOT_FILE", "unrecognized report shape"]))
+          high = [f for f in findings if str(f.get("severity", "")).lower() in ("high", "critical")]
+          verdict = "FAIL" if high else "PASS"
+          sys.exit(subprocess.call(["python3", "scripts/security_verdict.py", "openhack", verdict, f"{len(high)} high/critical of {len(findings)}"]))
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: openhack, path: .security }
+
+  open-kritt:
+    name: open-kritt (release branches)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          case "${{ github.ref_name }}" in
+            release/*)
+              # open-kritt's `scan create` is an interactive guided flow on an operator-provisioned host
+              # (its threat model requires a dedicated VM); CI cannot start it unattended.
+              if [ -z "${{ secrets.KRITT_HOST_REPORT_URL }}" ]; then
+                python3 scripts/security_verdict.py open-kritt DO_NOT_FILE "no operator open-kritt host report for this release"
+              else
+                curl -fsSL "${{ secrets.KRITT_HOST_REPORT_URL }}/${{ github.sha }}.json" -o kritt.json \
+                  || python3 scripts/security_verdict.py open-kritt DO_NOT_FILE "no export for ${{ github.sha }}"
+                python3 -c "import json,sys; f=json.load(open('kritt.json')).get('findings',[]); h=[x for x in f if str(x.get('severity','')).lower() in ('high','critical')]; sys.exit(1 if h else 0)" \
+                  && python3 scripts/security_verdict.py open-kritt PASS "export has no high/critical finding" \
+                  || python3 scripts/security_verdict.py open-kritt FAIL "high/critical findings in export"
+              fi ;;
+            *) python3 scripts/security_verdict.py open-kritt NOT_APPLICABLE "runs on release branches" ;;
+          esac
+
+  vulnhunter:
+    name: VulnHunter (pre-deploy gate)
+    runs-on: ubuntu-latest
+    env:
+      ANTHROPIC_API_KEY: ${{ secrets.VULNHUNTER_ANTHROPIC_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: applicability and credentials
+        id: gate
+        run: |
+          if [ "${{ inputs.pre_deploy }}" != "true" ] && [[ "${{ github.ref_name }}" != release/* ]]; then
+            python3 scripts/security_verdict.py vulnhunter NOT_APPLICABLE "runs before a deploy (release branch or pre_deploy dispatch)"; echo "run=false" >> "$GITHUB_OUTPUT"
+          elif [ -z "$ANTHROPIC_API_KEY" ]; then
+            python3 scripts/security_verdict.py vulnhunter DO_NOT_FILE "VULNHUNTER_ANTHROPIC_API_KEY secret not set"
+          else
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          fi
+      - if: steps.gate.outputs.run == 'true'
+        uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - if: steps.gate.outputs.run == 'true'
+        name: scan every service
+        run: |
+          git clone https://github.com/capitalone/VulnHunter /tmp/vulnhunter && git -C /tmp/vulnhunter checkout 6d25b5c58b7820809b391ecda6a102537effe3ba
+          cd /tmp/vulnhunter/vulnhunter-agent && python -m pip install -e . && cd -
+          python -m agent "https://github.com/${{ github.repository }}" --no-publish --no-issues \
+            && python3 scripts/security_verdict.py vulnhunter PASS "no verified exploitable finding" \
+            || python3 scripts/security_verdict.py vulnhunter FAIL "verified exploitable finding or scanner error"
+
+  strix:
+    name: Strix (generated websites, before the Phase 9 design gate)
+    runs-on: ubuntu-latest
+    env:
+      STRIX_LLM: ${{ secrets.STRIX_LLM }}
+      LLM_API_KEY: ${{ secrets.STRIX_LLM_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: applicability and credentials
+        id: gate
+        run: |
+          if [ ! -d apps/sites ]; then
+            python3 scripts/security_verdict.py strix NOT_APPLICABLE "no generated websites yet (apps/sites lands in Phase 9)"; echo "run=false" >> "$GITHUB_OUTPUT"
+          elif [ -z "$LLM_API_KEY" ] || [ -z "$STRIX_LLM" ]; then
+            python3 scripts/security_verdict.py strix DO_NOT_FILE "STRIX_LLM / STRIX_LLM_API_KEY secrets not set"
+          else
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          fi
+      - if: steps.gate.outputs.run == 'true'
+        uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - if: steps.gate.outputs.run == 'true'
+        run: |
+          pip install "git+https://github.com/usestrix/strix@4719329d1c3eb0db796714397551945c514a2301"
+          strix -n -t ./apps/sites --scan-mode quick \
+            && python3 scripts/security_verdict.py strix PASS "no vulnerability found" \
+            || python3 scripts/security_verdict.py strix FAIL "vulnerabilities found (strix exits non-zero)"

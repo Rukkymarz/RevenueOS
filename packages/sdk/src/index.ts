@@ -22,3 +22,4 @@ export class RevenueOSClient {
     }));
   }
 }
+export { health } from "./health.js";
