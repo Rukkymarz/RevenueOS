@@ -41,3 +41,28 @@ def test_no_empty_directories_in_the_workspace():
     empty = [str(p.relative_to(ROOT)) for p in ROOT.rglob("*")
              if p.is_dir() and not any(p.iterdir()) and not (set(p.relative_to(ROOT).parts) & skip)]
     assert not empty, f"empty directories: {empty}"
+
+
+def test_orchestrator_remote_control_forwards_with_token_and_trace(monkeypatch, tmp_path):
+    pytest.importorskip("fastmcp")   # telemetry comes from mcp-common; installed in CI
+    import json as _json
+
+    import httpx
+    from revenueos_common.secrets import KeychainStore
+    mod = importlib.import_module("revenueos_orchestrator.app")
+    monkeypatch.setenv("REVENUEOS_KEYCHAIN_DIR", str(tmp_path / "kc"))
+    c = TestClient(mod.app)
+    body = {"task_id": "t", "agent_id": "a", "args": {}}
+    assert c.post("/v1/runtime/tools/fs.read_file", json=body).status_code == 503   # no token: closed
+    KeychainStore(tmp_path / "kc").put("runtime-omni-token", "tok-123")
+    seen = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.update(url=str(request.url), auth=request.headers["authorization"], body=_json.loads(request.content))
+        return httpx.Response(403, json={"status": "blocked", "risk_class": "critical"})
+    real = httpx.AsyncClient
+    monkeypatch.setattr(httpx, "AsyncClient", lambda **kw: real(transport=httpx.MockTransport(handler), **kw))
+    r = c.post("/v1/runtime/tools/shell.run_command", json=body)
+    assert r.status_code == 403 and r.json()["status"] == "blocked" and len(r.json()["trace_id"]) == 32
+    assert seen["url"].endswith("/v1/tools/shell.run_command/invoke") and seen["auth"] == "Bearer tok-123"
+    assert seen["body"]["traceparent"].startswith("00-")

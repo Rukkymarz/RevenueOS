@@ -56,5 +56,7 @@ def test_contained_runtimes_start_code_execution_at_medium_but_arguments_still_e
                     context="contained").level == "high"
     assert classify("shell.run_command", {"command": "rm -rf /"}, context="contained").critical
     assert classify("processes.kill_process", {"name": "init"}, declared="high", context="contained").critical
+    assert classify("processes.kill_process", {"name": "sleep"}, declared="high", context="contained").level == "medium"
+    assert classify("processes.kill_process", {"name": "sleep"}, declared="high").level == "high"
     with pytest.raises(ValueError):
         classify("x", {}, context="space")

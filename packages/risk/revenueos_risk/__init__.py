@@ -30,6 +30,8 @@ SHELL_TOOLS = {"shell.run_command", "sandbox.run", "terminal.run"}
 CONTAINED_BASE = {"shell.run_command": "medium", "python.run_python": "medium", "processes.kill_process": "medium",
                   "sandbox.run": "medium", "terminal.run": "medium"}
 CONTEXTS = ("host", "contained")
+# Reasons that only describe the tool itself; inside a contained runtime they do not raise risk.
+CONTAINED_GENERIC = {"killing a process"}
 SYSTEM_WRITE = re.compile(r"(>>?|\btee\b(\s+-a)?|\bsed\s+-i\S*\s+\S+)\s*/(etc|usr|bin|sbin|lib\w*|boot|sys|proc|root|var/lib)\b")
 
 
@@ -71,8 +73,9 @@ def classify(tool: str, args: dict | None = None, declared: str = "low", context
     omni_args = {**args, "command": _command_of(tool, args)} if tool in SHELL_TOOLS else args
     a = danger.assess(omni_tool, omni_args)
     dynamic = "critical" if a.critical else a.level
-    if context == "contained" and tool in CONTAINED_BASE and dynamic == "high" and not a.reasons:
-        dynamic = "medium"   # only the tool's base was high, nothing in the arguments
+    if (context == "contained" and tool in CONTAINED_BASE and dynamic == "high"
+            and set(a.reasons) <= CONTAINED_GENERIC):
+        dynamic = "medium"   # only generic to the tool (or its base), nothing in the arguments
     level = _max(level, dynamic)
     reasons += [r for r in a.reasons if r not in reasons]
 

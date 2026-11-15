@@ -50,6 +50,7 @@ async def tools(_: Request) -> JSONResponse:
 
 
 TOKEN_REF = "keychain://runtime-omni-token"
+MAIN_THREAD_TOOLS = {"python.run_python"}
 
 
 def _authorized(request: Request) -> bool:
@@ -87,7 +88,9 @@ async def invoke(request: Request) -> JSONResponse:
                 span.set_attribute(k, v)
             return res
 
-    res = await run_in_threadpool(go)
+    # OmniPilot's Python tool arms a SIGALRM watchdog, which works only on the main thread, so it
+    # runs on the event-loop (main) thread; every other tool runs on a worker thread.
+    res = go() if name in MAIN_THREAD_TOOLS else await run_in_threadpool(go)
     code = {"ok": 200, "error": 200, "blocked": 403, "approval_required": 403}[res.status]
     return JSONResponse(res.__dict__, status_code=code)
 
