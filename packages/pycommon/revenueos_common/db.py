@@ -51,7 +51,7 @@ class Database:
                "-X", "-q", "-A", "-t", "-v", "ON_ERROR_STOP=1", "-v", f"__p={payload}"]
         r = subprocess.run(cmd, input=script, capture_output=True, text=True)
         if r.returncode != 0:
-            raise DatabaseError(r.stderr.strip())
+            raise DatabaseError(f"{r.stderr.strip()} [params: {sorted(params)}]")
         return r.stdout
 
     def rows(self, sql: str, **params) -> list[dict]:

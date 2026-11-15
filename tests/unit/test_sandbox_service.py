@@ -78,3 +78,16 @@ def test_health_reports_the_egress_ca(svc, tmp_path, monkeypatch):
     kc.put("egress-ca-key", key)
     monkeypatch.setattr(mod, "_ca", {})
     assert mod._egress_ca() is not None
+
+
+def test_closing_an_egress_session_never_raises():
+    from revenueos_sandbox.records import egress_hooks
+
+    class Broken:
+        def scalar(self, *a, **k):
+            raise RuntimeError("db hiccup")
+
+    class S:
+        session_id = "00000000-0000-4000-8000-000000000000"
+    _, closed = egress_hooks(Broken())
+    closed(S())   # logged, not raised

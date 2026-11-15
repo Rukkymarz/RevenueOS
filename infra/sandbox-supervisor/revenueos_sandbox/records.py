@@ -32,5 +32,15 @@ def egress_hooks(db: Database):
                   id=session.session_id, agent=session.agent_id, task=session.task_id or "", path=str(session.socket_path))
 
     def closed(session):
-        db.scalar("UPDATE egress_sessions SET closed_at=now() WHERE id=$id::uuid RETURNING id", id=session.session_id)
+        # Closing is bookkeeping after the work is done: retry once, and never let it turn a finished
+        # call into a failure (an unclosed row only means egress-authz keeps a dead session id open
+        # until its stamps expire; the forwarder socket is already gone).
+        import logging
+        for attempt in (1, 2):
+            try:
+                db.scalar("UPDATE egress_sessions SET closed_at=now() WHERE id=$id::uuid RETURNING id", id=session.session_id)
+                return
+            except Exception as e:  # noqa: BLE001 - logged, never raised
+                logging.getLogger("revenueos.egress").warning("closing egress session %s failed (attempt %d): %s",
+                                                              session.session_id, attempt, e)
     return opened, closed
