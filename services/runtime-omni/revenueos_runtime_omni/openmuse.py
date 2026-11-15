@@ -73,7 +73,8 @@ class Takeover:
     def status(self) -> dict:
         return {"active": self.holder is not None, "holder": self.holder, "since": self.since,
                 "typed_chars": self.typed, "vnc": {"host": "localhost", "port": self.vnc_port,
-                                                   "note": "tunnel in; VNC is never exposed off-host"}}
+                                                   "note": "tunnel in; VNC is never exposed off-host"},
+                "web_console": {"host": "localhost", "port": 6080, "client": "noVNC (pinned)"}}
 
 
 # --------------------------------------------------------------------------------------------

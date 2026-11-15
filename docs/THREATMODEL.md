@@ -66,3 +66,17 @@ full attack suite (`tests/threats/`). This file is completed and re-checked at P
   self-generated certificate for STARTTLS; external providers are verified normally.
 - **LLM-backed scanners.** OpenHack, VulnHunter and Strix need model credentials held as GitHub
   secrets. Until they are set the jobs record `DO_NOT_FILE` and fail; this is intended.
+
+## Phase 3 additions (NAVA, OpenMuse)
+
+| Threat | Control | Proven by |
+| --- | --- | --- |
+| Agent skips a gateway step (approval, snapshot, quota) | Step order and execution preconditions are Postgres triggers (N01, N05–N07, N13); a forged step sequence is rejected by the database, not by Python | `tests/nava/test_nava_invariants.py` |
+| Critical action in YOLO mode | `decide()` blocks critical in every mode; the DB refuses a committed critical syscall and an execute step on one (N06) | `test_n06_critical_never_executes`, e2e rm -rf in 3 modes |
+| Receipt forgery / commit without evidence | Commit requires its own receipt row with the same agent, task and args hash (N16) | `test_n16_commit_needs_receipt` |
+| Partial mutation left behind by a crash or failure | Content-hashed snapshot before execute; rollback must restore the exact hash (N14); reaper closes orphans | `test_n14…`, `test_n17_crash_reap`, e2e rollback |
+| Subagent privilege escalation | Deny fences are inherited through the parent chain; subagents expire and are killed; no sub-subagents (N21, N04) | `test_n21_jit_subagents` |
+| One agent reading another's mail/bus/syscalls | Bus inbox and syscall reads are scoped to the authenticated agent (N19); mailbox resolution checks ownership | `test_n19_inbox_isolation`, API isolation test |
+| Takeover console abused as a remote input channel | Bearer-authenticated, single holder, audited; VNC bound to the container loopback; xdotool input validated | `tests/unit/test_openmuse.py`, e2e takeover |
+| Browser as an egress bypass | Chromium runs on the runtime-only network with the agent's pinned proxy; the MITM CA is trusted via NSS instead of disabling verification | e2e pipeline egress_log assertion |
+| nib fed a hostile PDF | nib runs against files the pipeline itself downloaded over the pinned proxy, in the runtime workspace, as the unprivileged runtime user | pipeline e2e |

@@ -57,3 +57,37 @@ and the buses it is on.
 | `infra/compose.yaml` | Postgres, migrations + seeds, OTel collector, orchestrator, echo-probe, Envoy + egress-authz, sandbox supervisor, api, command-center |
 
 Phases and their seals are recorded in `docs/PROGRESS.md`.
+
+## Built in Phase 2
+
+```
+ agent process (bwrap: COW shadow ws, ro /, rlimits, blocklist)
+   └── only route out: per-session UDS ─> supervisor forwarder (HMAC identity stamp, MITM CA)
+         └─> Envoy ─> egress-authz (rules + secret bindings in Postgres) ─> upstream TLS
+ identities: AgenticMail on Stalwart (email+calendar), browser profiles, phone deferred
+ approvals: hash-bound, single-use, separation of duties (apps/api RBAC)
+```
+
+## Built in Phase 3 (C02 runtime-omni, C03 runtime-os)
+
+```
+                 ┌────────────── 15 NAVA MCP servers (mcp/nava-suite, one per domain) ──────────────┐
+ agent ──bearer──> services/runtime-os  (NAVA kernel: 12-step managed syscall, docs/NAVA.md)
+                     1 validate .. 5 policy (shared risk lib) .. 6 approval .. 8 locks
+                     9 snapshot ──> 10 execute ──────────────┬─> sandbox.run (bwrap, quotas)
+                     11 verify ──> 12 receipt + span + audit └─> omni.* ──> services/runtime-omni
+                                                                              (41 OmniPilot tools on
+ plans (durable: pause/resume/retry) ── static agents (7, DB-fenced)           Xvfb desktop, x11vnc)
+ A2A bus + 4-tier memory in Postgres ── JIT subagents (TTL, inherited fences)
+ OpenMuse: persistent Chromium per agent profile ── human takeover console ── 30 s terminal
+           signup -> OTP -> PDF -> nib fill -> deterministic review -> reply draft
+```
+
+| Path | What it is |
+| --- | --- |
+| `db/migrations/0003_nava.sql` | syscalls + ordered step records, N01..N21 triggers, locks, A2A bus, 4-tier memory, JIT subagents, durable plans, agent tokens |
+| `services/runtime-os` | the NAVA gateway, kernel (bus/memory/subagents/plans), 7 static agents, HTTP surface, crash reaper |
+| `services/runtime-omni` | OmniPilot's 41 tools by remote control; OpenMuse browser, takeover console, acceptance pipeline |
+| `packages/risk` | shared risk classification (3.2): single-sourced for OmniPilot, NAVA and approvals |
+| `mcp/nava-suite` | the 15 specialized MCP servers, each a facade over governed syscalls |
+| `docs/NAVA.md` | the 12 steps and the 21 invariants, each with its enforcing object and test |

@@ -253,6 +253,12 @@ def test_human_takeover_attaches_types_and_agent_resumes():
     r = subprocess.run([*COMPOSE, "exec", "-T", "runtime-omni", "python", "-c", probe],
                        capture_output=True, text=True, timeout=60)
     assert r.stdout.startswith("RFB "), (r.stdout, r.stderr)
+    # and the noVNC web console (pinned, docs/PINS.md) serves its client on the same loopback
+    web = ("import urllib.request as u;"
+           "print(u.urlopen('http://127.0.0.1:6080/vnc.html',timeout=10).status)")
+    r = subprocess.run([*COMPOSE, "exec", "-T", "runtime-omni", "python", "-c", web],
+                       capture_output=True, text=True, timeout=60)
+    assert r.stdout.strip() == "200", (r.stdout, r.stderr)
 
     # the agent works, a window is focused for the human to type into
     status, _ = remote("apps.open_application", {"name": "xterm"})

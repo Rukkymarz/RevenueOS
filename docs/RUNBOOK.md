@@ -144,6 +144,42 @@ curl -X POST -H "authorization: Bearer $(cat infra/secrets/keychain/api-token-ow
   -d '{"approve": true}' localhost:3000/v1/approvals/<id>/decision
 ```
 
+## NAVA (Phase 3): tokens, syscalls, crash recovery
+
+Every agent tool call is a 12-step managed syscall through `runtime-os` (docs/NAVA.md). Agents
+authenticate with a NAVA bearer token; only its digest is stored.
+
+```bash
+# issue a token for an agent and store it by reference (prints the ref, never the token)
+docker compose -f infra/compose.yaml exec runtime-os revenueos-runtime-os issue-token <agent_id>
+# close syscalls orphaned by a crash: rollback from snapshot, release locks (idempotent)
+docker compose -f infra/compose.yaml exec runtime-os revenueos-runtime-os reap --older-than 600
+# kill JIT subagents past their TTL
+docker compose -f infra/compose.yaml exec runtime-os revenueos-runtime-os expire-subagents
+```
+
+A call that needs an approval returns 202 with a pending approval id; approve it through the
+Approvals API above and retry the call with `approval_id`. Durable plans pause on approvals and
+resume with `POST /v1/plans/<id>/resume {"approvals": {"<step idx>": "<approval_id>"}}`.
+
+## Human takeover console (OpenMuse, Phase 3)
+
+The desktop runtime serves VNC on its own loopback only. To take the desk:
+
+```bash
+# attach (every agent tool call now returns 423 paused)
+curl -X POST -H "authorization: Bearer $(cat infra/secrets/keychain/runtime-omni-token)"   -H 'content-type: application/json' -d '{"holder": "christine"}' http://localhost:8102/v1/takeover/attach
+# watch/drive the desktop: docker compose exec runtime-omni = the VNC side runs on localhost:5900
+# inside the container; tunnel it if you want a viewer:  ssh -L 5900:localhost:5900 <host>
+# type without a viewer:
+curl -X POST ... -d '{"holder": "christine", "text": "ls"}' http://localhost:8102/v1/takeover/type
+curl -X POST ... -d '{"holder": "christine", "key": "Return"}' http://localhost:8102/v1/takeover/key
+# hand the desk back (the agent resumes exactly where it paused)
+curl -X POST ... -d '{"holder": "christine"}' http://localhost:8102/v1/takeover/release
+```
+
+Every attach/type/release is audited (`takeover.*` in the audit ledger).
+
 ## Kill switch, budgets, rollback
 
 Per-agent and global kill switches (Phase 14), budget halts (Phase 5) and skill rollback

@@ -35,6 +35,10 @@ ARG DESKTOP=0
 RUN apt-get update && apt-get install -y --no-install-recommends postgresql-client util-linux libcap2 git ca-certificates \
  && if [ "$DESKTOP" = "1" ]; then apt-get install -y --no-install-recommends xvfb fluxbox x11vnc xterm xclip xsel \
       xdotool scrot x11-utils libnotify-bin dbus-x11 tk procps chromium libnss3-tools; fi \
+ && if [ "$DESKTOP" = "1" ]; then \
+      git clone https://github.com/novnc/noVNC /opt/novnc \
+      && git -C /opt/novnc checkout e8b5024d4603587b29ffede4fbd28b1fa2939829 \
+      && rm -rf /opt/novnc/.git; fi \
  && rm -rf /var/lib/apt/lists/*
 COPY --from=bwrap /usr/local/bin/bwrap /usr/local/bin/bwrap
 COPY --from=nib /usr/local/bin/nib /usr/local/bin/nib
@@ -54,7 +58,7 @@ COPY --from=contracts /src/packages/contracts/generated packages/contracts/gener
 RUN pip install --no-cache-dir "datamodel-code-generator>=0.26" \
  && ./scripts/gen-python-contracts.sh \
  && pip install --no-cache-dir ./packages/pycommon ./packages/contracts/python ./packages/risk $PACKAGES \
- && if [ "$DESKTOP" = "1" ]; then pip install --no-cache-dir "playwright>=1.49"; fi
+ && if [ "$DESKTOP" = "1" ]; then pip install --no-cache-dir "playwright>=1.49" "websockify>=0.11"; fi
 ENV REVENUEOS_CONFIG_DIR=/src/config PYTHONUNBUFFERED=1 HOME=/home/revenueos
 # Non-root runtime. compose runs it as the host owner of infra/secrets (REVENUEOS_UID, group 0) so
 # secrets stay 0600/0700; writable dirs are group-0 writable (the arbitrary-UID pattern).
