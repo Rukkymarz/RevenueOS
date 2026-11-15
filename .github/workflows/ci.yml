@@ -99,7 +99,7 @@ jobs:
       # container; Ubuntu's AppArmor userns restriction would refuse that (see docs/RUNBOOK.md).
       - run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0 || true
       - run: docker compose -f infra/compose.yaml --profile test build
-      - run: docker compose -f infra/compose.yaml --profile test up -d --wait --wait-timeout 300
+      - run: docker compose -f infra/compose.yaml --profile test up -d --wait --wait-timeout 600
       - uses: actions/setup-python@v5
         with: { python-version: "3.12" }
       - run: pip install pytest requests pyyaml
