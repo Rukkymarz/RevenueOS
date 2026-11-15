@@ -2,6 +2,20 @@
 
 Gate protocol Step 3. Phase spec: v4 §3.1–3.6, Acceptance 3.
 
+**Gate status: NOT SEALED.** Acceptance 3 is green live (CI run 43702840418: 39/39 e2e across
+Phases 1–3, 1,100+ unit/invariant tests, coverage gate, trace secret scan PASS), but section (a)
+has rows that are `partial` or `missing`, and the protocol makes that a gate failure. They are
+listed first so nobody reads the rest as a seal.
+
+| Open item | Why it blocks | What closes it |
+| --- | --- | --- |
+| **aegis-os** (named, public, pinned `heurion-org/aegis-os`) is not run anywhere. 3.4's behaviours (kernel sandbox, COW shadow workspace, pinned egress, A2A, workspace-boundary authorization, large clone) are delivered by RevenueOS's own Bubblewrap supervisor + NAVA. | R04: a named component with a usable repo may not be substituted. | Build the pinned Rust binary into the runtime image and run the sandbox path through `aegis-os run`, keeping the supervisor as the fallback; prove the clone under it. |
+| **nava** is named-not-found with documented add-on **OpenHands**; the 12-step gateway, bus, memory, 15 servers and 21 invariants are native code. | D1 says the documented add-on is the official implementation. Native code covers the spec sentences but OpenHands is not integrated. | Owner decision: accept native NAVA as the implementation (amend PINS/POLICY), or integrate OpenHands as the agent loop on top of the gateway (needs a model key). |
+| **browser-use, playwright-mcp, magentic-ui, openclaw-heartbeat, ambient-watchers** are C02 components scheduled for Phase 3 in the component map and are not integrated (only OmniPilot and Playwright are). | Component coverage must be complete. | Integrate each behind the gateway. browser-use and magentic-ui are model-driven and need a model key to do anything. |
+| **OpenHack** security scan still records DO_NOT_FILE (GitHub Models returns a canned reply). | D10: a scan that did not run is never PASS; PR #3 stays blocked. | Enable GitHub Models for the repo, or set the `SECURITY_OPEN_MODEL_*` secrets. |
+
+Everything below describes what *is* built and proven.
+
 ## (a) Component coverage matrix
 
 | Item | Component | Paths | Status |
@@ -17,7 +31,7 @@ Gate protocol Step 3. Phase spec: v4 §3.1–3.6, Acceptance 3.
 | 3.3 static agents ×7 | C03 | `services/runtime-os/revenueos_runtime_os/agents.py` — CodingAgent, TerminalAgent, ReviewerAgent, VerifierAgent, WebScraperAgent, BrowserAgent, ComputerAgent; DB deny fences; deterministic plan compilers | complete |
 | 3.3 dynamic JIT subagents | C03 | `Kernel.spawn` + `nava_subagents` (TTL, inherited fences, killed on expiry) | complete |
 | 3.3 managed system call: policy, risk, quotas, locks, rollback | C03 | steps 5 (policy), 4 (risk), 7 (quotas `nava_quotas`), 8 (`nava_locks`), 9/N14 (snapshot/rollback) | complete |
-| 3.4 Aegis: kernel sandboxes, COW, egress integration, A2A, workspace authz | C03 | Phase 2 bwrap supervisor reused as the execute step; A2A bus above; workspace boundaries via `nava_locks` + per-agent workspaces + approval-bound commits; `GIT_SSL_CAINFO` for clones | complete |
+| 3.4 Aegis: kernel sandboxes, COW, egress integration, A2A, workspace authz | C03 | Behaviours delivered by the Phase 2 bwrap supervisor + NAVA (`nava_locks`, per-agent workspaces, A2A bus); **the pinned aegis-os binary itself is not integrated** | **partial** |
 | 3.4 large repo clone inside sandbox, no host exposure | C03 | e2e `test_aegis_large_repo_clone_inside_sandbox` (cpython depth-1 through the pinned MITM proxy) | complete |
 | 3.5 OpenMuse persistent browser + takeover console | C03 | `services/runtime-omni/revenueos_runtime_omni/openmuse.py` — per-agent persistent Chromium on the Phase 2 profile; takeover: VNC (x11vnc) + noVNC web console (pinned add-on) + typing channel; agent paused 423 / resumes | complete |
 | 3.5 isolated terminal, 30 s, no host mounts | C03 | `sandbox.run` via bwrap (shadow workspace, ro root); the terminal MCP server clamps every command to 30 s | complete |
@@ -43,7 +57,7 @@ Gate protocol Step 3. Phase spec: v4 §3.1–3.6, Acceptance 3.
 
 ## (c) Substitution log
 
-None beyond the R03/D1 pins already recorded: OmniPilot `2e3a6bd` (named), nib `1f23f70`
+**Two unresolved** (see the table at the top): the Bubblewrap supervisor stands in for aegis-os, and native code stands in for NAVA's documented add-on (OpenHands). Otherwise only the R03/D1 pins already recorded: OmniPilot `2e3a6bd` (named), nib `1f23f70`
 (named), playwright + noVNC (documented add-on for unlicensed openmuse), bubblewrap `1fb0aa2`.
 
 ## (d) Defect list (found during the phase, all fixed)
@@ -112,8 +126,8 @@ None beyond the R03/D1 pins already recorded: OmniPilot `2e3a6bd` (named), nib `
 
 ## (h) Coverage and observability
 
-- Coverage: CI gate ≥80% per service (≥90% qc) — enforced by `scripts/coverage_gate.py`; see
-  `phase-3-acceptance.log` for the run's numbers.
+- Coverage (CI run 43702840418): runtime-os 86.3%, runtime-omni 87.7%, nava-suite 99.2%,
+  sandbox-supervisor 86.0%, qc 100%; every unit above its threshold.
 - Every syscall opens an OTel span (`nava.syscall <tool>`) carrying task_id/agent_id/tool and
   ends in a receipt or an audited denial; runtime-omni spans carry the same four attributes;
   e2e asserts receipts sit on the orchestrator's trace.
@@ -129,3 +143,16 @@ None beyond the R03/D1 pins already recorded: OmniPilot `2e3a6bd` (named), nib `
    snapshot-passed syscall authorizes.
 5. NSS-trusted MITM CA for Chromium instead of disabling certificate verification.
 6. Per-agent NAVA tokens with digests-only storage, mirroring the Phase 2 API RBAC pattern.
+
+### Defects found in live runs (added after the first CI passes, all fixed)
+
+13. bwrap failed with EAGAIN on a busy host: `RLIMIT_NPROC` was counted against the host uid all
+    containers share. The pid cap now applies inside the sandbox's own user namespace.
+14. Networked sandbox syscalls had no route: `sandbox.run` now opens an identity-pinned egress
+    session when `network: true`.
+15. Commit refused every symlink, so real source trees could not be committed: relative links that
+    stay inside the workspace commit; links that leave it are refused (tested both ways).
+16. Stalwart refuses LOGIN on the clear-text port: the pipeline negotiates STARTTLS like allmail.
+17. nib rejected the JSON record shape: the pipeline writes XFDF, nib's interchange format.
+18. `SERVER` was undefined in the runtime-omni app (500 on browser/pipeline routes).
+19. nava-suite had no `manifest.json` (MCP boundary test).

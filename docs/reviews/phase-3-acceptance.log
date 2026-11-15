@@ -1,0 +1,99 @@
+1Z ##[group]Run set -o pipefail; REVENUEOS_E2E=1 pytest -v -rA tests/e2e -p no:cacheprovider 2>&1 | tee acceptance.log
+[36;1mset -o pipefail; REVENUEOS_E2E=1 pytest -v -rA tests/e2e -p no:cacheprovider 2>&1 | tee acceptance.log[0m
+shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+env:
+  pythonLocation: /opt/hostedtoolcache/Python/3.12.16/x64
+  PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.16/x64/lib/pkgconfig
+  Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+  Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+  Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+  LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.16/x64/lib
+##[endgroup]
+============================= test session starts ==============================
+platform linux -- Python 3.12.16, pytest-9.2.0, pluggy-1.7.0 -- /opt/hostedtoolcache/Python/3.12.16/x64/bin/python
+rootdir: /home/runner/work/RevenueOS/RevenueOS
+configfile: pyproject.toml
+collecting ... collected 39 items
+
+tests/e2e/test_phase1_stack.py::test_api_health_200 PASSED               [  2%]
+tests/e2e/test_phase1_stack.py::test_command_center_renders_shell PASSED [  5%]
+tests/e2e/test_phase1_stack.py::test_all_compose_services_healthy PASSED [  7%]
+tests/e2e/test_phase1_stack.py::test_otel_span_chain_api_to_orchestrator_to_mcp_with_all_four_attributes PASSED [ 10%]
+tests/e2e/test_phase1_stack.py::test_envoy_denies_unlisted_host_and_logs_it PASSED [ 12%]
+tests/e2e/test_phase1_stack.py::test_envoy_injects_secret_the_agent_never_sees PASSED [ 15%]
+tests/e2e/test_phase1_stack.py::test_unidentified_agent_is_denied_by_envoy PASSED [ 17%]
+tests/e2e/test_phase1_stack.py::test_self_declared_agent_without_a_signed_stamp_is_denied PASSED [ 20%]
+tests/e2e/test_phase1_stack.py::test_audit_chain_intact_after_the_run PASSED [ 23%]
+tests/e2e/test_phase2_stack.py::test_sandbox_supervisor_is_healthy_with_bubblewrap PASSED [ 25%]
+tests/e2e/test_phase2_stack.py::test_direct_egress_from_sandbox_is_blocked_and_logged PASSED [ 28%]
+tests/e2e/test_phase2_stack.py::test_allowed_host_via_proxy_gets_secret_the_agent_never_sees PASSED [ 30%]
+tests/e2e/test_phase2_stack.py::test_disallowed_domain_via_proxy_is_blocked_and_logged PASSED [ 33%]
+tests/e2e/test_phase2_stack.py::test_https_is_inspected_allowlisted_and_validated_upstream PASSED [ 35%]
+tests/e2e/test_phase2_stack.py::test_host_path_write_lands_only_in_the_shadow PASSED [ 38%]
+tests/e2e/test_phase2_stack.py::test_destructive_command_is_blocked_in_yolo_and_audited PASSED [ 41%]
+tests/e2e/test_phase2_stack.py::test_high_risk_call_without_approval_is_refused PASSED [ 43%]
+tests/e2e/test_phase2_stack.py::test_approval_flow_single_use_and_rejections_are_logged PASSED [ 46%]
+tests/e2e/test_phase2_stack.py::test_expired_approval_is_refused_and_logged PASSED [ 48%]
+tests/e2e/test_phase2_stack.py::test_approver_list_and_role_separation PASSED [ 51%]
+tests/e2e/test_phase2_stack.py::test_one_command_provisions_email_calendar_and_browser PASSED [ 53%]
+tests/e2e/test_phase2_stack.py::test_leads_agent_signs_up_unattended_from_its_own_inbox[otp] PASSED [ 56%]
+tests/e2e/test_phase2_stack.py::test_leads_agent_signs_up_unattended_from_its_own_inbox[magic-link] PASSED [ 58%]
+tests/e2e/test_phase2_stack.py::test_allmail_mcp_reads_the_agents_own_inbox_and_send_needs_approval PASSED [ 61%]
+tests/e2e/test_phase3_stack.py::test_runtime_lists_omnipilots_41_tools PASSED [ 64%]
+tests/e2e/test_phase3_stack.py::test_all_41_tools_emit_receipts_through_remote_control PASSED [ 66%]
+tests/e2e/test_phase3_stack.py::test_rm_rf_root_is_blocked_through_remote_control_and_audited[ask] PASSED [ 69%]
+tests/e2e/test_phase3_stack.py::test_rm_rf_root_is_blocked_through_remote_control_and_audited[auto] PASSED [ 71%]
+tests/e2e/test_phase3_stack.py::test_rm_rf_root_is_blocked_through_remote_control_and_audited[yolo] PASSED [ 74%]
+tests/e2e/test_phase3_stack.py::test_runtime_has_no_direct_route_out PASSED [ 76%]
+tests/e2e/test_phase3_stack.py::test_nava_syscall_commits_with_receipt_and_12_steps PASSED [ 79%]
+tests/e2e/test_phase3_stack.py::test_nava_unauthenticated_and_foreign_tokens_fail_closed PASSED [ 82%]
+tests/e2e/test_phase3_stack.py::test_nava_runaway_process_is_killed_and_reported PASSED [ 84%]
+tests/e2e/test_phase3_stack.py::test_nava_failed_mutation_rolls_back_transactionally PASSED [ 87%]
+tests/e2e/test_phase3_stack.py::test_nava_rm_rf_is_critical_in_every_mode PASSED [ 89%]
+tests/e2e/test_phase3_stack.py::test_nava_a2a_bus_and_memory PASSED      [ 92%]
+tests/e2e/test_phase3_stack.py::test_human_takeover_attaches_types_and_agent_resumes PASSED [ 94%]
+tests/e2e/test_phase3_stack.py::test_openmuse_pipeline_signup_to_reviewed_draft_unattended PASSED [ 97%]
+tests/e2e/test_phase3_stack.py::test_aegis_large_repo_clone_inside_sandbox PASSED [100%]
+
+==================================== PASSES ====================================
+=========================== short test summary info ============================
+PASSED tests/e2e/test_phase1_stack.py::test_api_health_200
+PASSED tests/e2e/test_phase1_stack.py::test_command_center_renders_shell
+PASSED tests/e2e/test_phase1_stack.py::test_all_compose_services_healthy
+PASSED tests/e2e/test_phase1_stack.py::test_otel_span_chain_api_to_orchestrator_to_mcp_with_all_four_attributes
+PASSED tests/e2e/test_phase1_stack.py::test_envoy_denies_unlisted_host_and_logs_it
+PASSED tests/e2e/test_phase1_stack.py::test_envoy_injects_secret_the_agent_never_sees
+PASSED tests/e2e/test_phase1_stack.py::test_unidentified_agent_is_denied_by_envoy
+PASSED tests/e2e/test_phase1_stack.py::test_self_declared_agent_without_a_signed_stamp_is_denied
+PASSED tests/e2e/test_phase1_stack.py::test_audit_chain_intact_after_the_run
+PASSED tests/e2e/test_phase2_stack.py::test_sandbox_supervisor_is_healthy_with_bubblewrap
+PASSED tests/e2e/test_phase2_stack.py::test_direct_egress_from_sandbox_is_blocked_and_logged
+PASSED tests/e2e/test_phase2_stack.py::test_allowed_host_via_proxy_gets_secret_the_agent_never_sees
+PASSED tests/e2e/test_phase2_stack.py::test_disallowed_domain_via_proxy_is_blocked_and_logged
+PASSED tests/e2e/test_phase2_stack.py::test_https_is_inspected_allowlisted_and_validated_upstream
+PASSED tests/e2e/test_phase2_stack.py::test_host_path_write_lands_only_in_the_shadow
+PASSED tests/e2e/test_phase2_stack.py::test_destructive_command_is_blocked_in_yolo_and_audited
+PASSED tests/e2e/test_phase2_stack.py::test_high_risk_call_without_approval_is_refused
+PASSED tests/e2e/test_phase2_stack.py::test_approval_flow_single_use_and_rejections_are_logged
+PASSED tests/e2e/test_phase2_stack.py::test_expired_approval_is_refused_and_logged
+PASSED tests/e2e/test_phase2_stack.py::test_approver_list_and_role_separation
+PASSED tests/e2e/test_phase2_stack.py::test_one_command_provisions_email_calendar_and_browser
+PASSED tests/e2e/test_phase2_stack.py::test_leads_agent_signs_up_unattended_from_its_own_inbox[otp]
+PASSED tests/e2e/test_phase2_stack.py::test_leads_agent_signs_up_unattended_from_its_own_inbox[magic-link]
+PASSED tests/e2e/test_phase2_stack.py::test_allmail_mcp_reads_the_agents_own_inbox_and_send_needs_approval
+PASSED tests/e2e/test_phase3_stack.py::test_runtime_lists_omnipilots_41_tools
+PASSED tests/e2e/test_phase3_stack.py::test_all_41_tools_emit_receipts_through_remote_control
+PASSED tests/e2e/test_phase3_stack.py::test_rm_rf_root_is_blocked_through_remote_control_and_audited[ask]
+PASSED tests/e2e/test_phase3_stack.py::test_rm_rf_root_is_blocked_through_remote_control_and_audited[auto]
+PASSED tests/e2e/test_phase3_stack.py::test_rm_rf_root_is_blocked_through_remote_control_and_audited[yolo]
+PASSED tests/e2e/test_phase3_stack.py::test_runtime_has_no_direct_route_out
+PASSED tests/e2e/test_phase3_stack.py::test_nava_syscall_commits_with_receipt_and_12_steps
+PASSED tests/e2e/test_phase3_stack.py::test_nava_unauthenticated_and_foreign_tokens_fail_closed
+PASSED tests/e2e/test_phase3_stack.py::test_nava_runaway_process_is_killed_and_reported
+PASSED tests/e2e/test_phase3_stack.py::test_nava_failed_mutation_rolls_back_transactionally
+PASSED tests/e2e/test_phase3_stack.py::test_nava_rm_rf_is_critical_in_every_mode
+PASSED tests/e2e/test_phase3_stack.py::test_nava_a2a_bus_and_memory
+PASSED tests/e2e/test_phase3_stack.py::test_human_takeover_attaches_types_and_agent_resumes
+PASSED tests/e2e/test_phase3_stack.py::test_openmuse_pipeline_signup_to_reviewed_draft_unattended
+PASSED tests/e2e/test_phase3_stack.py::test_aegis_large_repo_clone_inside_sandbox
+======================== 39 passed in 86.71s (0:01:26) =========================

@@ -67,3 +67,17 @@
   and proven in `tests/nava/` (21 invariant tests + plans/units/API; 51 local tests green).
 - e2e additions: NAVA syscall loop, runaway-process kill (Acceptance 3.3), transactional
   rollback (Acceptance 3.4), rm -rf critical in every mode, bus + memory.
+
+### Phase 3 status — 2026-11-15, head of `build/phase-3`: built and green, NOT SEALED
+- **Live proof:** CI run 43702840418, all five jobs green. 39/39 e2e (Phases 1–3), 1,100+ unit and
+  invariant tests, coverage gate passed (runtime-os 86.3%, runtime-omni 87.7%, nava-suite 99.2%),
+  trace secret scan PASS. Raw output: `docs/reviews/phase-3-acceptance.log`.
+- **Acceptance 3, all seven green:** unattended browser signup → OTP → PDF → nib fill → reviewed
+  draft; rm -rf blocked in ask/auto/YOLO; runaway process killed and reported; transactional
+  rollback; human takeover attach/type/resume; 21 NAVA invariants; 41 receipts by remote control.
+- **Why it is not sealed** (`docs/reviews/phase-3-review.md`, top table): aegis-os binary not
+  integrated (Bubblewrap supervisor stands in); NAVA is native rather than its documented add-on
+  (OpenHands); five C02 components not integrated (browser-use, playwright-mcp, magentic-ui,
+  openclaw-heartbeat, ambient-watchers); OpenHack scan still DO_NOT_FILE.
+- **Pins used this phase:** nib `1f23f70`, noVNC `e8b5024`, playwright (pip `>=1.49`), Chromium
+  (Debian package in the runtime image, not SHA-pinned).
