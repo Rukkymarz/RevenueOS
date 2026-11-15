@@ -43,12 +43,14 @@ class FakeSession:
 
 
 def test_agenticmail_creates_mailbox_with_master_key_and_own_password():
-    http = FakeSession([FakeResponse(201, {"id": "a1", "email": "lead@agents.revenueos.test", "apiKey": "ak_x"})])
+    http = FakeSession([FakeResponse(201, {"id": "a1", "email": "lead@agents.revenueos.test", "apiKey": "ak_x",
+                                           "stalwartPrincipal": "lead"})])
     mb = providers.AgenticMail("http://am:3829", "mk_master", http).create_mailbox("lead", "agents.revenueos.test", {})
     method, url, kw = http.calls[0]
     assert (method, url) == ("POST", "http://am:3829/api/agenticmail/accounts")
     assert kw["headers"]["authorization"] == "Bearer mk_master" and kw["json"]["password"] == mb.password
     assert mb.email == "lead@agents.revenueos.test" and mb.api_key == "ak_x" and len(mb.password) >= 24
+    assert mb.login == "lead"
 
 
 def test_agenticmail_without_master_key_is_not_configured_and_errors_surface():
@@ -112,7 +114,8 @@ class FakeMail:
 
     def create_mailbox(self, name, domain, metadata):
         self.created.append(name)
-        return providers.Mailbox(email=f"{name}@{domain}", api_key="ak_" + "1" * 30, account_id="acc", password="p" * 24)
+        return providers.Mailbox(email=f"{name}@{domain}", api_key="ak_" + "1" * 30, account_id="acc", password="p" * 24,
+                                 login=name)
 
 
 @pytest.fixture
@@ -132,7 +135,7 @@ def test_one_command_provisions_email_calendar_profile_and_records_phone_as_pend
                               mail=mail, caldav=lambda url, user, pw: f"{url}/dav/cal/{user}/")
     a = out.agent_id
     assert out.identities["email"] == {"status": "active", "address": "leads-agent@agents.revenueos.test"}
-    assert out.identities["calendar"]["address"].endswith("/dav/cal/leads-agent@agents.revenueos.test/")
+    assert out.identities["calendar"]["address"].endswith("/dav/cal/leads-agent/")
     assert Path(out.identities["browser_profile"]["profile_path"]).is_dir()
     assert out.identities["phone"]["status"] == "pending" and "carrier" in out.identities["phone"]["reason"]
     # secrets only in the vault, referenced from the database
@@ -284,3 +287,13 @@ def test_cli_dispatches_each_command(monkeypatch, capsys, tmp_path):
     assert cli.main(["rotate-profile", "--agent-id", "a1"]) == 0
     assert json.loads(capsys.readouterr().out)["profile_path"] == "/p/new"
     assert cli.main(["leads-signup", "--agent-id", "a", "--task-id", "t", "--service", "http://s"]) == 1
+
+
+def test_calendar_failure_is_recorded_pending_not_faked(prov):
+    database, vault, s, db = prov
+
+    def no_caldav(url, user, pw):
+        raise providers.ProviderError("CalDAV PROPFIND failed: HTTP 401")
+    out = provision.provision(database, vault, "cal-less", "leads", settings=s, mail=FakeMail(), caldav=no_caldav)
+    assert out.identities["calendar"] == {"status": "pending", "reason": "CalDAV PROPFIND failed: HTTP 401"}
+    assert out.identities["email"]["status"] == "active"

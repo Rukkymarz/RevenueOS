@@ -107,6 +107,9 @@ jobs:
         run: set -o pipefail; REVENUEOS_E2E=1 pytest -v -rA tests/e2e -p no:cacheprovider 2>&1 | tee acceptance.log
       - if: always()
         run: docker compose -f infra/compose.yaml --profile test logs --no-color 2>&1 | tee compose.log | tail -300 || true
+      - name: mail and identity logs (artifact downloads are not available to every reader)
+        if: failure()
+        run: grep -E '^(stalwart|agenticmail|identity|allmail|signup-test|sandbox-supervisor)-1' compose.log | tail -200 || true
       - name: secret scan across emitted traces and logs (spec 2.4)
         if: always()
         run: >-

@@ -1,0 +1,9 @@
+# External mailboxes for allmail-mcp (spec 2.1). Each agent's own self-hosted mailbox is found
+# from its email identity and needs no entry here. Credentials are references only; `agents`
+# lists who may use the account. Providers: gmail, icloud, zoho, fastmail, or explicit
+# imap_host/imap_port/imap_ssl/smtp_host/smtp_port/smtp_mode.
+accounts: []
+#  - address: ops@yourdomain.com
+#    provider: zoho
+#    secret_ref: vault://prod/mail/ZOHO_OPS_APP_PASSWORD
+#    agents: ["<agent uuid>"]

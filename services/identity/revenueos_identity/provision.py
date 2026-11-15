@@ -67,17 +67,24 @@ def provision(db: Database, vault: SecretResolver, name: str, role: str, *, allo
         vault.put(key_ref, mb.api_key)
         vault.put(pw_ref, mb.password)
         _identity(db, agent_id, "email", "agenticmail", address=mb.email, secret_ref=key_ref,
-                  meta={"account_id": mb.account_id, "password_ref": pw_ref})
-        email = {"address": mb.email}
+                  meta={"account_id": mb.account_id, "password_ref": pw_ref, "login": mb.login})
+    email = db.one("SELECT address, coalesce(meta->>'login', split_part(address, '@', 1)) AS login FROM agent_identities "
+                   "WHERE agent_id=$a::uuid AND kind='email' AND status='active' ORDER BY created_at LIMIT 1", a=agent_id)
     out.identities["email"] = {"status": "active", "address": email["address"]}
 
     # Calendar: the mailbox's own CalDAV home on Stalwart, discovered with its own credentials.
     cal = _active(db, agent_id, "calendar")
     if cal is None:
-        url = caldav(s.stalwart_url, email["address"], vault.get(pw_ref))
-        _identity(db, agent_id, "calendar", "stalwart-caldav", address=url, secret_ref=pw_ref)
-        cal = {"address": url}
-    out.identities["calendar"] = {"status": "active", "address": cal["address"]}
+        try:
+            url = caldav(s.stalwart_url, email["login"], vault.get(pw_ref))
+        except providers.ProviderError as e:   # recorded with its reason, never faked
+            _identity(db, agent_id, "calendar", "stalwart-caldav", status="pending", meta={"reason": str(e)})
+            out.identities["calendar"] = {"status": "pending", "reason": str(e)}
+        else:
+            _identity(db, agent_id, "calendar", "stalwart-caldav", address=url, secret_ref=pw_ref)
+            out.identities["calendar"] = {"status": "active", "address": url}
+    else:
+        out.identities["calendar"] = {"status": "active", "address": cal["address"]}
 
     # Browser profile: private directory under the profile root (INV-09 guard checks the path).
     prof = _active(db, agent_id, "browser_profile")

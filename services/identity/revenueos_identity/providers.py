@@ -46,6 +46,7 @@ class Mailbox:
     api_key: str
     account_id: str
     password: str
+    login: str          # Stalwart principal name: the IMAP/SMTP/CalDAV login
 
 
 class AgenticMail:
@@ -72,7 +73,8 @@ class AgenticMail:
                    "AgenticMail create account")
         if not a.get("email") or not a.get("apiKey"):
             raise ProviderError("AgenticMail returned no email or API key")
-        return Mailbox(email=a["email"], api_key=a["apiKey"], account_id=str(a.get("id", "")), password=password)
+        return Mailbox(email=a["email"], api_key=a["apiKey"], account_id=str(a.get("id", "")), password=password,
+                       login=str(a.get("stalwartPrincipal") or a["email"].split("@")[0]))
 
 
 _DAV = "{DAV:}"

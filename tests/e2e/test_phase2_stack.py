@@ -232,3 +232,23 @@ def test_leads_agent_signs_up_unattended_from_its_own_inbox(leads, mode):
     assert psql(f"SELECT count(*) > 0 FROM egress_log WHERE agent_id='{agent}' AND task_id='{task}' "
                 f"AND host='agenticmail:3829' AND decision='allow' AND injected_secrets=1") == "t"
     assert "ak_" not in json.dumps(out)
+
+
+def test_allmail_mcp_reads_the_agents_own_inbox_and_send_needs_approval(leads):
+    agent, address = leads["agent_id"], leads["identities"]["email"]["address"]
+    task = _task("allmail check")
+    code = ("import json,sys;from revenueos_mcp_common.client import McpClient;a=json.loads(sys.argv[1]);"
+            "t=open('/run/revenueos/keychain/mcp-allmail-token').read().strip();c=McpClient('http://allmail:8202',t)\n"
+            "out={}\n"
+            "out['list']=c.call('mail_list',task_id=a['task'],agent_id=a['agent'],args={'account':a['addr']})\n"
+            "try:\n c.call('mail_send',task_id=a['task'],agent_id=a['agent'],args={'account':a['addr'],'to':['x@y.test'],"
+            "'subject':'s','text':'t'});out['send']='sent'\n"
+            "except Exception as e:\n out['send']=str(e)\n"
+            "print(json.dumps(out))")
+    r = subprocess.run([*COMPOSE, "exec", "-T", "orchestrator", "python", "-c", code,
+                        json.dumps({"task": task, "agent": agent, "addr": address})], capture_output=True, text=True, timeout=120)
+    assert r.returncode == 0, r.stderr
+    out = json.loads(r.stdout.strip().splitlines()[-1])
+    subjects = [m["subject"] for m in out["list"]["result"]["messages"]]
+    assert any("verification" in s.lower() for s in subjects), subjects   # the signup emails
+    assert out["send"] != "sent" and "approval" in out["send"].lower()

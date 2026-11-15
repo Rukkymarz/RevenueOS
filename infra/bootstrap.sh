@@ -10,6 +10,7 @@ gen() { [ -f "$1" ] || { umask 077; openssl rand -hex 32 > "$1"; }; chmod 600 "$
 gen "$DIR/pg_owner_password"
 gen "$DIR/keychain/mcp-echo-probe-token"
 gen "$DIR/keychain/upstream-echo-token"
+gen "$DIR/keychain/mcp-allmail-token"
 gen "$DIR/keychain/egress-identity-hmac"   # signs identity-pinned egress (supervisor -> egress-authz)
 # Mail stack (spec 2.1). Stalwart reads its admin secret from a file, byte for byte: no newline.
 [ -f "$DIR/keychain/stalwart-admin-password" ] || { umask 077; printf '%s' "$(openssl rand -hex 24)" > "$DIR/keychain/stalwart-admin-password"; }

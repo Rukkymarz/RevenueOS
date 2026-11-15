@@ -8,6 +8,7 @@ receipt. Any failure after the span starts still writes a receipt with an
 error verdict, then raises: no silent failures.
 """
 import hmac
+import inspect
 import os
 import re
 import time
@@ -69,8 +70,9 @@ class RevenueOSMcpServer:
         if not TOOL_NAME.match(name):
             raise ValueError(f"tool name {name!r} must match {TOOL_NAME.pattern}")
 
-        def register(handler: Callable[[dict], Any]):
+        def register(handler: Callable[..., Any]):
             server = self
+            takes_ctx = "ctx" in inspect.signature(handler).parameters
 
             def call(task_id: str, agent_id: str, args: dict, approval_id: str | None = None,
                      traceparent: str | None = None) -> dict:
@@ -96,7 +98,10 @@ class RevenueOSMcpServer:
                         approved = True
                         if args_model is not None:
                             args_model.model_validate(args)
-                        result = handler(args)
+                        # Handlers that declare `ctx` learn who is calling (e.g. to check that a
+                        # mailbox belongs to the calling agent); others get the args only.
+                        result = (handler(args, ctx={"agent_id": agent_id, "task_id": task_id})
+                                  if takes_ctx else handler(args))
                         return {"result": result, "trace_id": trace_id}
                     except ValidationError as e:
                         verdict = "rejected:validation"
