@@ -11,6 +11,13 @@ RUN printf 'packages:\n  - "packages/contracts"\n' > pnpm-workspace.yaml \
  && pnpm --filter @revenueos/contracts build
 
 # Bubblewrap built from the pinned commit (config/sources.yaml) for the sandbox supervisor (INV-11/12).
+# nib (C15, pinned — docs/PINS.md): the PDF form CLI used by the OpenMuse attachment ->
+# PDF -> filled-form -> reviewed-reply pipeline (spec 3.5).
+FROM golang:1.26-bookworm AS nib
+ARG NIB_SHA=1f23f70bb25a41eedef79acdc5068db438933ed3
+RUN git clone https://github.com/daniel-alexander4/nib /nib && cd /nib && git checkout "$NIB_SHA" \
+ && CGO_ENABLED=0 go build -trimpath -o /usr/local/bin/nib ./cmd/nib
+
 FROM python:3.12-slim AS bwrap
 ARG BWRAP_SHA=1fb0aa26d3eb66254f7742e704add7f82f41a582
 RUN apt-get update && apt-get install -y --no-install-recommends git ca-certificates meson ninja-build gcc libc6-dev \
@@ -27,9 +34,10 @@ ARG PACKAGES
 ARG DESKTOP=0
 RUN apt-get update && apt-get install -y --no-install-recommends postgresql-client util-linux libcap2 git ca-certificates \
  && if [ "$DESKTOP" = "1" ]; then apt-get install -y --no-install-recommends xvfb fluxbox x11vnc xterm xclip xsel \
-      xdotool scrot x11-utils libnotify-bin dbus-x11 tk procps; fi \
+      xdotool scrot x11-utils libnotify-bin dbus-x11 tk procps chromium libnss3-tools; fi \
  && rm -rf /var/lib/apt/lists/*
 COPY --from=bwrap /usr/local/bin/bwrap /usr/local/bin/bwrap
+COPY --from=nib /usr/local/bin/nib /usr/local/bin/nib
 WORKDIR /src
 COPY packages/pycommon packages/pycommon
 COPY packages/contracts/python packages/contracts/python
@@ -45,7 +53,8 @@ COPY config /src/config
 COPY --from=contracts /src/packages/contracts/generated packages/contracts/generated
 RUN pip install --no-cache-dir "datamodel-code-generator>=0.26" \
  && ./scripts/gen-python-contracts.sh \
- && pip install --no-cache-dir ./packages/pycommon ./packages/contracts/python ./packages/risk $PACKAGES
+ && pip install --no-cache-dir ./packages/pycommon ./packages/contracts/python ./packages/risk $PACKAGES \
+ && if [ "$DESKTOP" = "1" ]; then pip install --no-cache-dir "playwright>=1.49"; fi
 ENV REVENUEOS_CONFIG_DIR=/src/config PYTHONUNBUFFERED=1 HOME=/home/revenueos
 # Non-root runtime. compose runs it as the host owner of infra/secrets (REVENUEOS_UID, group 0) so
 # secrets stay 0600/0700; writable dirs are group-0 writable (the arbitrary-UID pattern).

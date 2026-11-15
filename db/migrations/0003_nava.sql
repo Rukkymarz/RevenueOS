@@ -299,6 +299,7 @@ CREATE TABLE plan_steps (
   idx        integer NOT NULL CHECK (idx >= 0),
   tool       text NOT NULL,
   args       jsonb NOT NULL DEFAULT '{}'::jsonb,
+  expect     jsonb NOT NULL DEFAULT '[]'::jsonb,     -- step-11 postconditions for this step
   status     text NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'done', 'failed')),
   attempts   integer NOT NULL DEFAULT 0 CHECK (attempts >= 0),
   max_attempts integer NOT NULL DEFAULT 3 CHECK (max_attempts > 0),

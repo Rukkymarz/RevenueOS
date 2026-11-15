@@ -12,6 +12,9 @@ gen "$DIR/keychain/mcp-echo-probe-token"
 gen "$DIR/keychain/upstream-echo-token"
 gen "$DIR/keychain/mcp-allmail-token"
 gen "$DIR/keychain/runtime-omni-token"
+for d in files terminal python processes system screen gui clipboard apps notify web browser memory bus plans; do
+  gen "$DIR/keychain/mcp-nava-$d-token"      # the 15 NAVA MCP servers (spec 3.3)
+done
 gen "$DIR/keychain/egress-identity-hmac"   # signs identity-pinned egress (supervisor -> egress-authz)
 # Mail stack (spec 2.1). Stalwart reads its admin secret from a file, byte for byte: no newline.
 [ -f "$DIR/keychain/stalwart-admin-password" ] || { umask 077; printf '%s' "$(openssl rand -hex 24)" > "$DIR/keychain/stalwart-admin-password"; }

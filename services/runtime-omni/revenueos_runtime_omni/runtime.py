@@ -57,6 +57,7 @@ class Runtime:
         self.receipts, self.workdir, self.egress, self.tracer = receipts, workdir, egress, tracer
         self.registry = registry or build_registry()
         self._lock = threading.Lock()
+        self.takeover = None            # set by the app; .require_free() pauses the agent (spec 3.5)
         from omnipilot.config.settings import Settings
         self.settings = Settings()      # OmniPilot defaults; risk and approvals are ours, not its prompts
         self.settings.agent.workdir = workdir
@@ -95,6 +96,8 @@ class Runtime:
         tool = self.registry.get(name)
         if tool is None:
             raise KeyError(name)
+        if self.takeover is not None:
+            self.takeover.require_free()   # raises TakenOver -> 423: the human holds the desk
         risk = classify(name, args, declared=tool.risk, context="contained")
         action = decide(risk, mode)
         common = dict(task_id=task_id, agent_id=agent_id, server=SERVER, tool=name, args=args,

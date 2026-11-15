@@ -143,10 +143,10 @@ def nava_http(method: str, path: str, body: dict | None, token: str) -> tuple[in
             "data=sys.stdin.buffer.read() or None\n"
             "req=u.Request(f'http://runtime-os:8103{p}',data=data,method=m,"
             "headers={'content-type':'application/json','authorization':f'Bearer {tok}'})\n"
-            "try:\n r=u.urlopen(req,timeout=330);print(r.status);print(r.read().decode())\n"
+            "try:\n r=u.urlopen(req,timeout=580);print(r.status);print(r.read().decode())\n"
             "except e.HTTPError as x:\n print(x.code);print(x.read().decode())\n")
     r = subprocess.run([*COMPOSE, "exec", "-T", "orchestrator", "python", "-c", code, method, path, token],
-                       input=json.dumps(body) if body is not None else "", capture_output=True, text=True, timeout=360)
+                       input=json.dumps(body) if body is not None else "", capture_output=True, text=True, timeout=640)
     assert r.returncode == 0, r.stderr
     status, payload = r.stdout.split("\n", 1)
     return int(status), json.loads(payload)
@@ -224,3 +224,120 @@ def test_nava_a2a_bus_and_memory(nava_token):
     assert status == 200 and any(m["channel"] == "e2e" for m in inbox["messages"])
     status, mem = nava_http("POST", "/v1/memory", {"tier": "episodic", "key": "e2e", "value": {"ok": True}}, nava_token)
     assert status == 200 and mem["id"]
+
+
+# ---------------------------------------------------------------------------------------------
+# OpenMuse (spec 3.5): takeover console, unattended signup->PDF->nib->reviewed-draft pipeline.
+# ---------------------------------------------------------------------------------------------
+def omni_http(method: str, path: str, body: dict | None = None) -> tuple[int, dict]:
+    code = ("import json,sys,urllib.request as u,urllib.error as e\n"
+            "tok=open('/run/revenueos/keychain/runtime-omni-token').read().strip()\n"
+            "m,p=sys.argv[1],sys.argv[2]\n"
+            "data=sys.stdin.buffer.read() or None\n"
+            "req=u.Request(f'http://runtime-omni:8102{p}',data=data,method=m,"
+            "headers={'content-type':'application/json','authorization':f'Bearer {tok}'})\n"
+            "try:\n r=u.urlopen(req,timeout=600);print(r.status);print(r.read().decode())\n"
+            "except e.HTTPError as x:\n print(x.code);print(x.read().decode())\n")
+    r = subprocess.run([*COMPOSE, "exec", "-T", "orchestrator", "python", "-c", code, method, path],
+                       input=json.dumps(body) if body is not None else "", capture_output=True, text=True, timeout=640)
+    assert r.returncode == 0, r.stderr
+    status, payload = r.stdout.split("\n", 1)
+    return int(status), json.loads(payload)
+
+
+def test_human_takeover_attaches_types_and_agent_resumes():
+    """Acceptance 3.5: console attaches to the live desktop, the human types, the agent resumes."""
+    # the VNC console is really listening on the desktop's loopback (RFB banner)
+    probe = ("import socket;s=socket.create_connection(('127.0.0.1',5900),5);"
+             "print(s.recv(12).decode());s.close()")
+    r = subprocess.run([*COMPOSE, "exec", "-T", "runtime-omni", "python", "-c", probe],
+                       capture_output=True, text=True, timeout=60)
+    assert r.stdout.startswith("RFB "), (r.stdout, r.stderr)
+
+    # the agent works, a window is focused for the human to type into
+    status, _ = remote("apps.open_application", {"name": "xterm"})
+    assert status == 200
+    status, out = omni_http("POST", "/v1/takeover/attach", {"holder": "christine"})
+    assert status == 200 and out["active"] and out["vnc"]["port"] == 5900
+
+    # while the human holds the desk, every agent tool call is paused with 423
+    status, out = remote("fs.list_directory", {"path": W})
+    assert status == 423 and out["status"] == "paused", out
+
+    # the human types a real command into the focused xterm
+    status, _ = omni_http("POST", "/v1/takeover/type",
+                          {"holder": "christine", "text": f"echo takeover-was-here > {W}/takeover.txt"})
+    assert status == 200
+    status, _ = omni_http("POST", "/v1/takeover/key", {"holder": "christine", "key": "Return"})
+    assert status == 200
+
+    # release: the agent resumes and can read what the human did
+    status, out = omni_http("POST", "/v1/takeover/release", {"holder": "christine"})
+    assert status == 200 and not out["active"]
+    import time as _t
+    deadline = _t.time() + 15
+    content = ""
+    while _t.time() < deadline and "takeover-was-here" not in content:
+        status, out = remote("fs.read_file", {"path": f"{W}/takeover.txt"})
+        content = out.get("output", "") if status == 200 else ""
+        _t.sleep(1)
+    assert "takeover-was-here" in content, content
+    assert psql("SELECT count(*) FROM audit_log WHERE action LIKE 'takeover.%'") != "0"
+
+
+@pytest.fixture(scope="module")
+def pipeline_agent():
+    """A fresh Phase 2 identity allowed to reach the signup service through the pinned proxy."""
+    name = f"muse-{uuid.uuid4().hex[:6]}"
+    r = subprocess.run([*COMPOSE, "exec", "-T", "identity", "revenueos-identity", "provision",
+                        "--name", name, "--role", "browser", "--allow", "signup-test:8090"],
+                       capture_output=True, text=True, timeout=300)
+    assert r.stdout.strip(), r.stderr
+    return json.loads(r.stdout)
+
+
+def test_openmuse_pipeline_signup_to_reviewed_draft_unattended(pipeline_agent):
+    """Acceptance 3.1: browser signup with the Phase 2 identity, OTP from its own inbox, PDF
+    download, nib fill, deterministic review, reply draft — one call, no human."""
+    agent = pipeline_agent["agent_id"]
+    task = psql("INSERT INTO tasks(objective, task_class, acceptance_criteria) VALUES "
+                "('openmuse signup pipeline', 'identity.signup', '[{\"check\":\"pipeline\"}]') RETURNING id").splitlines()[0]
+    status, out = omni_http("POST", "/v1/openmuse/pipeline/signup", {"task_id": task, "agent_id": agent})
+    assert status == 200, out
+    assert out["status"] == "completed" and out["review"]["verdict"] == "PASS", out
+    stages = [s["stage"] for s in out["stages"]]
+    assert stages == ["browser.open", "signup.submitted", "otp.extracted", "signup.verified",
+                      "form.downloaded", "form.filled", "review", "reply.drafted"], stages
+    assert out["draft_uid"]
+    # the signup service really verified this address
+    email = pipeline_agent["identities"]["email"]["address"]
+    chk = ("import json,urllib.request as u;"
+           f"print(u.urlopen('http://signup-test:8090/status?email={email}').read().decode())")
+    r = subprocess.run([*COMPOSE, "exec", "-T", "identity", "python", "-c", chk],
+                       capture_output=True, text=True, timeout=60)
+    assert json.loads(r.stdout)["verified"] is True
+    # receipted like everything else
+    assert psql(f"SELECT count(*) FROM tool_calls WHERE id='{out['receipt_id']}' "
+                "AND tool='openmuse.pipeline.signup'") == "1"
+    # and the browser traffic went through the identity-pinned proxy
+    assert psql(f"SELECT count(*) > 0 FROM egress_log WHERE agent_id='{agent}' AND host='signup-test:8090' "
+                "AND decision='allow'") == "t"
+
+
+def test_aegis_large_repo_clone_inside_sandbox(nava_token):
+    """Acceptance 3.4 (Aegis): a large git clone completes inside the sandbox, over the
+    identity-pinned MITM'd HTTPS proxy, without host exposure."""
+    psql(f"INSERT INTO egress_rules(agent_id, host, created_by) VALUES ('{AGENT}', 'github.com:443', 'e2e'), "
+         f"('{AGENT}', 'codeload.github.com:443', 'e2e') ON CONFLICT DO NOTHING")
+    status, out = nava_http("POST", "/v1/syscalls", {
+        "task_id": TASK, "tool": "sandbox.run", "timeout_s": 300,
+        "args": {"workspace": "aegis", "timeout_s": 300,
+                 "argv": ["git", "clone", "--depth", "1", "https://github.com/python/cpython", "clone"]},
+        "expect": [{"exit_code": 0}, {"file_exists": "clone/README.rst"}]}, nava_token)
+    assert status == 200 and out["status"] == "committed", out
+    _, listing = nava_http("POST", "/v1/syscalls", {
+        "task_id": TASK, "tool": "sandbox.run",
+        "args": {"workspace": "aegis", "argv": ["sh", "-c", "du -sm clone | cut -f1"]}}, nava_token)
+    assert int(listing["output"]["stdout"].strip() or 0) >= 50      # a genuinely large tree
+    assert psql(f"SELECT count(*) > 0 FROM egress_log WHERE agent_id='{AGENT}' AND "
+                "host IN ('github.com:443','codeload.github.com:443') AND decision='allow'") == "t"

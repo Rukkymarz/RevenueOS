@@ -87,16 +87,17 @@ class Kernel:
         pid = self.db.scalar("INSERT INTO plans(agent_id, task_id, objective) VALUES ($a::uuid, $t::uuid, $o) "
                              "RETURNING id", a=agent, t=task_id, o=objective)
         for i, s in enumerate(steps):
-            self.db.scalar("INSERT INTO plan_steps(plan_id, idx, tool, args, max_attempts) VALUES "
-                           "($p::uuid, $i::int, $tool, #args, $m::int) RETURNING idx",
-                           p=pid, i=i, tool=s["tool"], args=s.get("args", {}), m=int(s.get("max_attempts", 3)))
+            self.db.scalar("INSERT INTO plan_steps(plan_id, idx, tool, args, expect, max_attempts) VALUES "
+                           "($p::uuid, $i::int, $tool, #args, #expect, $m::int) RETURNING idx",
+                           p=pid, i=i, tool=s["tool"], args=s.get("args", {}), expect=s.get("expect", []),
+                           m=int(s.get("max_attempts", 3)))
         return pid
 
     def plan(self, pid: str) -> dict:
         p = self.db.one("SELECT * FROM plans WHERE id = $p::uuid", p=pid)
         if p:
-            p["steps"] = self.db.rows("SELECT idx, tool, args, status, attempts, max_attempts, syscall_id, output "
-                                      "FROM plan_steps WHERE plan_id = $p::uuid ORDER BY idx", p=pid)
+            p["steps"] = self.db.rows("SELECT idx, tool, args, expect, status, attempts, max_attempts, syscall_id, "
+                                      "output FROM plan_steps WHERE plan_id = $p::uuid ORDER BY idx", p=pid)
         return p
 
     def plan_set(self, pid: str, status: str) -> None:
@@ -123,7 +124,8 @@ class Kernel:
                 self.plan_set(pid, "failed")
                 return self.plan(pid)
             r = self.gw.syscall(caller_agent=caller, agent_id=p["agent_id"], task_id=p["task_id"], tool=s["tool"],
-                                args=s["args"], mode=mode, approval_id=approvals.get(str(s["idx"])))
+                                args=s["args"], mode=mode, approval_id=approvals.get(str(s["idx"])),
+                                expect=s.get("expect") or [])
             waiting = bool(r.approval_id)          # asked a human: not an attempt
             attempts = int(s["attempts"]) + (0 if waiting else 1)
             done = r.status == "committed"

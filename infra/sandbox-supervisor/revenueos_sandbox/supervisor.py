@@ -139,7 +139,8 @@ def bwrap_argv(argv: list[str], shadow_ws: Path, egress_dir: Path | None) -> lis
         for k in ("HTTP_PROXY", "http_proxy", "HTTPS_PROXY", "https_proxy"):
             a += ["--setenv", k, proxy]
         if (egress_dir / "ca.pem").exists():   # trust only the egress CA: all TLS ends at the forwarder
-            for k in ("SSL_CERT_FILE", "REQUESTS_CA_BUNDLE", "CURL_CA_BUNDLE", "NODE_EXTRA_CA_CERTS"):
+            for k in ("SSL_CERT_FILE", "REQUESTS_CA_BUNDLE", "CURL_CA_BUNDLE", "NODE_EXTRA_CA_CERTS",
+                      "GIT_SSL_CAINFO"):   # git reads its own variable (Aegis: in-sandbox clones)
                 a += ["--setenv", k, "/run/revenueos/egress/ca.pem"]
         a += ["--setenv", "NO_PROXY", "", "--setenv", "no_proxy", ""]
         a += ["--", "python3", "/run/revenueos/relay.py", "/run/revenueos/egress/egress.sock", *argv]
@@ -194,7 +195,8 @@ def run_in_sandbox(argv: list[str], workspace: Path | str | None = None, *, yolo
     extra = []
     for k, v in (env or {}).items():
         if k.upper() in {"HTTP_PROXY", "HTTPS_PROXY", "NO_PROXY", "PATH", "HOME", "LD_PRELOAD", "LD_LIBRARY_PATH",
-                         "SSL_CERT_FILE", "SSL_CERT_DIR", "REQUESTS_CA_BUNDLE", "CURL_CA_BUNDLE", "NODE_EXTRA_CA_CERTS"}:
+                         "SSL_CERT_FILE", "SSL_CERT_DIR", "REQUESTS_CA_BUNDLE", "CURL_CA_BUNDLE", "NODE_EXTRA_CA_CERTS",
+                         "GIT_SSL_CAINFO"}:
             raise ValueError(f"{k} is controlled by the supervisor")
         extra += ["--setenv", k, v]
     if extra and backend == "bubblewrap":
