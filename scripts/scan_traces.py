@@ -38,8 +38,12 @@ def scan(paths: list[Path], secrets: dict[str, str]) -> list[str]:
                 if value in text:
                     findings.append(f"{f}: value of keychain secret '{name}'")
             for label, rx in PATTERNS.items():
-                if rx.search(text):
-                    findings.append(f"{f}: {label}")
+                for m in rx.finditer(text):
+                    line_start = text.rfind("\n", 0, m.start()) + 1
+                    where = text[line_start:m.start()][:60].split("|")[0].strip() or "?"
+                    key = re.split(r"[\"'=:]", m.group(0))[0].strip()[:24]
+                    shown = f"{key}=[masked]"   # the key locates it; no character of the value is shown
+                    findings.append(f"{f}: {label} (line from {where!r}: {shown})")
     return findings
 
 

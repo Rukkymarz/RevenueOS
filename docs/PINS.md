@@ -221,6 +221,23 @@ Ads MCP server were found by direct lookup and pinned.
 | C18 | observability | named | add-on | [jaegertracing/jaeger](https://github.com/jaegertracing/jaeger) | `3b69761c0b7c9f8601ae4dbee7e9889d32747452` | Apache-2.0 | 23,409 | 2026-11-14 | 2026-11-14 |
 | — | awesome-claude-code | reference-only | named | [hesreallyhim/awesome-claude-code](https://github.com/hesreallyhim/awesome-claude-code) | `18153158dd02b590c3ba3ab83533210ddca91a1c` | CC-BY-NC-ND-4.0 — index only: non-commercial, no-derivatives; never vendored or redistributed | 57,976 | 2026-11-14 | 2026-11-14 |
 
+## Runtime images and source builds
+
+| Component | What runs | Pin | Why this pin |
+| --- | --- | --- | --- |
+| C05 stalwart-mail | `stalwartlabs/stalwart` image | `v0.15.5` | AgenticMail's own upstream pin: 0.16+ moved to JSON config and ignores the TOML layout AgenticMail provisions against |
+| C05 agenticmail | built from source (`infra/mail/agenticmail.Dockerfile`) | `af1e0ef546b5862c1f7134649e761f56356c688a` | named component, pinned commit; Node 22 for `node:sqlite` |
+| C03/C17 bubblewrap | built from source (`python.Dockerfile`, `scripts/build-bwrap.sh` in CI) | `1fb0aa26d3eb66254f7742e704add7f82f41a582` (0.13.2) | same binary in compose and CI; no distro AppArmor profile in the way |
+| Q7 AutoSecScan | built from source in `security.yml` | `881d9602bfa1e45d8e0df021df4dd6b247df92f0` | the action's own image is a floating `:latest` |
+| C17 egress | `envoyproxy/envoy` | `v1.40.2` | |
+| C18 observability | `otel/opentelemetry-collector-contrib` | `0.164.0` | |
+| state | `postgres` | `16-alpine` | major pinned |
+
+Hosted fallbacks (proprietary, spec 2.1) are reached only with credentials in the vault and,
+for paid resources, an approval: AgentMail API `v0` (`/v0/inboxes`), Browser Use Cloud API
+`v2` (`/profiles`, `/sessions`), and the imAPI MCP bridge at a configured URL. Phone numbers
+(46elks or Twilio) are paid carrier resources and are never allocated automatically.
+
 ## Removed at the star gate (re-evaluated next cycle)
 
 - **pdf-viewer-editor**: SuperiorAg/PDF_Viewer_Editor has 0 stars; Stirling-PDF and PDFCraft cover it
