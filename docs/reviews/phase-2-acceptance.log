@@ -1,4 +1,4 @@
-# Phase 2 acceptance: live compose stack (CI run 43687465373, job 132730826323, commit c7f4426)
+# Phase 2 acceptance: live compose stack (CI run 43690088336, job 132738726291, commit 1754de4)
 # REVENUEOS_E2E=1 pytest -v -rA tests/e2e
 tests/e2e/test_phase1_stack.py::test_api_health_200 PASSED               [  4%]
 tests/e2e/test_phase1_stack.py::test_command_center_renders_shell PASSED [  8%]
@@ -24,7 +24,7 @@ tests/e2e/test_phase2_stack.py::test_one_command_provisions_email_calendar_and_b
 tests/e2e/test_phase2_stack.py::test_leads_agent_signs_up_unattended_from_its_own_inbox[otp] PASSED [ 91%]
 tests/e2e/test_phase2_stack.py::test_leads_agent_signs_up_unattended_from_its_own_inbox[magic-link] PASSED [ 95%]
 tests/e2e/test_phase2_stack.py::test_allmail_mcp_reads_the_agents_own_inbox_and_send_needs_approval PASSED [100%]
-============================= 24 passed in 25.59s ==============================
+============================= 24 passed in 32.96s ==============================
 
 # trace secret scan (spec 2.4)
 {"verdict": "PASS", "findings": []}

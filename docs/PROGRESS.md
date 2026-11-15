@@ -36,7 +36,7 @@
   mcp-common 89.6%, pycommon 85.8%, qc 100%.
 - **Acceptance 2:** all items PASS. Phone removed from scope by the owner (2026-11-15);
   the approval-gated purchase path stays built for later.
-- **Gaps found and fixed:** 11 (review section d), including a secret AgenticMail printed to its
+- **Gaps found and fixed:** 15 (review section d), including a secret AgenticMail printed to its
   log, caught by the new trace scan.
 - **Pins added:** Stalwart `v0.15.5` image, AgenticMail build `af1e0ef`, Bubblewrap build
   `1fb0aa2` (compose + CI), AutoSecScan build `881d960`.

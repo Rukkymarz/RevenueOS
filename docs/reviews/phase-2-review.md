@@ -1,6 +1,6 @@
 # Phase 2 gate review: identity, sandbox, egress, approvals
 
-Evidence: CI on branch `build/phase-2` (all five jobs) and `docs/reviews/phase-2-acceptance.log`
+Evidence: CI run 43690088336 on branch `build/phase-2` (all five jobs green) and `docs/reviews/phase-2-acceptance.log`
 (live compose stack, Phase 1 and Phase 2 suites). Gate verdict: **all acceptance items PASS
 with phone descoped by the owner on 2026-11-15 (see (b) and (h)). Sealed.**
 
@@ -62,6 +62,8 @@ native implementation on mcp-common, as recorded in `config/sources.yaml`.
 | 11 | Trace scanner imported pycommon without its path in CI | path added |
 | 12 | Agents had no HTTPS route (tunnels refused) | egress CA + Envoy TLS origination with upstream validation |
 | 13 | Phone purchase had no approved path | `request-phone` / `complete-phone` bound to a critical approval |
+| 14 | Stalwart fetched spam-filter rules from GitHub's "latest" at start; when it 404'd, config build failed and mailbox logins broke (unpinned runtime dependency) | remote fetch disabled |
+| 15 | egress-authz cached rules for 2 s, so a rule added just before a request was denied | re-read rules once before denying |
 
 ## (e) Invariant audit
 
