@@ -94,20 +94,22 @@ def provision(db: Database, vault: SecretResolver, name: str, role: str, *, allo
         prof = {"profile_path": str(path)}
     out.identities["browser_profile"] = {"status": "active", "profile_path": prof["profile_path"]}
 
-    # Phone: a carrier number is a paid external resource. Without credentials (or before an
-    # approved purchase) the identity is recorded as pending with the reason; never faked.
+    # Phone: a carrier number is a paid external resource. Provisioning never buys one: it records
+    # the identity as pending with the reason, and `request-phone` / `complete-phone` buy it only
+    # after a human approves that exact purchase (INV-06). Never faked.
     phone = _active(db, agent_id, "phone")
     if phone is None:
-        creds_ref = f"keychain://phone-{phone_carrier}-credentials" if phone_carrier else "keychain://phone-carrier-unset"
         try:
-            providers.phone_provider(phone_carrier, {"credentials": vault.get(creds_ref)} if phone_carrier else None)
+            providers.carrier(phone_carrier, vault)
+            reason = f"{phone_carrier} configured; the number purchase needs an approved request (request-phone)"
         except providers.NotConfigured as e:
-            existing = db.one("SELECT id FROM agent_identities WHERE agent_id=$a::uuid AND kind='phone' AND status='pending'",
-                              a=agent_id)
-            if existing is None:
-                _identity(db, agent_id, "phone", phone_carrier or "unset", status="pending", meta={"reason": str(e)})
-            db.scalar("SELECT credential_report('phone', $ref, 'UNCONFIGURED') IS NULL AS ok", ref=creds_ref)
-            out.identities["phone"] = {"status": "pending", "reason": str(e)}
+            reason = str(e)
+            db.scalar("SELECT credential_report('phone', $ref, 'UNCONFIGURED') IS NULL AS ok",
+                      ref=(providers.CARRIER_REFS.get(phone_carrier or "", ("keychain://phone-carrier-unset",))[0]))
+        if db.one("SELECT id FROM agent_identities WHERE agent_id=$a::uuid AND kind='phone' AND status='pending'",
+                  a=agent_id) is None:
+            _identity(db, agent_id, "phone", phone_carrier or "unset", status="pending", meta={"reason": reason})
+        out.identities["phone"] = {"status": "pending", "reason": reason}
     else:
         out.identities["phone"] = {"status": "active", "address": phone["address"]}
 
@@ -135,3 +137,59 @@ def rotate_browser_profile(db: Database, agent_id: str, settings: Settings | Non
     if old:
         db.scalar("UPDATE agent_identities SET status='retired' WHERE id=$id::uuid RETURNING id", id=old["id"])
     return str(path)
+
+
+PHONE_TOOL = "phone_purchase"
+E164 = r"^\+[1-9][0-9]{6,14}$"
+
+
+def request_phone(db: Database, vault: SecretResolver, agent_id: str, carrier: str, country: str = "US",
+                  area_code: str | None = None, number: str | None = None) -> dict:
+    """Open a critical approval for one exact phone purchase (or for attaching an existing number
+    the owner controls, e.g. a Google Voice number on the agent's own Google account)."""
+    import re
+    if carrier == "existing":
+        if not number or not re.match(E164, number):
+            raise ValueError("an existing number must be given in E.164 form, e.g. +14045551234")
+    else:
+        providers.carrier(carrier, vault)   # NotConfigured without vault credentials
+        number = None
+    args = {"agent_id": agent_id, "carrier": carrier, "country": country.upper(), "area_code": area_code or "",
+            "number": number or ""}
+    from revenueos_common.canonical import args_hash
+    task = db.scalar("INSERT INTO tasks(objective, task_class, acceptance_criteria) VALUES ($o, 'identity.phone', "
+                     "'[{\"check\":\"phone_identity_active\"}]'::jsonb) RETURNING id",
+                     o=f"Provision a phone number for agent {agent_id} via {carrier}")
+    approval = db.scalar(
+        "INSERT INTO approvals(task_id, tool_call_args_hash, requested_by, expires_at, mcp_server, tool, args_preview, risk_class) "
+        "VALUES ($t::uuid, $h, 'service:identity', now() + interval '1 hour', 'identity', $tool, #args, 'critical') RETURNING id",
+        t=task, h=args_hash(args), tool=PHONE_TOOL, args=args)
+    return {"approval_id": approval, "task_id": task, "args": args}
+
+
+def complete_phone(db: Database, vault: SecretResolver, approval_id: str, session=None) -> dict:
+    """Spend the approval on exactly the requested purchase, then record the active identity."""
+    from revenueos_common.canonical import args_hash
+    row = db.one("SELECT task_id::text AS task, args_preview AS args FROM approvals WHERE id=$id::uuid AND tool=$tool",
+                 id=approval_id, tool=PHONE_TOOL)
+    if row is None:
+        raise PermissionError("no phone purchase approval with that id")
+    args = row["args"]
+    ok = db.scalar("SELECT consume_approval($id::uuid, $h, $t::uuid, $tool) AS ok", id=approval_id, h=args_hash(args),
+                   t=row["task"], tool=PHONE_TOOL)
+    if ok not in (True, "t", "true"):
+        why = db.scalar("SELECT payload->>'reason' FROM audit_log WHERE target=$id AND action='approval.consume_rejected' "
+                        "ORDER BY seq DESC LIMIT 1", id=approval_id)
+        raise PermissionError(f"phone purchase not approved: {why or 'refused'}")
+    if args["carrier"] == "existing":
+        bought = {"number": args["number"], "carrier_id": ""}
+    else:
+        bought = providers.carrier(args["carrier"], vault, session).buy_number(args["country"], args["area_code"] or None)
+    agent = args["agent_id"]
+    db.scalar("UPDATE agent_identities SET status='retired' WHERE agent_id=$a::uuid AND kind='phone' AND status='pending' "
+              "RETURNING id", a=agent)
+    _identity(db, agent, "phone", args["carrier"], address=bought["number"],
+              meta={"carrier_id": bought["carrier_id"], "approval_id": approval_id})
+    if args["carrier"] in providers.CARRIER_REFS:
+        db.scalar("SELECT credential_report('phone', $ref, 'READY') IS NULL AS ok", ref=providers.CARRIER_REFS[args["carrier"]][0])
+    return {"agent_id": agent, "number": bought["number"], "carrier": args["carrier"]}

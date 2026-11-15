@@ -17,6 +17,16 @@ gen "$DIR/keychain/egress-identity-hmac"   # signs identity-pinned egress (super
 [ -f "$DIR/keychain/agenticmail-master-key" ] || { umask 077; printf 'mk_%s' "$(openssl rand -hex 32)" > "$DIR/keychain/agenticmail-master-key"; }
 gen "$DIR/keychain/agenticmail-inbound-secret"
 chmod 600 "$DIR/keychain/stalwart-admin-password" "$DIR/keychain/agenticmail-master-key"
+# Egress CA for inspected HTTPS (INV-11): the sandbox trusts only this CA; its key never enters one.
+if [ ! -f "$DIR/keychain/egress-ca-key" ]; then
+  umask 077
+  CNF="$(mktemp)"
+  printf '[req]\ndistinguished_name=dn\nx509_extensions=v3\nprompt=no\n[dn]\nCN=RevenueOS egress CA\n[v3]\nbasicConstraints=critical,CA:TRUE,pathlen:0\nkeyUsage=critical,keyCertSign,cRLSign,digitalSignature\nsubjectKeyIdentifier=hash\n' > "$CNF"
+  openssl ecparam -genkey -name prime256v1 -noout | openssl pkcs8 -topk8 -nocrypt -out "$DIR/keychain/egress-ca-key"
+  openssl req -x509 -new -key "$DIR/keychain/egress-ca-key" -sha256 -days 3650 -config "$CNF" -out "$DIR/keychain/egress-ca-cert"
+  rm -f "$CNF"
+  chmod 600 "$DIR/keychain/egress-ca-key" "$DIR/keychain/egress-ca-cert"
+fi
 # API bearer tokens (spec 2.5 RBAC). The API reads only their sha256 digests from api-principals.
 gen "$DIR/keychain/api-token-owner"         # human:owner  - approver, auditor
 gen "$DIR/keychain/api-token-probe-agent"   # agent:probe  - requester

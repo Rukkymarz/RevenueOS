@@ -90,12 +90,33 @@ def test_hosted_fallbacks_use_their_documented_endpoints():
     assert providers.ImapiBridge("https://imapi.example/mcp", "t").url.endswith("/mcp")
 
 
-def test_phone_never_allocates_without_an_approved_purchase():
-    for name, creds in ((None, None), ("46elks", None), ("twilio", {"credentials": "x"})):
+def test_carriers_need_vault_credentials(tmp_path):
+    vault = SecretResolver(KeychainStore(tmp_path / "kc"))
+    for name in (None, "twilio", "46elks"):
         with pytest.raises(providers.NotConfigured):
-            providers.phone_provider(name, creds)
+            providers.carrier(name, vault)
     with pytest.raises(providers.ProviderError):
-        providers.phone_provider("carrier-pigeon", {"c": "x"})
+        providers.carrier("carrier-pigeon", vault)
+
+
+def test_twilio_searches_then_buys_on_its_documented_endpoints():
+    http = FakeSession([FakeResponse(200, {"available_phone_numbers": [{"phone_number": "+14045550100"}]}),
+                        FakeResponse(201, {"phone_number": "+14045550100", "sid": "PN1"})])
+    out = providers.Twilio("AC1", "tok", http).buy_number("US", "404")
+    assert out == {"number": "+14045550100", "carrier_id": "PN1"}
+    assert http.calls[0][1].endswith("/Accounts/AC1/AvailablePhoneNumbers/US/Local.json")
+    assert http.calls[0][2]["params"]["AreaCode"] == "404" and http.calls[0][2]["auth"] == ("AC1", "tok")
+    assert http.calls[1][1].endswith("/Accounts/AC1/IncomingPhoneNumbers.json")
+    assert http.calls[1][2]["data"] == {"PhoneNumber": "+14045550100"}
+    empty = providers.Twilio("AC1", "tok", FakeSession([FakeResponse(200, {"available_phone_numbers": []})]))
+    with pytest.raises(providers.ProviderError, match="no US number"):
+        empty.buy_number("US", None)
+
+
+def test_46elks_allocates_on_its_documented_endpoint():
+    http = FakeSession([FakeResponse(200, {"id": "n1", "number": "+46766860000"})])
+    assert providers.FortySixElks("u", "p", http).buy_number("SE", None) == {"number": "+46766860000", "carrier_id": "n1"}
+    assert http.calls[0][1] == "https://api.46elks.com/a1/numbers" and http.calls[0][2]["data"]["capabilities"] == "sms,voice"
 
 
 # --------------------------------------------------------------------------- profiles
@@ -138,6 +159,8 @@ def test_one_command_provisions_email_calendar_profile_and_records_phone_as_pend
     assert out.identities["calendar"]["address"].endswith("/dav/cal/leads-agent/")
     assert Path(out.identities["browser_profile"]["profile_path"]).is_dir()
     assert out.identities["phone"]["status"] == "pending" and "carrier" in out.identities["phone"]["reason"]
+    assert db.one(f"SELECT meta->>'reason' FROM agent_identities WHERE agent_id='{out.agent_id}' AND kind='phone'") \
+        == out.identities["phone"]["reason"]
     # secrets only in the vault, referenced from the database
     ref = db.one(f"SELECT secret_ref FROM agent_identities WHERE agent_id='{a}' AND kind='email'")
     assert ref == f"keychain://agent-{a}-mail-api-key" and vault.get(ref) == "ak_" + "1" * 30
@@ -282,11 +305,17 @@ def test_cli_dispatches_each_command(monkeypatch, capsys, tmp_path):
     monkeypatch.setattr(provision, "provision", lambda db, vault, name, role, **kw: provision.Provisioned(agent_id="a1"))
     monkeypatch.setattr(provision, "rotate_browser_profile", lambda db, agent: "/p/new")
     monkeypatch.setattr(leads, "leads_signup", lambda db, a, t, s, m: {"status": "failed"})
+    monkeypatch.setattr(provision, "request_phone", lambda db, vault, *a: {"approval_id": "ap1"})
+    monkeypatch.setattr(provision, "complete_phone", lambda db, vault, ap: {"number": "+1404"})
     assert cli.main(["provision", "--name", "n", "--role", "r", "--allow", "h:1"]) == 0
     assert json.loads(capsys.readouterr().out)["agent_id"] == "a1"
     assert cli.main(["rotate-profile", "--agent-id", "a1"]) == 0
     assert json.loads(capsys.readouterr().out)["profile_path"] == "/p/new"
     assert cli.main(["leads-signup", "--agent-id", "a", "--task-id", "t", "--service", "http://s"]) == 1
+    capsys.readouterr()
+    assert cli.main(["request-phone", "--agent-id", "a", "--carrier", "twilio"]) == 0
+    assert json.loads(capsys.readouterr().out)["approval_id"] == "ap1"
+    assert cli.main(["complete-phone", "--approval-id", "ap1"]) == 0
 
 
 def test_calendar_failure_is_recorded_pending_not_faked(prov):
@@ -297,3 +326,38 @@ def test_calendar_failure_is_recorded_pending_not_faked(prov):
     out = provision.provision(database, vault, "cal-less", "leads", settings=s, mail=FakeMail(), caldav=no_caldav)
     assert out.identities["calendar"] == {"status": "pending", "reason": "CalDAV PROPFIND failed: HTTP 401"}
     assert out.identities["email"]["status"] == "active"
+
+
+
+def test_phone_purchase_happens_only_after_a_human_approves_that_exact_purchase(world, prov):
+    database, vault, s, db = prov
+    agent = world["exec"]
+    with pytest.raises(providers.NotConfigured):
+        provision.request_phone(database, vault, agent, "twilio")
+    vault.put("keychain://phone-twilio-account-sid", "AC1")
+    vault.put("keychain://phone-twilio-auth-token", "tok")
+    req = provision.request_phone(database, vault, agent, "twilio", "us", "404")
+    assert req["args"] == {"agent_id": agent, "carrier": "twilio", "country": "US", "area_code": "404", "number": ""}
+    http = FakeSession([FakeResponse(200, {"available_phone_numbers": [{"phone_number": "+14045550100"}]}),
+                        FakeResponse(201, {"phone_number": "+14045550100", "sid": "PN1"})])
+    with pytest.raises(PermissionError, match="not approved"):      # nothing bought before approval
+        provision.complete_phone(database, vault, req["approval_id"], session=http)
+    assert http.calls == []
+    db.q(f"SELECT approval_decide('{req['approval_id']}','human:owner',true)")
+    out = provision.complete_phone(database, vault, req["approval_id"], session=http)
+    assert out == {"agent_id": agent, "number": "+14045550100", "carrier": "twilio"}
+    assert db.one(f"SELECT address FROM agent_identities WHERE agent_id='{agent}' AND kind='phone' AND status='active'") == "+14045550100"
+    with pytest.raises(PermissionError, match="reuse"):             # one approval, one purchase
+        provision.complete_phone(database, vault, req["approval_id"], session=http)
+    assert db.one("SELECT status FROM credential_status WHERE secret_ref='keychain://phone-twilio-account-sid'") == "READY"
+
+
+def test_existing_number_is_attached_only_with_approval(world, prov):
+    database, vault, s, db = prov
+    with pytest.raises(ValueError):
+        provision.request_phone(database, vault, world["exec"], "existing", number="404-555-0100")
+    req = provision.request_phone(database, vault, world["exec"], "existing", number="+14045550123")
+    db.q(f"SELECT approval_decide('{req['approval_id']}','human:owner',true)")
+    assert provision.complete_phone(database, vault, req["approval_id"])["number"] == "+14045550123"
+    with pytest.raises(PermissionError, match="no phone purchase approval"):
+        provision.complete_phone(database, vault, "00000000-0000-4000-8000-000000000000")

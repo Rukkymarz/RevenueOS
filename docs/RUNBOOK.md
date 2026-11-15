@@ -90,6 +90,11 @@ Rules are rows, not files: `egress_rules` (agent-wide, or per task) and `secret_
 INSERT INTO egress_rules(agent_id, task_id, host, created_by) VALUES ('<agent>', NULL, 'api.example.com:443', 'owner');
 ```
 
+HTTPS: the sandbox trusts only the deployment's egress CA (`keychain://egress-ca-cert`, key
+`egress-ca-key`, made by bootstrap). The forwarder ends the agent's TLS with it, stamps each
+request, and Envoy opens real TLS to the upstream, validating it against the system CA store.
+Rules for HTTPS hosts include the port: `api.example.com:443`.
+
 Every decision is in `egress_log` (append-only) and the audit ledger. Unsigned, stale,
 closed-session or foreign-session requests are denied. The identity HMAC key is
 `keychain://egress-identity-hmac`; rotating it ends every open session.
@@ -108,8 +113,23 @@ docker compose -f infra/compose.yaml exec identity revenueos-identity leads-sign
 ```
 
 The mailbox API key and password go to the keychain only; the proxy injects the key when the
-agent calls its own inbox. A phone identity stays `pending` until carrier credentials exist
-and a number purchase is approved (it is a paid external resource).
+agent calls its own inbox.
+
+Phone numbers are paid carrier resources, so they take an approval:
+
+```bash
+# 1. carrier credentials into the keychain (one of):
+#    twilio:  phone-twilio-account-sid, phone-twilio-auth-token
+#    46elks:  phone-46elks-username,    phone-46elks-password
+# 2. request the exact purchase (opens a critical approval bound to agent, carrier, country, area code)
+docker compose -f infra/compose.yaml exec identity revenueos-identity request-phone --agent-id <id> --carrier twilio --area-code 404
+# 3. a human approves it: POST /v1/approvals/<approval_id>/decision {"approve": true}
+# 4. buy it and record the identity
+docker compose -f infra/compose.yaml exec identity revenueos-identity complete-phone --approval-id <approval_id>
+```
+
+A number you already control (for example a Google Voice number on the agent's own Google
+account) is attached the same way with `--carrier existing --number +1...`.
 
 ## Approvals API (Phase 2)
 

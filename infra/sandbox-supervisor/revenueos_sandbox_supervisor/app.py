@@ -21,6 +21,7 @@ from revenueos_common.service import create_app, postgres_check
 from revenueos_sandbox.egress import EgressSession
 from revenueos_sandbox.records import Recorder, egress_hooks
 from revenueos_sandbox.supervisor import Quotas, run_in_sandbox
+from revenueos_sandbox.tls import EgressCA
 
 UUID = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")
 WORKSPACE_ROOT = Path(os.environ.get("REVENUEOS_WORKSPACE_ROOT", "/var/lib/revenueos/workspaces"))
@@ -33,6 +34,16 @@ def _secrets() -> SecretResolver:
     if secrets is None:
         secrets = SecretResolver(KeychainStore(os.environ.get("REVENUEOS_KEYCHAIN_DIR", "/run/revenueos/keychain")))
     return secrets
+
+
+_ca: dict = {}
+
+
+def _egress_ca() -> EgressCA | None:
+    """The deployment's egress CA (HTTPS inspection); None means HTTPS is refused."""
+    if "ca" not in _ca:
+        _ca["ca"] = EgressCA.from_vault(_secrets())
+    return _ca["ca"]
 
 
 def _proxy() -> tuple[str, int]:
@@ -75,7 +86,7 @@ async def run(request: Request) -> JSONResponse:
         if not key:
             raise RuntimeError("egress identity key unavailable (fail closed)")
         opened, closed = egress_hooks(db)
-        with EgressSession(agent, task, key, _proxy(), on_open=opened, on_close=closed) as s:
+        with EgressSession(agent, task, key, _proxy(), on_open=opened, on_close=closed, ca=_egress_ca()) as s:
             return run_in_sandbox(argv, ws, yolo=bool(body.get("yolo")), agent_id=agent, task_id=task,
                                   quotas=q, egress=s, recorder=recorder)
 
@@ -92,7 +103,8 @@ async def info(_: Request) -> JSONResponse:
     return JSONResponse({"service": "sandbox-supervisor", "component": "C17", "backend": "bubblewrap"})
 
 
-app = create_app("sandbox-supervisor", checks={"postgres": postgres_check(db), "bubblewrap": sandbox_works},
+app = create_app("sandbox-supervisor", checks={"postgres": postgres_check(db), "bubblewrap": sandbox_works,
+                                               "egress_ca": lambda: _egress_ca() is not None},
                  routes=[Route("/v1/info", info), Route("/v1/run", run, methods=["POST"])])
 
 

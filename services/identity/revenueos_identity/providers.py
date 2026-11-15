@@ -150,13 +150,56 @@ class ImapiBridge:
         self.url, self.token = url, token
 
 
-def phone_provider(name: str | None, credentials: dict | None):
+class Twilio:
+    """Twilio REST 2010-04-01: search available local numbers, then buy one (IncomingPhoneNumbers)."""
+    BASE = "https://api.twilio.com/2010-04-01"
+
+    def __init__(self, account_sid: str | None, auth_token: str | None, session: requests.Session | None = None):
+        if not account_sid or not auth_token:
+            raise NotConfigured("Twilio account SID / auth token not in the vault")
+        self.sid, self.auth, self.http = account_sid, (account_sid, auth_token), session or requests.Session()
+
+    def buy_number(self, country: str, area_code: str | None) -> dict:
+        params = {"SmsEnabled": "true", "VoiceEnabled": "true", "PageSize": "1"}
+        if area_code:
+            params["AreaCode"] = area_code
+        found = _check(self.http.get(f"{self.BASE}/Accounts/{self.sid}/AvailablePhoneNumbers/{country}/Local.json",
+                                     params=params, auth=self.auth, timeout=TIMEOUT), "Twilio number search")
+        numbers = found.get("available_phone_numbers") or []
+        if not numbers:
+            raise ProviderError(f"Twilio has no {country} number available" + (f" in area code {area_code}" if area_code else ""))
+        bought = _check(self.http.post(f"{self.BASE}/Accounts/{self.sid}/IncomingPhoneNumbers.json",
+                                       data={"PhoneNumber": numbers[0]["phone_number"]}, auth=self.auth, timeout=TIMEOUT),
+                        "Twilio number purchase")
+        return {"number": bought["phone_number"], "carrier_id": bought.get("sid", "")}
+
+
+class FortySixElks:
+    """46elks: allocate a number (POST /a1/numbers) with SMS and voice."""
+    BASE = "https://api.46elks.com/a1"
+
+    def __init__(self, username: str | None, password: str | None, session: requests.Session | None = None):
+        if not username or not password:
+            raise NotConfigured("46elks API username / password not in the vault")
+        self.auth, self.http = (username, password), session or requests.Session()
+
+    def buy_number(self, country: str, area_code: str | None) -> dict:
+        out = _check(self.http.post(f"{self.BASE}/numbers", data={"country": country.lower(), "capabilities": "sms,voice"},
+                                    auth=self.auth, timeout=TIMEOUT), "46elks number allocation")
+        return {"number": out["number"], "carrier_id": out.get("id", "")}
+
+
+CARRIER_REFS = {
+    "twilio": ("keychain://phone-twilio-account-sid", "keychain://phone-twilio-auth-token"),
+    "46elks": ("keychain://phone-46elks-username", "keychain://phone-46elks-password"),
+}
+
+
+def carrier(name: str | None, vault, session: requests.Session | None = None):
+    """The carrier client for `name` with credentials from the vault, or NotConfigured."""
     if not name:
-        raise NotConfigured("no phone carrier chosen (46elks or Twilio)")
-    if name not in ("46elks", "twilio"):
+        raise NotConfigured("no phone carrier chosen (46elks or Twilio, or register an existing number)")
+    if name not in CARRIER_REFS:
         raise ProviderError(f"unsupported phone carrier {name!r}")
-    if not credentials or not all(credentials.values()):
-        raise NotConfigured(f"{name} credentials not in the vault")
-    # Allocating a number is a paid external write: it goes through an INV-06 approval and the
-    # carrier's own API, never through this provisioning path automatically.
-    raise NotConfigured(f"{name} number allocation needs an approved purchase (INV-06)")
+    a, b = (vault.get(r) for r in CARRIER_REFS[name])
+    return (Twilio if name == "twilio" else FortySixElks)(a, b, session)

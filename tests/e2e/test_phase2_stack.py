@@ -86,6 +86,24 @@ def test_disallowed_domain_via_proxy_is_blocked_and_logged():
     assert psql(f"SELECT count(*) FROM audit_log WHERE action='egress.deny' AND target LIKE 'exfil-{marker}%'") == "1"
 
 
+def test_https_is_inspected_allowlisted_and_validated_upstream():
+    """HTTPS from the sandbox: the forwarder ends TLS with the egress CA, Envoy originates TLS to
+    the real server and validates its certificate. Allowlisted host works; others are denied."""
+    psql(f"INSERT INTO egress_rules(agent_id, task_id, host, created_by) VALUES ('{AGENT}', '{TASK}', 'example.com:443', 'e2e') "
+         f"ON CONFLICT DO NOTHING")
+    ok = sandbox_run({"agent_id": AGENT, "task_id": TASK, "egress": True,
+                      "argv": ["python3", "-c", FETCH.format(url="https://example.com/", spoof="")]})
+    assert ok["stdout"].split("\n", 1)[0] == "200", ok
+    assert "Example Domain" in ok["stdout"]
+    denied = sandbox_run({"agent_id": AGENT, "task_id": TASK, "egress": True,
+                          "argv": ["python3", "-c", FETCH.format(url="https://www.iana.org/", spoof="")]})
+    assert denied["stdout"].split("\n", 1)[0] == "403", denied
+    row = psql("SELECT decision||'|'||(session_id IS NOT NULL) FROM egress_log WHERE host='www.iana.org:443' "
+               "ORDER BY created_at DESC LIMIT 1")
+    assert row == "deny|true"
+    assert psql("SELECT count(*) > 0 FROM egress_log WHERE host='example.com:443' AND decision='allow'") == "t"
+
+
 def test_host_path_write_lands_only_in_the_shadow():
     r = sandbox_run({"agent_id": AGENT, "argv": ["sh", "-c", "echo pwned > /etc/evil; echo ok > note.txt; cat /etc/evil"]})
     assert r["status"] == "failed" and r["changes"] == {"note.txt": "added"}

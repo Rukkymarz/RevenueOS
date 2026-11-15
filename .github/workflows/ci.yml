@@ -57,7 +57,7 @@ jobs:
         with: { python-version: "3.12" }
       - run: >-
           pip install pytest pytest-cov pyyaml jsonschema requests starlette uvicorn httpx "pydantic>=2.8"
-          "datamodel-code-generator>=0.26" "fastmcp>=2.12,<3" "duckdb>=1.1" opentelemetry-sdk opentelemetry-exporter-otlp-proto-http
+          "datamodel-code-generator>=0.26" "fastmcp>=2.12,<3" "duckdb>=1.1" "cryptography>=42" opentelemetry-sdk opentelemetry-exporter-otlp-proto-http
       - run: sh scripts/gen-python-contracts.sh
       - name: Q-gates (Q1 contracts + connectivity, Q2 tests + coverage, Q6 invariants, Q7 secret hygiene)
         run: python scripts/qgate.py 1

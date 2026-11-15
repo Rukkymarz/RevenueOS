@@ -16,6 +16,7 @@ def svc(db, world, tmp_path, monkeypatch):
     mod = importlib.import_module("revenueos_sandbox_supervisor.app")
     monkeypatch.setattr(mod, "db", Database(dbname=db.name, host=HOST, port=PORT, user=USER, actor="sandbox-supervisor"))
     monkeypatch.setattr(mod, "WORKSPACE_ROOT", tmp_path / "ws")
+    monkeypatch.setattr(mod, "_ca", {})
     return mod, TestClient(mod.app), db, world
 
 
@@ -63,3 +64,17 @@ def test_run_with_egress_records_both_sessions(svc, tmp_path, monkeypatch):
     assert db.one(f"SELECT (closed_at IS NOT NULL)::text FROM egress_sessions WHERE agent_id='{w['exec']}'") == "true"
     assert not (tmp_path / "ws" / w["exec"] / "proj" / "out.txt").exists()
     assert TestClient(mod.app).get("/health").json()["checks"]["bubblewrap"]
+
+
+def test_health_reports_the_egress_ca(svc, tmp_path, monkeypatch):
+    mod, c, _, _ = svc
+    from revenueos_common.secrets import KeychainStore, SecretResolver
+    from revenueos_sandbox.tls import generate_ca
+    kc = KeychainStore(tmp_path / "kc2")
+    monkeypatch.setattr(mod, "secrets", SecretResolver(kc))
+    assert c.get("/health").json()["checks"]["egress_ca"] != "ok"
+    cert, key = generate_ca()
+    kc.put("egress-ca-cert", cert)
+    kc.put("egress-ca-key", key)
+    monkeypatch.setattr(mod, "_ca", {})
+    assert mod._egress_ca() is not None

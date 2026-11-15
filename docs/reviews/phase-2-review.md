@@ -29,10 +29,10 @@ items PASS; 1 DO_NOT_FILE (phone number: needs a carrier account; see (h)). Not 
   API keys in the vault, since both are paid hosted services.
 - 2.2 "Seatbelt on mac dev": the profile is generated and unit-tested; it is not executed in CI
   (no macOS runner).
-- 2.3 HTTPS: the sandbox's proxy accepts plain HTTP requests (inspected, secrets injected,
-  identity-pinned). `CONNECT` tunnels are refused because they cannot be inspected. Not built
-  yet: Envoy originating TLS to external HTTPS hosts on the agent's behalf. Every Phase 2 flow
-  is inside the stack; this is needed when agents call external HTTPS APIs (Phase 6 outreach).
+- 2.3 HTTPS: the forwarder ends the agent's TLS with a per-deployment egress CA (the only CA the
+  sandbox trusts), so every HTTPS request is read, identity-stamped, allowlisted and logged;
+  Envoy originates TLS to the upstream with SNI and validates it against the system CA store.
+  Without the egress CA, tunnels are refused. Proven live against example.com.
 - 2.5 approvals are bound to task and tool in addition to the args hash (stronger than spec).
 
 ## (c) Substitution log
@@ -55,6 +55,8 @@ native implementation on mcp-common, as recorded in `config/sources.yaml`.
 | 9 | CalDAV/IMAP login used the email; Stalwart expects the principal name | AgenticMail's `stalwartPrincipal` stored as the login |
 | 10 | AgenticMail printed a generated inbound secret to its log (found by the trace scan) | secret generated into the keychain and set at start |
 | 11 | Trace scanner imported pycommon without its path in CI | path added |
+| 12 | Agents had no HTTPS route (tunnels refused) | egress CA + Envoy TLS origination with upstream validation |
+| 13 | Phone purchase had no approved path | `request-phone` / `complete-phone` bound to a critical approval |
 
 ## (e) Invariant audit
 
@@ -85,9 +87,10 @@ model secrets exist (D10).
 ## (h) Open items
 
 - **Phone number (Acceptance 2, item 1): DO_NOT_FILE.** Needs a carrier account in your name:
-  46elks or Twilio (paid number), or a Google Voice number (free, US). Allocation is an
-  external paid action and is never automatic. Provisioning records the phone identity as
-  `pending` with this reason.
+  46elks or Twilio (paid number), or a number you control such as Google Voice on the agent's
+  own Google account. The purchase path is built and tested: `request-phone` opens a critical
+  approval bound to that exact purchase, a human approves it, `complete-phone` buys and records
+  it (RUNBOOK). Until then the phone identity is `pending` with its reason.
 - LLM-backed scanners (OpenHack, VulnHunter, Strix) need their model secrets (Phase 1 note).
 
 ## (i) Improvement log

@@ -123,7 +123,7 @@ def test_sandbox_egress_goes_only_through_the_signed_forwarder(proxy):
 
 
 @needs_sandbox
-def test_https_tunnels_from_the_sandbox_are_refused(proxy):
+def test_https_without_an_egress_ca_is_refused(proxy):
     with EgressSession(AGENT, TASK, KEY, proxy) as s:
         code = "import urllib.request as u; u.urlopen('https://example.com', timeout=10)"
         r = run_in_sandbox(["python3", "-c", code], egress=s)
@@ -146,3 +146,56 @@ def test_agent_runs_unprivileged_and_env_cannot_override_the_proxy():
     assert "uid=1000" in run_in_sandbox(["id"]).stdout
     with pytest.raises(ValueError):
         run_in_sandbox(["true"], env={"HTTP_PROXY": "http://elsewhere"})
+
+
+@pytest.fixture
+def ca():
+    from revenueos_sandbox.tls import EgressCA, generate_ca
+    return EgressCA(*generate_ca("test egress CA"))
+
+
+@needs_sandbox
+def test_https_is_inspected_stamped_and_sent_for_upstream_tls(proxy, ca):
+    with EgressSession(AGENT, TASK, KEY, proxy, ca=ca) as s:
+        code = ("import urllib.request as u; r=u.Request('https://api.example.test/v1/x?q=1', headers={'x-revenueos-agent':'evil'});"
+                "print(u.urlopen(r, timeout=10).read().decode())")
+        r = run_in_sandbox(["python3", "-c", code], egress=s)
+    assert r.status == "ok", r.stderr
+    assert json.loads(r.stdout) == {"ok": True}
+    seen = _Proxy.seen[-1]
+    assert seen["path"] == "http://api.example.test:443/v1/x?q=1"
+    h = seen["headers"]
+    assert h["x-revenueos-upstream-tls"] == "1" and h["x-revenueos-agent"] == AGENT
+    assert egress_identity.verify(KEY, h["x-revenueos-session"], h["x-revenueos-agent"], h["x-revenueos-task"],
+                                  h["x-revenueos-ts"], h["x-revenueos-sig"]) is None
+
+
+@needs_sandbox
+def test_client_that_does_not_trust_the_egress_ca_gets_nothing_through(proxy, ca):
+    with EgressSession(AGENT, TASK, KEY, proxy, ca=ca) as s:
+        # verification against a CA the sandbox does not have must fail; nothing reaches the proxy
+        code = ("import ssl,urllib.request as u; ctx=ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT); ctx.load_verify_locations(cadata="
+                + repr(__import__("revenueos_sandbox.tls", fromlist=["generate_ca"]).generate_ca("other CA")[0]) +
+                "); u.urlopen('https://api.example.test/', timeout=10, context=ctx)")
+        r = run_in_sandbox(["python3", "-c", code], egress=s)
+    assert r.status == "failed" and "CERTIFICATE_VERIFY_FAILED" in r.stderr
+    assert _Proxy.seen == []
+
+
+def test_rewrite_head_for_tunnelled_requests():
+    out = rewrite_head(b"POST /a?b=1 HTTP/1.1\r\nHost: h\r\nx-revenueos-upstream-tls: 0", {"x-revenueos-sig": "s"},
+                       origin="h:443").decode()
+    assert out.startswith("POST http://h:443/a?b=1 HTTP/1.1") and "x-revenueos-upstream-tls: 1" in out
+    assert "upstream-tls: 0" not in out
+    assert rewrite_head(b"GET http://evil/ HTTP/1.1\r\nHost: h", {}, origin="h:443") is None
+
+
+def test_egress_ca_rejects_bad_hosts_and_non_ca_certs(ca):
+    from revenueos_sandbox.tls import EgressCA
+    with pytest.raises(ValueError):
+        ca.server_context("bad host!")
+    assert ca.server_context("10.0.0.1") is ca.server_context("10.0.0.1")
+    leaf_ctx = ca.server_context("x.test")
+    assert leaf_ctx is not None
+    with pytest.raises(Exception):
+        EgressCA("not a cert", "not a key")
