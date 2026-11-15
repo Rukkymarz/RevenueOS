@@ -1,0 +1,78 @@
+[
+  {
+    "input": {
+      "to": "a@b.co",
+      "subject": "Hi",
+      "amount": 1.0
+    },
+    "canonical": "{\"amount\":1,\"subject\":\"Hi\",\"to\":\"a@b.co\"}",
+    "sha256": "bf4ae38e780565cedf7f574c96cd11091cbe393ae59b37685ba4734c38ac3008"
+  },
+  {
+    "input": {
+      "b": [
+        1.0,
+        2.5,
+        -0.0,
+        1e-07,
+        1e-06,
+        1e+21,
+        1.2345678901234568e+20
+      ],
+      "a": true,
+      "c": null
+    },
+    "canonical": "{\"a\":true,\"b\":[1,2.5,0,1e-7,0.000001,1e+21,123456789012345680000],\"c\":null}",
+    "sha256": "229419cc1cd2246e23bf9ac3a1e3930cdebffe38bde47a005fabb584a9a6942e"
+  },
+  {
+    "input": {
+      "z": 1,
+      "€": 2,
+      "😀": 3,
+      "！": 4,
+      "A": 5
+    },
+    "canonical": "{\"A\":5,\"z\":1,\"€\":2,\"😀\":3,\"！\":4}",
+    "sha256": "898b482f8cb5e7af8132da9979c551d9cd739803d435f2e28baf4d7b346c7c6b"
+  },
+  {
+    "input": {
+      "text": "line\nbreak \"quoted\" \\ tab\t ctrl\u0001 é 日本"
+    },
+    "canonical": "{\"text\":\"line\\nbreak \\\"quoted\\\" \\\\ tab\\t ctrl\\u0001 é 日本\"}",
+    "sha256": "b213c38155f1c8399e2c66e4ad91a965b3e121b3a3af266d97c73202531e9098"
+  },
+  {
+    "input": {
+      "nested": {
+        "y": [
+          {
+            "k": 2,
+            "j": 1
+          }
+        ],
+        "x": {}
+      },
+      "empty": [],
+      "n": 9007199254740991
+    },
+    "canonical": "{\"empty\":[],\"n\":9007199254740991,\"nested\":{\"x\":{},\"y\":[{\"j\":1,\"k\":2}]}}",
+    "sha256": "72cac201fcdb933b1683c64e6ddd36a6d6ca93c1b5ac21f9b734a3ae75b3a69f"
+  },
+  {
+    "input": [],
+    "canonical": "[]",
+    "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+  },
+  {
+    "input": "plain string",
+    "canonical": "\"plain string\"",
+    "sha256": "100e95befce5c34a8927f2359d07d340222625dd67a32ea9c96031c7f9b5f74a"
+  },
+  {
+    "input": 0.1,
+    "canonical": "0.1",
+    "sha256": "14be4b45f18e0d8c67b4f719b5144eee88497e413709d11d85b096d8e2346310"
+  }
+]

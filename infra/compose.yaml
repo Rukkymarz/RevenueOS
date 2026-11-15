@@ -1,0 +1,236 @@
+# RevenueOS Phase 1 stack. `docker compose -f infra/compose.yaml up --wait` must report every
+# service healthy. Secrets are created by infra/bootstrap.sh into infra/secrets (git-ignored).
+# Profile `test` adds the egress test upstream used by the Phase 1 acceptance suite.
+name: revenueos
+
+x-python: &python
+  build:
+    context: ..
+    dockerfile: infra/docker/python.Dockerfile
+  # Run as the host owner of infra/secrets (written to infra/.env by bootstrap.sh), never root.
+  user: "${REVENUEOS_UID:-10001}:0"
+  environment: &pyenv
+    PGHOST: postgres
+    PGUSER: revenueos_owner
+    PGDATABASE: revenueos
+    PGPASSFILE: /run/secrets/pgpass
+    OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+    REVENUEOS_KEYCHAIN_DIR: /run/revenueos/keychain
+  secrets: [pgpass]
+  volumes:
+    - ./secrets/keychain:/run/revenueos/keychain:ro
+  networks: [core]
+  depends_on:
+    migrate: { condition: service_completed_successfully }
+    otel-collector: { condition: service_healthy }
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: revenueos
+      POSTGRES_USER: revenueos_owner
+      POSTGRES_PASSWORD_FILE: /run/secrets/pg_owner_password
+    secrets: [pg_owner_password]
+    volumes: [pgdata:/var/lib/postgresql/data]
+    ports: ["127.0.0.1:5432:5432"]
+    healthcheck: { test: ["CMD-SHELL", "pg_isready -U revenueos_owner -d revenueos"], interval: 3s, retries: 30 }
+    networks: [core]
+
+  migrate:
+    image: postgres:16-alpine
+    depends_on: { postgres: { condition: service_healthy } }
+    environment: { PGHOST: postgres, PGUSER: revenueos_owner, PGDATABASE: revenueos, PGPASSFILE: /run/secrets/pgpass }
+    secrets: [pgpass]
+    volumes: [../db:/db:ro]
+    entrypoint: ["/bin/sh", "/db/migrate.sh"]
+    networks: [core]
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.164.0
+    command: ["--config=/etc/otel/collector.yaml"]
+    volumes:
+      - ./otel/collector.yaml:/etc/otel/collector.yaml:ro
+      - ./otel/out:/out
+    ports: ["127.0.0.1:4318:4318"]
+    healthcheck: { test: ["CMD", "/otelcol-contrib", "components"], interval: 5s, retries: 20 }
+    networks: [core]
+
+  orchestrator:
+    <<: *python
+    build: { context: .., dockerfile: infra/docker/python.Dockerfile, args: { PACKAGES: "./packages/mcp-common ./services/orchestrator" } }
+    command: ["revenueos-orchestrator"]
+    environment: { <<: *pyenv, PORT: "8101", ECHO_PROBE_URL: "http://echo-probe:8201" }
+    volumes:
+      - ./secrets/keychain:/run/revenueos/keychain:ro
+      - duckdb:/var/lib/revenueos/duckdb
+    healthcheck: { test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8101/health').status==200 else 1)"], interval: 5s, retries: 30 }
+
+  echo-probe:
+    <<: *python
+    build: { context: .., dockerfile: infra/docker/python.Dockerfile, args: { PACKAGES: "./packages/mcp-common ./mcp/echo-probe" } }
+    command: ["revenueos-mcp-echo-probe"]
+    environment: { <<: *pyenv, PORT: "8201" }
+    healthcheck: { test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8201/health').status==200 else 1)"], interval: 5s, retries: 30 }
+
+  egress-authz:
+    <<: *python
+    build: { context: .., dockerfile: infra/docker/python.Dockerfile, args: { PACKAGES: "./infra/egress" } }
+    command: ["python", "-m", "uvicorn", "revenueos_egress_authz.app:app", "--host", "0.0.0.0", "--port", "9100"]
+    # Rules and secret bindings live in Postgres (egress_rules, secret_bindings).
+    healthcheck: { test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:9100/health').status==200 else 1)"], interval: 5s, retries: 30 }
+
+  envoy:
+    image: envoyproxy/envoy:v1.40.2
+    command: ["envoy", "-c", "/etc/envoy/envoy.yaml", "--log-level", "warn"]
+    volumes: [./egress/envoy.yaml:/etc/envoy/envoy.yaml:ro]
+    ports: ["127.0.0.1:10000:10000", "127.0.0.1:9901:9901"]
+    depends_on: { egress-authz: { condition: service_healthy } }
+    # Envoy rejects HTTP/1.0, so the probe speaks HTTP/1.1 to the admin /ready endpoint.
+    healthcheck: { test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/127.0.0.1/9901 && printf \"GET /ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n\" >&3 && grep -q LIVE <&3'"], interval: 5s, retries: 30 }
+    networks: [core, egress]
+
+  sandbox-supervisor:
+    <<: *python
+    # The identity package is installed too: the leads agent runs from it inside the sandbox.
+    build: { context: .., dockerfile: infra/docker/python.Dockerfile, args: { PACKAGES: "./infra/sandbox-supervisor ./services/identity" } }
+    command: ["python", "-m", "uvicorn", "revenueos_sandbox_supervisor.app:app", "--host", "0.0.0.0", "--port", "8300"]
+    environment: { <<: *pyenv, EGRESS_PROXY: "envoy:10000", REVENUEOS_WORKSPACE_ROOT: /var/lib/revenueos/workspaces }
+    # Bubblewrap nests unprivileged user namespaces inside this container. Docker's default
+    # seccomp and masked /proc forbid that, so the supervisor alone runs without them; it stays
+    # a non-root user with no added capabilities, and every agent process is boxed by bwrap.
+    security_opt: ["seccomp=unconfined", "apparmor=unconfined", "systempaths=unconfined"]
+    volumes:
+      - ./secrets/keychain:/run/revenueos/keychain:ro
+      - workspaces:/var/lib/revenueos/workspaces
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      otel-collector: { condition: service_healthy }
+      envoy: { condition: service_healthy }
+    healthcheck: { test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8300/health').status==200 else 1)"], interval: 5s, retries: 30 }
+
+  # ---------------- C05 identity: AgenticMail (named, pinned build) on Stalwart v0.15.5
+  stalwart:
+    image: stalwartlabs/stalwart:v0.15.5
+    volumes:
+      - stalwart-data:/opt/stalwart
+      - ./mail/stalwart.toml:/opt/stalwart/etc/config.toml:ro
+    secrets: [stalwart_admin]
+    healthcheck: { test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/127.0.0.1/143 && exec 4<>/dev/tcp/127.0.0.1/25'"], interval: 5s, retries: 40 }
+    networks: [core]
+
+  agenticmail:
+    build: { context: .., dockerfile: infra/mail/agenticmail.Dockerfile }
+    user: "${REVENUEOS_UID:-1000}:0"
+    environment:
+      STALWART_URL: http://stalwart:8080
+      STALWART_ADMIN_USER: admin
+      SMTP_HOST: stalwart
+      SMTP_PORT: "587"
+      IMAP_HOST: stalwart
+      IMAP_PORT: "143"
+      AGENTICMAIL_API_HOST: 0.0.0.0
+      AGENTICMAIL_API_PORT: "3829"
+      REVENUEOS_KEYCHAIN_DIR: /run/revenueos/keychain
+    volumes:
+      - ./secrets/keychain:/run/revenueos/keychain:ro
+      - agenticmail-data:/data
+    depends_on: { stalwart: { condition: service_healthy } }
+    healthcheck: { test: ["CMD", "node", "-e", "fetch('http://localhost:3829/api/agenticmail/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"], interval: 5s, retries: 40 }
+    networks: [core]
+
+  allmail:
+    <<: *python
+    build: { context: .., dockerfile: infra/docker/python.Dockerfile, args: { PACKAGES: "./packages/mcp-common ./mcp/allmail" } }
+    command: ["revenueos-mcp-allmail"]
+    environment: { <<: *pyenv, PORT: "8202", ALLMAIL_ACCOUNTS: /src/config/allmail-accounts.yaml }
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      otel-collector: { condition: service_healthy }
+      stalwart: { condition: service_healthy }
+    healthcheck: { test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8202/health').status==200 else 1)"], interval: 5s, retries: 30 }
+
+  identity:
+    <<: *python
+    build: { context: .., dockerfile: infra/docker/python.Dockerfile, args: { PACKAGES: "./services/identity" } }
+    command: ["revenueos-identity"]
+    environment:
+      <<: *pyenv
+      PORT: "8105"
+      AGENTICMAIL_URL: http://agenticmail:3829
+      STALWART_URL: http://stalwart:8080
+      SANDBOX_SUPERVISOR_URL: http://sandbox-supervisor:8300
+      REVENUEOS_PROFILE_ROOT: /var/lib/revenueos/profiles
+    # The identity service is the one writer of agent credentials (vault by reference).
+    volumes:
+      - ./secrets/keychain:/run/revenueos/keychain
+      - profiles:/var/lib/revenueos/profiles
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      agenticmail: { condition: service_healthy }
+      sandbox-supervisor: { condition: service_healthy }
+    healthcheck: { test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8105/health').status==200 else 1)"], interval: 5s, retries: 30 }
+
+  api:
+    build: { context: .., dockerfile: infra/docker/node.Dockerfile, args: { APP: "@revenueos/api", APP_DIR: apps/api } }
+    command: ["node", "dist/src/main.js"]
+    user: "${REVENUEOS_UID:-1000}:0"
+    environment:
+      PORT: "3000"
+      PGHOST: postgres
+      PGUSER: revenueos_owner
+      PGDATABASE: revenueos
+      PGPASSFILE: /run/secrets/pgpass
+      ORCHESTRATOR_URL: http://orchestrator:8101
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+      REVENUEOS_KEYCHAIN_DIR: /run/revenueos/keychain
+    secrets: [pgpass]
+    volumes: ["./secrets/keychain:/run/revenueos/keychain:ro"]
+    ports: ["127.0.0.1:3000:3000"]
+    depends_on:
+      orchestrator: { condition: service_healthy }
+      otel-collector: { condition: service_healthy }
+    healthcheck: { test: ["CMD", "node", "-e", "fetch('http://localhost:3000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"], interval: 5s, retries: 30 }
+    networks: [core]
+
+  command-center:
+    build: { context: .., dockerfile: infra/docker/node.Dockerfile, args: { APP: "@revenueos/command-center", APP_DIR: apps/command-center } }
+    command: ["node", "node_modules/next/dist/bin/next", "start", "-p", "3001"]
+    ports: ["127.0.0.1:3001:3001"]
+    healthcheck: { test: ["CMD", "node", "-e", "fetch('http://localhost:3001/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"], interval: 5s, retries: 30 }
+    networks: [core]
+
+  upstream-echo:
+    profiles: [test]
+    image: python:3.12-slim
+    command: ["python", "/srv/server.py"]
+    volumes: [./egress/test-upstream/server.py:/srv/server.py:ro]
+    healthcheck: { test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/health')"], interval: 3s, retries: 20 }
+    networks: [egress]
+
+  # Stands in for a third-party product the leads agent signs up for (Acceptance 2).
+  signup-test:
+    profiles: [test]
+    image: python:3.12-slim
+    command: ["python", "/srv/server.py"]
+    environment: { SMTP_HOST: stalwart, PUBLIC_URL: "http://signup-test:8090" }
+    volumes: [./test-signup/server.py:/srv/server.py:ro]
+    healthcheck: { test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8090/health')"], interval: 3s, retries: 20 }
+    networks: [core]
+
+volumes:
+  workspaces: {}
+  profiles: {}
+  stalwart-data: {}
+  agenticmail-data: {}
+  pgdata: {}
+  duckdb: {}
+
+networks:
+  core: {}
+  egress: {}    # only envoy joins both networks: it is the one path from agents to anything outside
+
+secrets:
+  pg_owner_password: { file: ./secrets/pg_owner_password }
+  pgpass: { file: ./secrets/pgpass }
+  stalwart_admin: { file: ./secrets/keychain/stalwart-admin-password }

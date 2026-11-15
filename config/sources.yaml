@@ -1,0 +1,1694 @@
+checked_on: '2026-11-14'
+governing_spec: 'RevenueOS v4 (R04 amended: named components primary; D1/D3 exceptions; Addendum B star gate >=10k + commit within 90 days)'
+extension_min_stars: 10000
+statuses:
+  named: spec-named project, pinned and primary
+  added: extension tool added beyond the spec (>=10k stars)
+  native: built in-repo; dependencies pinned as extensions
+  named-unlicensed: 'spec-named project exists but has no open-source license: cannot be integrated until the owner adds one'
+  named-not-found: 'spec-named project has no public repository: owner must supply the link'
+  reference-only: listed for discovery; license forbids vendoring or redistribution
+  experimental: named as experimental only; may never be approved (D5)
+removed:
+  pdf-viewer-editor: SuperiorAg/PDF_Viewer_Editor has 0 stars; Stirling-PDF and PDFCraft cover it
+  flux:black-forest-labs/flux: last commit 2025-07-31, outside the 90-day star-gate window; re-evaluated next cycle
+  framepack:lllyasviel/FramePack: last commit 2025-10-16, outside the 90-day star-gate window; re-evaluated next cycle
+  open-sora:hpcaitech/Open-Sora: last commit 2026-04-09, outside the 90-day star-gate window; re-evaluated next cycle
+  liveportrait:KlingAIResearch/LivePortrait: last commit 2026-06-01, outside the 90-day star-gate window; re-evaluated next cycle
+  motion-canvas:motion-canvas/motion-canvas: last commit 2026-07-02, outside the 90-day star-gate window; re-evaluated next cycle
+  jina-reader:jina-ai/reader: last commit 2026-05-22, outside the 90-day star-gate window; re-evaluated next cycle
+nodes:
+  omnigent:
+    status: named
+    named:
+    - repo: omnigent-ai/omnigent
+      license: Apache-2.0
+      url: https://github.com/omnigent-ai/omnigent
+      commit_sha: 38a65dbdde2d79cc2eb02c223b21a02f69c8e7f5
+      stars: 11377
+      last_push: '2026-11-14'
+    extensions: []
+  langgraph:
+    status: named
+    named:
+    - repo: langchain-ai/langgraph
+      license: MIT
+      url: https://github.com/langchain-ai/langgraph
+      commit_sha: 08a2016953789a4f579b4d36bd1967941ec62012
+      stars: 44948
+      last_push: '2026-11-14'
+    extensions: []
+  crewai:
+    status: named
+    named:
+    - repo: crewAIInc/crewAI
+      license: MIT
+      url: https://github.com/crewAIInc/crewAI
+      commit_sha: d7dfa0ef5ade793bd48ff7357c6eb45a45294371
+      stars: 60878
+      last_push: '2026-11-13'
+    extensions: []
+  autogen-ag2:
+    status: named
+    named:
+    - repo: microsoft/autogen
+      license: MIT
+      license_note: code MIT, docs CC-BY-4.0
+      url: https://github.com/microsoft/autogen
+      commit_sha: 8390985108cb1e3881f5f7297765758d8ad2540c
+      stars: 61814
+      last_push: '2026-11-12'
+    - repo: ag2ai/ag2
+      license: Apache-2.0
+      url: https://github.com/ag2ai/ag2
+      commit_sha: fb3061e061990ef2c81ea5a86984519b227cabee
+      stars: 5063
+      last_push: '2026-11-14'
+    extensions: []
+  harness-agent:
+    status: named-not-found
+    named: []
+    extensions:
+    - repo: letta-ai/letta
+      license: Apache-2.0
+      url: https://github.com/letta-ai/letta
+      commit_sha: 8816d3a8516893bfdc0fa14bfb1235226012e295
+      stars: 25434
+      last_push: '2026-10-18'
+    blocked_reason: OrcaKit harness-agent is not public (OrcaKit org exists; repo not accessible)
+    reason: no public repo found for Harness Agent; Letta provides hierarchical agents with persistent memory
+    d1: "No Public Repo \u2014 Add-On Replaces"
+  astromesh:
+    status: named
+    named:
+    - repo: monaccode/astromesh
+      license: Apache-2.0
+      url: https://github.com/monaccode/astromesh
+      commit_sha: e80ed42583776ad48288229b000e9e0ddba0e6da
+      stars: 39
+      last_push: '2026-11-13'
+    extensions:
+    - repo: BerriAI/litellm
+      license: MIT
+      license_note: MIT outside litellm/enterprise/; do not use enterprise/
+      url: https://github.com/BerriAI/litellm
+      commit_sha: 27c796c412eed2f7336dccb46a58247463b7c498
+      stars: 63242
+      last_push: '2026-11-14'
+  erebots:
+    status: named
+    named:
+    - repo: aislab-hevs/erebots4.0
+      license: MIT
+      url: https://github.com/aislab-hevs/erebots4.0
+      commit_sha: 162c9be94ab32927f5b2fbf594730117e67e3a40
+      stars: 0
+      last_push: '2026-11-03'
+    extensions:
+    - repo: a2aproject/A2A
+      license: Apache-2.0
+      url: https://github.com/a2aproject/A2A
+      commit_sha: 4d7cda4b1754ed410e41bf3be7ad9ebc62afe3d3
+      stars: 26538
+      last_push: '2026-11-13'
+  biro:
+    status: named-not-found
+    named: []
+    extensions:
+    - repo: paperclipai/paperclip
+      license: MIT
+      url: https://github.com/paperclipai/paperclip
+      commit_sha: c1451814c155adab79fd0181674a23b0dc2669e4
+      stars: 113796
+      last_push: '2026-11-14'
+    blocked_reason: no public repository for Biro
+    reason: no public Biro repo found; Paperclip provides org charts, budgets, heartbeats and tickets for agents
+    d1: "No Public Repo \u2014 Add-On Replaces"
+  incagent:
+    status: named-unlicensed
+    named: []
+    extensions:
+    - repo: getlago/lago
+      license: AGPL-3.0
+      url: https://github.com/getlago/lago
+      commit_sha: 63d2ddfcf3c6085e1286b4aa7101339ae6ddcac6
+      stars: 10842
+      last_push: '2026-11-14'
+    - repo: documenso/documenso
+      license: AGPL-3.0
+      url: https://github.com/documenso/documenso
+      commit_sha: 1e2333d534e151578ffb05394428e2a7efea5f50
+      stars: 15761
+      last_push: '2026-11-14'
+    blocked_reason: incagent/incagent has no license file; using it would be copyright infringement
+    reason: incagent/incagent has no license; Lago handles invoicing and settlement, Documenso offers and contracts
+    d1: "No Usable License \u2014 Add-On Replaces"
+  hubzoid:
+    status: named
+    named:
+    - repo: hubzoid/hubzoid
+      license: Apache-2.0
+      url: https://github.com/hubzoid/hubzoid
+      commit_sha: fc8b6363c3ffbfec27eeabfab152cea1ba84582d
+      stars: 18
+      last_push: '2026-11-06'
+    extensions:
+    - repo: openclaw/openclaw
+      license: MIT
+      url: https://github.com/openclaw/openclaw
+      commit_sha: c787d0fac8265bfb54f9d1dd05a3eb55298c487b
+      stars: 394427
+      last_push: '2026-11-14'
+  harnis:
+    status: named
+    named:
+    - repo: karawash-projects/harnis
+      license: Apache-2.0
+      url: https://github.com/karawash-projects/harnis
+      commit_sha: b4077e370bdf18e46b7bed0e1daf053e9b8e8002
+      stars: 6
+      last_push: '2026-11-06'
+    extensions:
+    - repo: humanlayer/humanlayer
+      license: Apache-2.0
+      url: https://github.com/humanlayer/humanlayer
+      commit_sha: b7ad8e1d383ff0f5fbec7bdc30425e4a59d5f789
+      stars: 12878
+      last_push: '2026-11-14'
+    - repo: open-policy-agent/opa
+      license: Apache-2.0
+      url: https://github.com/open-policy-agent/opa
+      commit_sha: 8d10da6e34b846269f990daa43f39003e79b9dc4
+      stars: 12470
+      last_push: '2026-11-14'
+  ollama:
+    status: named
+    named:
+    - repo: ollama/ollama
+      license: MIT
+      url: https://github.com/ollama/ollama
+      commit_sha: a5864fcb33969705de3c0ebfedf4b2a16c970bcc
+      stars: 186934
+      last_push: '2026-11-14'
+    extensions: []
+  vllm:
+    status: named
+    named:
+    - repo: vllm-project/vllm
+      license: Apache-2.0
+      url: https://github.com/vllm-project/vllm
+      commit_sha: 6f1ec6a4c62d6a7a756edd53fd00a57782542cbd
+      stars: 96915
+      last_push: '2026-11-14'
+    extensions: []
+  composio:
+    status: named
+    named:
+    - repo: ComposioHQ/composio
+      license: MIT
+      url: https://github.com/ComposioHQ/composio
+      commit_sha: fdee7595166f8b5dcff026dc609760d1ce82b2e2
+      stars: 31064
+      last_push: '2026-11-14'
+    extensions: []
+  official-mcp-servers:
+    status: named
+    named:
+    - repo: modelcontextprotocol/servers
+      license: MIT
+      license_note: transitioning MIT to Apache-2.0; both permissive
+      url: https://github.com/modelcontextprotocol/servers
+      commit_sha: e1dc4b18dbb948921da37f3d4224a628730b43b0
+      stars: 91982
+      last_push: '2026-11-12'
+    extensions: []
+  omnipilot:
+    status: named
+    named:
+    - repo: xrchris7/OmniPilot
+      license: MIT
+      url: https://github.com/xrchris7/OmniPilot
+      commit_sha: 2e3a6bd02f1e508275f7242accad065805993a22
+      stars: 2
+      last_push: '2026-09-13'
+    extensions:
+    - repo: trycua/cua
+      license: MIT
+      url: https://github.com/trycua/cua
+      commit_sha: b3dafe7f47ab40a5d00c5023855317a2e901c062
+      stars: 32334
+      last_push: '2026-11-14'
+  browser-use:
+    status: named
+    named:
+    - repo: browser-use/browser-use
+      license: MIT
+      url: https://github.com/browser-use/browser-use
+      commit_sha: e717df1839a2d7368b108de6694f01e9c659b0de
+      stars: 120984
+      last_push: '2026-11-14'
+    extensions: []
+  playwright-mcp:
+    status: named
+    named:
+    - repo: microsoft/playwright-mcp
+      license: Apache-2.0
+      url: https://github.com/microsoft/playwright-mcp
+      commit_sha: 78eca85361efb545a4c0f59b6140aef0721c5412
+      stars: 39621
+      last_push: '2026-11-13'
+    extensions: []
+  magenticlite:
+    status: named
+    named:
+    - repo: microsoft/magentic-ui
+      license: MIT
+      url: https://github.com/microsoft/magentic-ui
+      commit_sha: d3c9d13c39288257286a66daabf7c5b5fb72ee69
+      stars: 10117
+      last_push: '2026-09-23'
+    extensions: []
+  openclaw-heartbeat:
+    status: named
+    named:
+    - repo: openclaw/openclaw
+      license: MIT
+      url: https://github.com/openclaw/openclaw
+      commit_sha: c787d0fac8265bfb54f9d1dd05a3eb55298c487b
+      stars: 394427
+      last_push: '2026-11-14'
+    extensions: []
+  nava:
+    status: named-not-found
+    named: []
+    extensions:
+    - repo: OpenHands/OpenHands
+      license: MIT
+      url: https://github.com/OpenHands/OpenHands
+      commit_sha: 830c0459e2f6056ab81e020c22970e782ae1be75
+      stars: 93455
+      last_push: '2026-11-14'
+    blocked_reason: no public repository for NAVA
+    reason: no public NAVA repo found; OpenHands provides coding, terminal and browser agents; the 12-step mutation gateway is built in-repo
+    d1: "No Public Repo \u2014 Add-On Replaces"
+  aegis-os:
+    status: named
+    named:
+    - repo: heurion-org/aegis-os
+      license: Apache-2.0
+      license_note: closest public match to the spec's Aegis OS; confirm with the owner
+      url: https://github.com/heurion-org/aegis-os
+      commit_sha: d9bdfa978d721cae0dc2bfa277ed371c9db60c5a
+      stars: 1
+      last_push: '2026-11-14'
+    - repo: containers/bubblewrap
+      license: LGPL-2.1
+      url: https://github.com/containers/bubblewrap
+      commit_sha: 1fb0aa26d3eb66254f7742e704add7f82f41a582
+      stars: 9486
+      last_push: '2026-10-14'
+    extensions:
+    - repo: google/gvisor
+      license: Apache-2.0
+      url: https://github.com/google/gvisor
+      commit_sha: e45d53c763ac5f2278fbee07bcf7e0a5ab6dce5c
+      stars: 20000
+      last_push: '2026-11-14'
+    - repo: firecracker-microvm/firecracker
+      license: Apache-2.0
+      url: https://github.com/firecracker-microvm/firecracker
+      commit_sha: cc88013eadcf432da1b37d47d445b7e8bcc3046e
+      stars: 38015
+      last_push: '2026-11-13'
+  openmuse:
+    status: named-unlicensed
+    named: []
+    extensions:
+    - repo: microsoft/playwright
+      license: Apache-2.0
+      url: https://github.com/microsoft/playwright
+      commit_sha: b4d016aadc5cbd2b898a284307975fe73e05483d
+      stars: 100148
+      last_push: '2026-11-14'
+    - repo: novnc/noVNC
+      license: MPL-2.0
+      url: https://github.com/novnc/noVNC
+      commit_sha: e8b5024d4603587b29ffede4fbd28b1fa2939829
+      stars: 14204
+      last_push: '2026-10-23'
+    blocked_reason: diggerhq/openmuse has no license file
+    reason: Steel (8k) is below the 10k-star bar; Playwright persistent contexts plus noVNC takeover console
+    d1: "No Usable License \u2014 Add-On Replaces"
+  forage:
+    status: named-not-found
+    named: []
+    extensions:
+    - repo: PrefectHQ/fastmcp
+      license: Apache-2.0
+      url: https://github.com/PrefectHQ/fastmcp
+      commit_sha: a8745d61e650467756bb28b4157822dbfbdfa34f
+      stars: 28417
+      last_push: '2026-11-14'
+    blocked_reason: no public repository for Forage
+    reason: no public Forage repo; FastMCP (28k) proxies, mounts and composes MCP servers into one gateway
+    d1: "No Public Repo \u2014 Add-On Replaces"
+  agent-discover:
+    status: named
+    named:
+    - repo: keshrath/agent-discover
+      license: MIT
+      url: https://github.com/keshrath/agent-discover
+      commit_sha: c8a48bc73993d1cf75c00bb67352f0d20356ab3b
+      stars: 7
+      last_push: '2026-11-14'
+    extensions:
+    - repo: PrefectHQ/fastmcp
+      license: Apache-2.0
+      url: https://github.com/PrefectHQ/fastmcp
+      commit_sha: a8745d61e650467756bb28b4157822dbfbdfa34f
+      stars: 28417
+      last_push: '2026-11-14'
+  mcptoon:
+    status: named
+    named:
+    - repo: activeing123/mcptoon
+      license: Apache-2.0
+      url: https://github.com/activeing123/mcptoon
+      commit_sha: 3af4967dd24433948faf3dbe0259ca64751b8818
+      stars: 430
+      last_push: '2026-11-13'
+    extensions:
+    - repo: activepieces/activepieces
+      license: MIT
+      license_note: MIT outside packages/ee/ and packages/server/api/src/app/ee; do not use those
+      url: https://github.com/activepieces/activepieces
+      commit_sha: 182b7f2bdc5bd9d9a7de02286af2dc2406e72706
+      stars: 25523
+      last_push: '2026-11-14'
+  mcpfinder:
+    status: named
+    named:
+    - repo: mcpfinder/mcpfinder
+      license: AGPL-3.0
+      url: https://github.com/mcpfinder/mcpfinder
+      commit_sha: 4c9e2f421a4bfda47e01052ce21931d9b6026b27
+      stars: 14
+      last_push: '2026-11-13'
+    extensions:
+    - repo: punkpeye/awesome-mcp-servers
+      license: MIT
+      url: https://github.com/punkpeye/awesome-mcp-servers
+      commit_sha: f431a5cd95cebf038e587715635b9d1a0a4d0c02
+      stars: 97691
+      last_push: '2026-11-06'
+    - repo: modelcontextprotocol/servers
+      license: MIT
+      license_note: transitioning MIT to Apache-2.0
+      url: https://github.com/modelcontextprotocol/servers
+      commit_sha: e1dc4b18dbb948921da37f3d4224a628730b43b0
+      stars: 91982
+      last_push: '2026-11-12'
+  stalwart-mail:
+    status: named
+    named:
+    - repo: stalwartlabs/stalwart
+      license: AGPL-3.0
+      url: https://github.com/stalwartlabs/stalwart
+      commit_sha: e7cde9b3fac32d2a254ef782efec56f2373ec5d4
+      stars: 15923
+      last_push: '2026-11-10'
+    extensions: []
+  allmail-mcp:
+    status: named-not-found
+    named: []
+    extensions:
+    - repo: PrefectHQ/fastmcp
+      license: Apache-2.0
+      url: https://github.com/PrefectHQ/fastmcp
+      commit_sha: a8745d61e650467756bb28b4157822dbfbdfa34f
+      stars: 28417
+      last_push: '2026-11-14'
+    blocked_reason: no public repository for allmail-mcp
+    reason: no email MCP server reaches 10k stars; built in-repo on FastMCP over Stalwart IMAP/JMAP
+    d1: "No Public Repo \u2014 Add-On Replaces"
+  mission-control:
+    status: named
+    named:
+    - repo: builderz-labs/mission-control
+      license: MIT
+      url: https://github.com/builderz-labs/mission-control
+      commit_sha: c1a846fe020567bb3ceb3b65db9f00db875618cd
+      stars: 6491
+      last_push: '2026-11-09'
+    extensions:
+    - repo: paperclipai/paperclip
+      license: MIT
+      url: https://github.com/paperclipai/paperclip
+      commit_sha: c1451814c155adab79fd0181674a23b0dc2669e4
+      stars: 113796
+      last_push: '2026-11-14'
+  agentic-pm:
+    status: named
+    named:
+    - repo: sdi2200262/agentic-project-management
+      license: MPL-2.0
+      license_note: v0.4.0+ MPL-2.0; v0.3.x and earlier MIT
+      url: https://github.com/sdi2200262/agentic-project-management
+      commit_sha: b88434f08130b19faed23288ea46a75543d166c3
+      stars: 2453
+      last_push: '2026-11-13'
+    extensions:
+    - repo: github/spec-kit
+      license: MIT
+      url: https://github.com/github/spec-kit
+      commit_sha: 2ee2b1e8005905db05f5717300a469b3068b908f
+      stars: 149752
+      last_push: '2026-11-12'
+  piyaz:
+    status: named
+    named:
+    - repo: FrkAk/piyaz
+      license: AGPL-3.0
+      url: https://github.com/FrkAk/piyaz
+      commit_sha: e1ed033e9a4d0e7af81da5833b47dcd2c0e6fdfb
+      stars: 200
+      last_push: '2026-10-23'
+    extensions:
+    - repo: makeplane/plane
+      license: AGPL-3.0
+      url: https://github.com/makeplane/plane
+      commit_sha: 290383d7f92fa8995ea2adbd12442220b3b9b525
+      stars: 62433
+      last_push: '2026-11-13'
+  gsd-pi:
+    status: named
+    named:
+    - repo: gsd-build/gsd-2
+      license: MIT
+      license_note: archived upstream; pinned as-is
+      url: https://github.com/gsd-build/gsd-2
+      commit_sha: 33c00aaffa56e5d394bccce1c8df59fb842e84c5
+      stars: 7740
+      last_push: '2026-05-22'
+    extensions:
+    - repo: temporalio/temporal
+      license: MIT
+      url: https://github.com/temporalio/temporal
+      commit_sha: 170fb83dca48fe82d69aa3ec3b6fe25acfc1791b
+      stars: 24396
+      last_push: '2026-11-14'
+  fist-mbt:
+    status: named
+    named:
+    - repo: vicTop-cw/FIST-Mbt
+      license: Apache-2.0
+      url: https://github.com/vicTop-cw/FIST-Mbt
+      commit_sha: 5ba7123d821676a9a2325dfe864cbe2a3fc78ce4
+      stars: 1
+      last_push: '2026-11-13'
+    extensions:
+    - repo: temporalio/temporal
+      license: MIT
+      url: https://github.com/temporalio/temporal
+      commit_sha: 170fb83dca48fe82d69aa3ec3b6fe25acfc1791b
+      stars: 24396
+      last_push: '2026-11-14'
+  llm-tracker:
+    status: named-not-found
+    named: []
+    extensions: []
+    blocked_reason: no public repository matching the spec's llm-tracker
+    reason: no reputable llm-tracker repo (largest has 2 stars); filesystem-as-database mode built in-repo
+    d1: "No Public Repo \u2014 Add-On Replaces"
+  openbusiness:
+    status: named
+    named:
+    - repo: wanikua/OpenBusiness
+      license: MIT
+      url: https://github.com/wanikua/OpenBusiness
+      commit_sha: 3f9a1bbeda010649c5735fef58c6d1209602efdf
+      stars: 12
+      last_push: '2026-06-02'
+    extensions:
+    - repo: assafelovic/gpt-researcher
+      license: Apache-2.0
+      url: https://github.com/assafelovic/gpt-researcher
+      commit_sha: ddd4db36208d9c8e49f3b2436efda97baecb5433
+      stars: 30679
+      last_push: '2026-11-12'
+  searxng:
+    status: named
+    named:
+    - repo: searxng/searxng
+      license: AGPL-3.0
+      url: https://github.com/searxng/searxng
+      commit_sha: a7128d5d1d5af2837a68fbeaaee9c3e8391aa9cf
+      stars: 39540
+      last_push: '2026-11-14'
+    extensions: []
+  firecrawl:
+    status: named
+    named:
+    - repo: firecrawl/firecrawl
+      license: AGPL-3.0
+      url: https://github.com/firecrawl/firecrawl
+      commit_sha: 71f430a2dabffaf718cef7091c340b7384b91178
+      stars: 201670
+      last_push: '2026-11-13'
+    extensions: []
+  deepagents-open-lovable:
+    status: named-unlicensed
+    named: []
+    extensions:
+    - repo: firecrawl/open-lovable
+      license: MIT
+      url: https://github.com/firecrawl/open-lovable
+      commit_sha: 806b8072f28afea11fa2b028cac1449eff74c511
+      stars: 28909
+      last_push: '2026-10-09'
+    - repo: langchain-ai/deepagents
+      license: MIT
+      url: https://github.com/langchain-ai/deepagents
+      commit_sha: a93aed4bca3a5e4d45bff393e16092222767e6c3
+      stars: 31279
+      last_push: '2026-11-14'
+    blocked_reason: emanueleielo/deepagents-open-lovable has no license file
+    reason: emanueleielo/deepagents-open-lovable has no license; its two upstreams are used directly
+    d1: "No Usable License \u2014 Add-On Replaces"
+  open-pages:
+    status: named-not-found
+    named: []
+    extensions:
+    - repo: dyad-sh/dyad
+      license: Apache-2.0
+      license_note: Apache-2.0 outside src/pro/; do not use src/pro/
+      url: https://github.com/dyad-sh/dyad
+      commit_sha: a15e23340ff3f12c24c3f54d5aaf28eac0366ca3
+      stars: 22296
+      last_push: '2026-11-14'
+    blocked_reason: no public repository for open-pages
+    reason: no public open-pages repo found; Dyad is a local open-source app builder with live preview
+    d1: "No Public Repo \u2014 Add-On Replaces"
+  nexity:
+    status: named
+    named:
+    - repo: Pagepro/nexity
+      license: MIT
+      url: https://github.com/Pagepro/nexity
+      commit_sha: 2097cfb684c6b21339fe6a0474a1bd9e240c33f4
+      stars: 26
+      last_push: '2026-11-13'
+    - repo: sanity-io/sanity
+      license: MIT
+      url: https://github.com/sanity-io/sanity
+      commit_sha: 08b506252df967bbe4f0e991485a51bf38a1aa79
+      stars: 6394
+      last_push: '2026-11-14'
+    extensions:
+    - repo: payloadcms/payload
+      license: MIT
+      url: https://github.com/payloadcms/payload
+      commit_sha: 56033d9561275b2f3457fc86666d8da232a8528e
+      stars: 45811
+      last_push: '2026-11-14'
+  syntheon:
+    status: named-unlicensed
+    named: []
+    extensions:
+    - repo: dyad-sh/dyad
+      license: Apache-2.0
+      license_note: Apache-2.0 outside src/pro/
+      url: https://github.com/dyad-sh/dyad
+      commit_sha: a15e23340ff3f12c24c3f54d5aaf28eac0366ca3
+      stars: 22296
+      last_push: '2026-11-14'
+    blocked_reason: cognis-digital/syntheon uses the Cognis Open Collaboration License, not an OSI license
+    reason: cognis-digital/syntheon has 0 stars and no license; Dyad runs fully local models
+    d1: "No Usable License \u2014 Add-On Replaces"
+  ui-ux-pro-max:
+    status: named
+    named:
+    - repo: nextlevelbuilder/ui-ux-pro-max-skill
+      license: MIT
+      url: https://github.com/nextlevelbuilder/ui-ux-pro-max-skill
+      commit_sha: 6ae86f61f520d6ca229d2f40e070410638c908c5
+      stars: 149276
+      last_push: '2026-11-10'
+    extensions: []
+  frontend-design-skill:
+    status: named
+    named:
+    - repo: anthropics/skills
+      license: Apache-2.0
+      license_note: skills/frontend-design/LICENSE.txt is Apache-2.0; other skills in the repo differ
+      url: https://github.com/anthropics/skills
+      commit_sha: 2c5958ecac7cee2b583967a2c4981d0f4a75c579
+      stars: 194339
+      last_push: '2026-11-14'
+    extensions: []
+  chrome-devtools-mcp:
+    status: named
+    named:
+    - repo: ChromeDevTools/chrome-devtools-mcp
+      license: Apache-2.0
+      url: https://github.com/ChromeDevTools/chrome-devtools-mcp
+      commit_sha: 8ba2ac945ebaf1adb92208c29f3a30e73a920956
+      stars: 55878
+      last_push: '2026-11-13'
+    extensions: []
+  design-linter:
+    status: named-not-found
+    named: []
+    extensions:
+    - repo: GoogleChrome/lighthouse
+      license: Apache-2.0
+      url: https://github.com/GoogleChrome/lighthouse
+      commit_sha: 4875928438c01b39abbd4bc1f9923c16d23ab32d
+      stars: 31079
+      last_push: '2026-11-13'
+    blocked_reason: agent-design-skills has no public repository
+    reason: linter built in-repo; Lighthouse (31k, includes axe accessibility checks) for WCAG and performance
+    d1: "No Public Repo \u2014 Add-On Replaces"
+  tastemaker:
+    status: named
+    named:
+    - repo: Harrypatria/tastemaker
+      license: MIT
+      url: https://github.com/Harrypatria/tastemaker
+      commit_sha: 921637b69cfd9f98268c9ef68b914ac481ba309a
+      stars: 5
+      last_push: '2026-10-30'
+    extensions: []
+  postiz:
+    status: named
+    named:
+    - repo: gitroomhq/postiz-app
+      license: AGPL-3.0
+      url: https://github.com/gitroomhq/postiz-app
+      commit_sha: 132859f32d854830ce44b509da87409c3ec10a77
+      stars: 41574
+      last_push: '2026-11-13'
+    extensions: []
+  mautic:
+    status: named
+    named:
+    - repo: mautic/mautic
+      license: GPL-3.0
+      url: https://github.com/mautic/mautic
+      commit_sha: 6711577a1df4e46cadeb739415574b49c3345771
+      stars: 10985
+      last_push: '2026-11-13'
+    extensions: []
+  helio:
+    status: named
+    named:
+    - repo: achref-soua/helio
+      license: AGPL-3.0
+      url: https://github.com/achref-soua/helio
+      commit_sha: 63d0cedb2193f569b98ddf81f101b43bfa128560
+      stars: 24
+      last_push: '2026-06-29'
+    extensions:
+    - repo: PostHog/posthog
+      license: MIT
+      license_note: MIT outside ee/; do not use ee/
+      url: https://github.com/PostHog/posthog
+      commit_sha: e060b5d349184643f6b355aa9e865ed4895d4ae0
+      stars: 40777
+      last_push: '2026-11-14'
+  netsendo:
+    status: named-unlicensed
+    named: []
+    extensions:
+    - repo: knadh/listmonk
+      license: AGPL-3.0
+      url: https://github.com/knadh/listmonk
+      commit_sha: e735e0b23421192a4c1b18b6221f4708b872fcd5
+      stars: 24292
+      last_push: '2026-11-14'
+    blocked_reason: NetSendo/NetSendo ships under a proprietary end-user license agreement
+    reason: NetSendo has 19 stars and an unclear license; listmonk is the established self-hosted mailer
+    d1: "No Usable License \u2014 Add-On Replaces"
+  gitreins:
+    status: named
+    named:
+    - repo: totalwindupflightsystems/gitreins
+      license: MIT
+      url: https://github.com/totalwindupflightsystems/gitreins
+      commit_sha: 9e0bf429f2d1f088e7942ef2e0cadf42be6bb053
+      stars: 1
+      last_push: '2026-11-14'
+    extensions:
+    - repo: pre-commit/pre-commit
+      license: MIT
+      url: https://github.com/pre-commit/pre-commit
+      commit_sha: ba5c4209a6d561b0dff5db24620778d2133d068e
+      stars: 15695
+      last_push: '2026-11-09'
+  veripipe:
+    status: named
+    named:
+    - repo: zhangyy0423/veripipe
+      license: MIT
+      url: https://github.com/zhangyy0423/veripipe
+      commit_sha: bd557a3b1712f69af70cfd754662c9fd30efe33d
+      stars: 1
+      last_push: '2026-10-19'
+    extensions: []
+  evalforge:
+    status: named
+    named:
+    - repo: heManKuMAR6/evalforge
+      license: MIT
+      url: https://github.com/heManKuMAR6/evalforge
+      commit_sha: 7931647894572756517c815bcdbd8758487605cc
+      stars: 9
+      last_push: '2026-05-14'
+    extensions:
+    - repo: promptfoo/promptfoo
+      license: MIT
+      url: https://github.com/promptfoo/promptfoo
+      commit_sha: 45f68f0d77db9435a0d1a5a7971b208cc71f8e26
+      stars: 27159
+      last_push: '2026-11-14'
+  postgres:
+    status: named
+    named:
+    - repo: postgres/postgres
+      license: PostgreSQL
+      url: https://github.com/postgres/postgres
+      commit_sha: 70c4a57b64d39c526eb4c44a925eb92a6e56f3c5
+      stars: 22820
+      last_push: '2026-11-13'
+    extensions: []
+  duckdb:
+    status: named
+    named:
+    - repo: duckdb/duckdb
+      license: MIT
+      url: https://github.com/duckdb/duckdb
+      commit_sha: b678afa97b529d5856731e115e31542a72d2d978
+      stars: 43055
+      last_push: '2026-11-13'
+    extensions: []
+  tares:
+    status: named
+    named:
+    - repo: glassflow/tares
+      license: MIT
+      license_note: MIT outside ee/ and the tares_ee package
+      url: https://github.com/glassflow/tares
+      commit_sha: f1b3b23fab78a0e94a1c1da7c3643544f1040eb4
+      stars: 47
+      last_push: '2026-11-14'
+    extensions:
+    - repo: duckdb/duckdb
+      license: MIT
+      url: https://github.com/duckdb/duckdb
+      commit_sha: b678afa97b529d5856731e115e31542a72d2d978
+      stars: 43055
+      last_push: '2026-11-13'
+  myelinate:
+    status: named
+    named:
+    - repo: notaaaronfr/myelinate
+      license: MIT
+      url: https://github.com/notaaaronfr/myelinate
+      commit_sha: f8d20d4f5b4824accfccaa79912fff613a619f64
+      stars: 7
+      last_push: '2026-11-13'
+    extensions:
+    - repo: mem0ai/mem0
+      license: Apache-2.0
+      url: https://github.com/mem0ai/mem0
+      commit_sha: f1791daa86d469249c9b002f62644d58a1eb96a0
+      stars: 68950
+      last_push: '2026-11-06'
+  curio:
+    status: named-not-found
+    named: []
+    extensions:
+    - repo: assafelovic/gpt-researcher
+      license: Apache-2.0
+      url: https://github.com/assafelovic/gpt-researcher
+      commit_sha: ddd4db36208d9c8e49f3b2436efda97baecb5433
+      stars: 30679
+      last_push: '2026-11-12'
+    blocked_reason: no public repository for Curio
+    reason: no public Curio repo found; gap detection built in-repo, filled by GPT Researcher
+    d1: "No Public Repo \u2014 Add-On Replaces"
+  openspace:
+    status: named
+    named:
+    - repo: HKUDS/OpenSpace
+      license: MIT
+      url: https://github.com/HKUDS/OpenSpace
+      commit_sha: e5a81e7635009869d34dde8fbfd045d191296f3f
+      stars: null
+      last_push: null
+    extensions:
+    - repo: letta-ai/letta
+      license: Apache-2.0
+      url: https://github.com/letta-ai/letta
+      commit_sha: 8816d3a8516893bfdc0fa14bfb1235226012e295
+      stars: 25434
+      last_push: '2026-10-18'
+  agentjet:
+    status: named
+    named:
+    - repo: modelscope/AgentJet
+      license: Apache-2.0
+      url: https://github.com/modelscope/AgentJet
+      commit_sha: 25118bbcb314e0da898bbc0043a1bf4ab74eade7
+      stars: 243
+      last_push: '2026-08-25'
+    extensions:
+    - repo: verl-project/verl
+      license: Apache-2.0
+      url: https://github.com/verl-project/verl
+      commit_sha: 4191e7f910d85d69acb8c45f4840f10faa535165
+      stars: 24229
+      last_push: '2026-11-14'
+  openforgerl:
+    status: named-unlicensed
+    named: []
+    extensions:
+    - repo: OpenRLHF/OpenRLHF
+      license: Apache-2.0
+      url: https://github.com/OpenRLHF/OpenRLHF
+      commit_sha: 26494490bc237f6c3af62dab6117e6bbb0a78dba
+      stars: 10152
+      last_push: '2026-11-03'
+    blocked_reason: the only public OpenForgeRL repo has no license file
+    reason: the OpenForgeRL repo has 2 stars and no license
+    d1: "No Usable License \u2014 Add-On Replaces"
+  orchard:
+    status: named-not-found
+    named: []
+    extensions:
+    - repo: huggingface/trl
+      license: Apache-2.0
+      url: https://github.com/huggingface/trl
+      commit_sha: 8ad18ec1b6493b85cf9fffbd87d376767ceb8611
+      stars: 19734
+      last_push: '2026-11-14'
+    blocked_reason: no public repository for Orchard
+    reason: no public Orchard repo found; TRL provides SFT and preference training on partial trajectories
+    d1: "No Public Repo \u2014 Add-On Replaces"
+  nib:
+    status: named
+    named:
+    - repo: daniel-alexander4/nib
+      license: AGPL-3.0
+      url: https://github.com/daniel-alexander4/nib
+      commit_sha: 1f23f70bb25a41eedef79acdc5068db438933ed3
+      stars: 10
+      last_push: '2026-11-08'
+    extensions:
+    - repo: Stirling-Tools/Stirling-PDF
+      license: MIT
+      license_note: MIT core; proprietary portions excluded
+      url: https://github.com/Stirling-Tools/Stirling-PDF
+      commit_sha: ad38e38ce9bb59ee6b16cbc2d727b6a54c0fbda0
+      stars: 96552
+      last_push: '2026-11-13'
+    - repo: ocrmypdf/OCRmyPDF
+      license: MPL-2.0
+      url: https://github.com/ocrmypdf/OCRmyPDF
+      commit_sha: 3343116ba204c99c9fee762d538dc1b668711bfb
+      stars: 35314
+      last_push: '2026-11-14'
+  pdfcraft:
+    status: named
+    named:
+    - repo: storytold/pdfcraft
+      license: Apache-2.0
+      url: https://github.com/storytold/pdfcraft
+      commit_sha: 358e33a3077bbc116c26a6e6468f984acc3426e1
+      stars: 20674
+      last_push: '2026-11-14'
+    extensions: []
+  secrets-vault:
+    status: added
+    named: []
+    extensions:
+    - repo: Infisical/infisical
+      license: MIT
+      license_note: MIT outside ee/; do not use ee/
+      url: https://github.com/Infisical/infisical
+      commit_sha: 8218dcf23cb99b8a1a55b732879996c4b3092b8a
+      stars: 30509
+      last_push: '2026-11-14'
+    reason: OpenBao (9k) is below the 10k-star bar; Infisical (30k) is a self-hosted secrets manager with an API
+  observability:
+    status: named
+    named:
+    - repo: open-telemetry/opentelemetry-collector-contrib
+      license: Apache-2.0
+      url: https://github.com/open-telemetry/opentelemetry-collector-contrib
+      commit_sha: e0e1cb6463e1916b077bfa838fae2aaebed6ea62
+      stars: 5050
+      last_push: '2026-11-14'
+    extensions:
+    - repo: SigNoz/signoz
+      license: MIT
+      license_note: MIT outside ee/ and cmd/enterprise/
+      url: https://github.com/SigNoz/signoz
+      commit_sha: e010c4fa037e15733e9a722714246211eb9026d4
+      stars: 32638
+      last_push: '2026-11-14'
+    - repo: prometheus/prometheus
+      license: Apache-2.0
+      url: https://github.com/prometheus/prometheus
+      commit_sha: 8e974df217129350a7276d852a403ba7db06531c
+      stars: 67599
+      last_push: '2026-11-14'
+    - repo: jaegertracing/jaeger
+      license: Apache-2.0
+      url: https://github.com/jaegertracing/jaeger
+      commit_sha: 3b69761c0b7c9f8601ae4dbee7e9889d32747452
+      stars: 23409
+      last_push: '2026-11-14'
+  comfyui:
+    status: added
+    named: []
+    extensions:
+    - repo: Comfy-Org/ComfyUI
+      license: GPL-3.0
+      url: https://github.com/Comfy-Org/ComfyUI
+      commit_sha: eee59185ff4f43ae2d9ad122b245619d27d9daad
+      stars: 146764
+      last_push: '2026-11-14'
+  diffusers:
+    status: added
+    named: []
+    extensions:
+    - repo: huggingface/diffusers
+      license: Apache-2.0
+      url: https://github.com/huggingface/diffusers
+      commit_sha: 43e30028af5120d8b0868cb6975b9fad39cc4fab
+      stars: 34919
+      last_push: '2026-11-14'
+  invokeai:
+    status: added
+    named: []
+    extensions:
+    - repo: invoke-ai/InvokeAI
+      license: Apache-2.0
+      url: https://github.com/invoke-ai/InvokeAI
+      commit_sha: 48b83d98daa57315e8bf8e7754bdbc65aac86b8d
+      stars: 29089
+      last_push: '2026-11-14'
+  wan-video:
+    status: added
+    named: []
+    extensions:
+    - repo: Wan-Video/Wan2.2
+      license: Apache-2.0
+      url: https://github.com/Wan-Video/Wan2.2
+      commit_sha: 1ea34ff48f87168174e12956e200b1d908b1c5ff
+      stars: 18643
+      last_push: '2026-09-21'
+  ltx-video:
+    status: added
+    named: []
+    extensions:
+    - repo: Lightricks/LTX-Video
+      license: Apache-2.0
+      license_note: code Apache-2.0; check the model weights license per checkpoint before commercial use
+      url: https://github.com/Lightricks/LTX-Video
+      commit_sha: 50f0aef1297574a4b29acbdb874e3a363a6d5f2e
+      stars: 11383
+      last_push: '2026-11-02'
+  upscayl:
+    status: added
+    named: []
+    extensions:
+    - repo: upscayl/upscayl
+      license: AGPL-3.0
+      url: https://github.com/upscayl/upscayl
+      commit_sha: a00d55fee90e0f9435d5eaa86e76700df8199af8
+      stars: 52545
+      last_push: '2026-11-14'
+  rembg:
+    status: added
+    named: []
+    extensions:
+    - repo: danielgatis/rembg
+      license: MIT
+      url: https://github.com/danielgatis/rembg
+      commit_sha: 991927b77667946dab59c50df31f7d4640e80457
+      stars: 25459
+      last_push: '2026-11-06'
+  penpot:
+    status: added
+    named: []
+    extensions:
+    - repo: penpot/penpot
+      license: MPL-2.0
+      url: https://github.com/penpot/penpot
+      commit_sha: 9c5260314a359ec17fbadb33a59dada7052f5fb1
+      stars: 62345
+      last_push: '2026-11-14'
+  ffmpeg:
+    status: added
+    named: []
+    extensions:
+    - repo: FFmpeg/FFmpeg
+      license: LGPL-2.1
+      license_note: build without --enable-gpl / --enable-nonfree to stay LGPL
+      url: https://github.com/FFmpeg/FFmpeg
+      commit_sha: 604ef3784d6fae44baf62fdbe9b3e4e5cfc3c681
+      stars: 67240
+      last_push: '2026-11-14'
+  moviepy:
+    status: added
+    named: []
+    extensions:
+    - repo: Zulko/moviepy
+      license: MIT
+      url: https://github.com/Zulko/moviepy
+      commit_sha: 211e4b15f6ce4f34a6a9efbfff40590e43a68f77
+      stars: 15150
+      last_push: '2026-08-26'
+  video-use:
+    status: added
+    named: []
+    extensions:
+    - repo: browser-use/video-use
+      license: MIT
+      url: https://github.com/browser-use/video-use
+      commit_sha: 43cfc566833548093455c9d4a46bd69913b7e552
+      stars: 31038
+      last_push: '2026-10-08'
+  moneyprinterturbo:
+    status: added
+    named: []
+    extensions:
+    - repo: harry0703/MoneyPrinterTurbo
+      license: MIT
+      url: https://github.com/harry0703/MoneyPrinterTurbo
+      commit_sha: ce289ffb61a118779c56d6b4a34181905dbed2b9
+      stars: 143459
+      last_push: '2026-11-13'
+  shotcut:
+    status: added
+    named: []
+    extensions:
+    - repo: mltframework/shotcut
+      license: GPL-3.0
+      url: https://github.com/mltframework/shotcut
+      commit_sha: f291f3f2531f6861e62cdbf90650ff0a6a072f03
+      stars: 15678
+      last_push: '2026-11-13'
+  losslesscut:
+    status: added
+    named: []
+    extensions:
+    - repo: mifi/lossless-cut
+      license: GPL-2.0
+      url: https://github.com/mifi/lossless-cut
+      commit_sha: 4c7ab1cb0c9acaefabb48e997bc909562dc3624d
+      stars: 46025
+      last_push: '2026-11-14'
+  whisperx:
+    status: added
+    named: []
+    extensions:
+    - repo: m-bain/whisperX
+      license: BSD-2-Clause
+      url: https://github.com/m-bain/whisperX
+      commit_sha: b904f02b7e1f26fd10fb04840d655ff27e88e464
+      stars: 25256
+      last_push: '2026-11-12'
+  chatterbox:
+    status: added
+    named: []
+    extensions:
+    - repo: resemble-ai/chatterbox
+      license: MIT
+      url: https://github.com/resemble-ai/chatterbox
+      commit_sha: ab55923c27757c90cfcc407baa57dc25a7d25217
+      stars: 27809
+      last_push: '2026-11-04'
+  obs-studio:
+    status: added
+    named: []
+    extensions:
+    - repo: obsproject/obs-studio
+      license: GPL-2.0
+      url: https://github.com/obsproject/obs-studio
+      commit_sha: fe1ed7955f300efd17fc59f65938388e43d8bb06
+      stars: 79539
+      last_push: '2026-11-11'
+  scrapling:
+    status: added
+    named: []
+    extensions:
+    - repo: D4Vinci/Scrapling
+      license: BSD-3-Clause
+      url: https://github.com/D4Vinci/Scrapling
+      commit_sha: bb223f2f5fc8f743772751a5ce283ef7851ca6be
+      stars: 102678
+      last_push: '2026-11-11'
+  crawl4ai:
+    status: added
+    named: []
+    extensions:
+    - repo: unclecode/crawl4ai
+      license: Apache-2.0
+      url: https://github.com/unclecode/crawl4ai
+      commit_sha: cae74b203a33994f7e13b9052c3b0d5c93daa0e6
+      stars: 87341
+      last_push: '2026-11-13'
+  scrapy:
+    status: added
+    named: []
+    extensions:
+    - repo: scrapy/scrapy
+      license: BSD-3-Clause
+      url: https://github.com/scrapy/scrapy
+      commit_sha: e63a574c767d7a9438c21db158f605f1c44c6e6a
+      stars: 65383
+      last_push: '2026-11-13'
+  crawlee:
+    status: added
+    named: []
+    extensions:
+    - repo: apify/crawlee
+      license: Apache-2.0
+      url: https://github.com/apify/crawlee
+      commit_sha: a972548a5f39b4ddd94d758519b15138f3239c2b
+      stars: 26443
+      last_push: '2026-11-14'
+  scrapegraph-ai:
+    status: added
+    named: []
+    extensions:
+    - repo: ScrapeGraphAI/Scrapegraph-ai
+      license: MIT
+      url: https://github.com/ScrapeGraphAI/Scrapegraph-ai
+      commit_sha: 194055e203afce41ed4e70365dbc416bad756115
+      stars: 32773
+      last_push: '2026-10-06'
+  maxun:
+    status: added
+    named: []
+    extensions:
+    - repo: getmaxun/maxun
+      license: AGPL-3.0
+      url: https://github.com/getmaxun/maxun
+      commit_sha: 99c6bd0d42b14336b706ba121a3757f62a9814f7
+      stars: 18382
+      last_push: '2026-11-09'
+  playwright:
+    status: added
+    named: []
+    extensions:
+    - repo: microsoft/playwright
+      license: Apache-2.0
+      url: https://github.com/microsoft/playwright
+      commit_sha: b4d016aadc5cbd2b898a284307975fe73e05483d
+      stars: 100148
+      last_push: '2026-11-14'
+  listmonk:
+    status: added
+    named: []
+    extensions:
+    - repo: knadh/listmonk
+      license: AGPL-3.0
+      url: https://github.com/knadh/listmonk
+      commit_sha: e735e0b23421192a4c1b18b6221f4708b872fcd5
+      stars: 24292
+      last_push: '2026-11-14'
+  postal:
+    status: added
+    named: []
+    extensions:
+    - repo: postalserver/postal
+      license: MIT
+      url: https://github.com/postalserver/postal
+      commit_sha: d96eddbadeda600595d6247486f9ceb8e99cbc15
+      stars: 16956
+      last_push: '2026-11-14'
+  mjml:
+    status: added
+    named: []
+    extensions:
+    - repo: mjmlio/mjml
+      license: MIT
+      url: https://github.com/mjmlio/mjml
+      commit_sha: 40ddfbb4c04e13dd9572aa0d5b1c58826a163289
+      stars: 18295
+      last_push: '2026-11-10'
+  react-email:
+    status: added
+    named: []
+    extensions:
+    - repo: resend/react-email
+      license: MIT
+      url: https://github.com/resend/react-email
+      commit_sha: f27d9e20825233cf7152053590b8dbd9bcf848ad
+      stars: 19936
+      last_push: '2026-11-14'
+  chatwoot:
+    status: added
+    named: []
+    extensions:
+    - repo: chatwoot/chatwoot
+      license: MIT
+      license_note: MIT outside enterprise/; do not use enterprise/
+      url: https://github.com/chatwoot/chatwoot
+      commit_sha: 1ef1d2b45ae0a17a35c5f1bd055e4ddf04dadabf
+      stars: 39858
+      last_push: '2026-11-13'
+  docling:
+    status: added
+    named: []
+    extensions:
+    - repo: docling-project/docling
+      license: MIT
+      url: https://github.com/docling-project/docling
+      commit_sha: 5e600e8d37a11f70b62f795ea1e3ce3a4052e551
+      stars: 70567
+      last_push: '2026-11-14'
+  paddleocr:
+    status: added
+    named: []
+    extensions:
+    - repo: PaddlePaddle/PaddleOCR
+      license: Apache-2.0
+      url: https://github.com/PaddlePaddle/PaddleOCR
+      commit_sha: dab3fe35379033fdcb2d0e9572fac0b36c9a9ebf
+      stars: 92693
+      last_push: '2026-09-16'
+  qdrant:
+    status: added
+    named: []
+    extensions:
+    - repo: qdrant/qdrant
+      license: Apache-2.0
+      url: https://github.com/qdrant/qdrant
+      commit_sha: 95d89e51427f4217bf7b496e039ef0a069ebe342
+      stars: 35550
+      last_push: '2026-11-13'
+  pgvector:
+    status: added
+    named: []
+    extensions:
+    - repo: pgvector/pgvector
+      license: PostgreSQL
+      url: https://github.com/pgvector/pgvector
+      commit_sha: 10a73eceefe033ac944f91782c553b5fc67eccb9
+      stars: 23678
+      last_push: '2026-11-14'
+  umami:
+    status: added
+    named: []
+    extensions:
+    - repo: umami-software/umami
+      license: MIT
+      url: https://github.com/umami-software/umami
+      commit_sha: b18d5144dfe7342edeeca6f61d13ba3baabed9ad
+      stars: 40139
+      last_push: '2026-11-14'
+  livekit:
+    status: added
+    named: []
+    extensions:
+    - repo: livekit/livekit
+      license: Apache-2.0
+      url: https://github.com/livekit/livekit
+      commit_sha: fb2044e3c9fdc10e60ff889815d696a54ff9fdbe
+      stars: 22206
+      last_push: '2026-11-13'
+  livekit-agents:
+    status: added
+    named: []
+    extensions:
+    - repo: livekit/agents
+      license: Apache-2.0
+      url: https://github.com/livekit/agents
+      commit_sha: cbb5770c716c70009969cd7fa88e3c3662222ce9
+      stars: 15220
+      last_push: '2026-11-14'
+  egress-proxy:
+    status: named
+    named:
+    - repo: envoyproxy/envoy
+      license: Apache-2.0
+      url: https://github.com/envoyproxy/envoy
+      commit_sha: e989d8c73262931f60f1ab638a780c7b3af3e68a
+      stars: null
+      last_push: null
+    extensions: []
+  agenticmail:
+    status: named
+    named:
+    - repo: agenticmail/agenticmail
+      license: MIT
+      url: https://github.com/agenticmail/agenticmail
+      commit_sha: af1e0ef546b5862c1f7134649e761f56356c688a
+      stars: 254
+      last_push: '2026-11-13'
+    extensions: []
+  postmill-ai:
+    status: named
+    named:
+    - repo: postmill-ai/postmill-app
+      license: AGPL-3.0
+      url: https://github.com/postmill-ai/postmill-app
+      commit_sha: e06b4796fe534697f4eef77180c7d1f58c9df7fb
+      stars: 315
+      last_push: '2026-11-14'
+    extensions: []
+  social0:
+    status: named
+    named:
+    - repo: Abhishek-B-R/social0-oss
+      license: AGPL-3.0
+      url: https://github.com/Abhishek-B-R/social0-oss
+      commit_sha: 217744b5118a271c3b48d161b3bb4318d7beb256
+      stars: 4
+      last_push: '2026-11-03'
+    extensions: []
+  superpowers:
+    status: named
+    named:
+    - repo: obra/superpowers
+      license: MIT
+      stars: 317455
+      last_push: '2026-11-03'
+      commit_sha: 22f0b463e7a5e579904dd6211a520321035526f7
+      url: https://github.com/obra/superpowers
+    extensions: []
+  everything-claude-code:
+    status: named
+    named:
+    - repo: affaan-m/everything-claude-code
+      license: MIT
+      stars: null
+      last_push: null
+      license_note: repo hidden from GitHub search; stars not retrievable via API, verified to exist by commit
+      commit_sha: d2ef2680594f9a17526a6e1a2e18b3d242c5d17b
+      url: https://github.com/affaan-m/everything-claude-code
+    extensions: []
+  anthropic-skills-all:
+    status: named
+    named:
+    - repo: anthropics/skills
+      license: Apache-2.0
+      stars: 194339
+      last_push: '2026-11-14'
+      license_note: per-skill licenses; document skills (docx/pdf/pptx/xlsx) are source-available, use frontend-design and other Apache skills only
+      commit_sha: 2c5958ecac7cee2b583967a2c4981d0f4a75c579
+      url: https://github.com/anthropics/skills
+    extensions: []
+  mattpocock-skills:
+    status: named
+    named:
+    - repo: mattpocock/skills
+      license: MIT
+      stars: 324196
+      last_push: '2026-11-13'
+      commit_sha: 5863806dd4e15c63174bee4e7515a4256792ecfa
+      url: https://github.com/mattpocock/skills
+    extensions: []
+  awesome-claude-code:
+    status: reference-only
+    named:
+    - repo: hesreallyhim/awesome-claude-code
+      license: CC-BY-NC-ND-4.0
+      stars: 57976
+      last_push: '2026-11-14'
+      license_note: 'index only: non-commercial, no-derivatives; never vendored or redistributed'
+      commit_sha: 18153158dd02b590c3ba3ab83533210ddca91a1c
+      url: https://github.com/hesreallyhim/awesome-claude-code
+    extensions: []
+  agent-skills:
+    status: named
+    named:
+    - repo: addyosmani/agent-skills
+      license: MIT
+      stars: 117387
+      last_push: '2026-11-14'
+      commit_sha: 39b723ceebf81474d0557c1fecd01eddab585563
+      url: https://github.com/addyosmani/agent-skills
+    extensions: []
+  planning-with-files:
+    status: named
+    named:
+    - repo: OthmanAdi/planning-with-files
+      license: MIT
+      stars: 28052
+      last_push: '2026-11-11'
+      commit_sha: 51bf62def62d1cb317d37936929b4ef97cf862c3
+      url: https://github.com/OthmanAdi/planning-with-files
+    extensions: []
+  open-design:
+    status: named
+    named:
+    - repo: nexu-io/open-design
+      license: Apache-2.0
+      stars: 107601
+      last_push: '2026-11-14'
+      commit_sha: 59e4f2ae85de7e7318a5e6bdcf3a34584c4b7582
+      url: https://github.com/nexu-io/open-design
+    extensions: []
+  astryx:
+    status: named
+    named:
+    - repo: meta/astryx
+      license: MIT
+      stars: 27736
+      last_push: '2026-11-14'
+      commit_sha: c441c235f047412e2f3d57c932968b4142839a8e
+      url: https://github.com/meta/astryx
+    extensions: []
+  baseline-ui:
+    status: named
+    named:
+    - repo: ibelick/ui-skills
+      license: MIT
+      stars: 11054
+      last_push: '2026-11-14'
+      license_note: canonical home of the baseline-ui skill (R03 pin)
+      commit_sha: 65cc0edb4f64fe8bfe7e9c59466074de25bece76
+      url: https://github.com/ibelick/ui-skills
+    extensions: []
+  agent-reach:
+    status: named
+    named:
+    - repo: Panniantong/Agent-Reach
+      license: MIT
+      stars: 111707
+      last_push: '2026-11-08'
+      commit_sha: c70ae6da5d39bc90e09ad2ae0575ccc89f31e284
+      url: https://github.com/Panniantong/Agent-Reach
+    extensions: []
+  easyspider:
+    status: named
+    named:
+    - repo: NaiboWang/EasySpider
+      license: AGPL-3.0
+      stars: 44791
+      last_push: '2026-11-07'
+      commit_sha: 899d775513994ca30225fd33e5b99db7fa1fcd20
+      url: https://github.com/NaiboWang/EasySpider
+    extensions: []
+  api-anything:
+    status: named
+    named:
+    - repo: goodnight000/api-anything
+      license: MIT
+      stars: 3177
+      last_push: '2026-11-13'
+      commit_sha: d40abd44f171c5cc444f1ac6b947afefa8605b78
+      url: https://github.com/goodnight000/api-anything
+    extensions: []
+  opengtm:
+    status: named
+    named:
+    - repo: debpalash/OpenGTM
+      license: AGPL-3.0
+      stars: 110
+      last_push: '2026-11-14'
+      commit_sha: 0b126e9007f7ee3fa8457a2232d3a24204e4489a
+      url: https://github.com/debpalash/OpenGTM
+    extensions: []
+  keelead:
+    status: experimental
+    named:
+    - repo: Atum246/keelead
+      license: MIT
+      stars: 54
+      last_push: '2026-04-28'
+      license_note: experimental only (D5); never approved
+      commit_sha: a846e2b6c19f781d44073f2e651c1ac8de52cf4a
+      url: https://github.com/Atum246/keelead
+    extensions: []
+  claude-ads:
+    status: named
+    named:
+    - repo: AgriciDaniel/claude-ads
+      license: MIT
+      stars: 11019
+      last_push: '2026-11-01'
+      commit_sha: fc3908e786c318776df89a3a098333da377364be
+      url: https://github.com/AgriciDaniel/claude-ads
+    extensions: []
+  google-ads-mcp:
+    status: named
+    named:
+    - repo: googleads/google-ads-mcp
+      license: Apache-2.0
+      stars: 1176
+      last_push: '2026-11-10'
+      license_note: spec location google-marketing-solutions/google_ads_mcp is not public; canonical official repo pinned (R03); named-vendor exception
+      commit_sha: cda852701fb5787dc4d79281f37da795ac09b97d
+      url: https://github.com/googleads/google-ads-mcp
+    extensions: []
+  nextcloud:
+    status: named
+    named:
+    - repo: nextcloud/server
+      license: AGPL-3.0
+      stars: 37511
+      last_push: '2026-11-14'
+      commit_sha: 61424d946776ada4554117ebfd33174fb3718377
+      url: https://github.com/nextcloud/server
+    extensions: []
+  richdocuments:
+    status: named
+    named:
+    - repo: nextcloud/richdocuments
+      license: AGPL-3.0
+      stars: 459
+      last_push: '2026-11-14'
+      license_note: Nextcloud companion app; below star gate, kept as named
+      commit_sha: 9c9291493224cd570f3777bbf4cafea00c077356
+      url: https://github.com/nextcloud/richdocuments
+    extensions: []
+  twenty:
+    status: named
+    named:
+    - repo: twentyhq/twenty
+      license: AGPL-3.0
+      stars: 60918
+      last_push: '2026-11-14'
+      license_note: AGPLv3 except files marked @license Enterprise; do not use those
+      commit_sha: 1dd1c249ad213de6883be5296deb3bbba8420a22
+      url: https://github.com/twentyhq/twenty
+    extensions: []
+  plausible:
+    status: named
+    named:
+    - repo: plausible/analytics
+      license: AGPL-3.0
+      stars: 29844
+      last_push: '2026-11-13'
+      commit_sha: 8e5982c237c8d17be02170e8063b3dd9b8e76085
+      url: https://github.com/plausible/analytics
+    extensions: []
+  agency-agents:
+    status: named
+    named:
+    - repo: msitarzewski/agency-agents
+      license: MIT
+      stars: 168251
+      last_push: '2026-11-09'
+      commit_sha: 8ae6164602c95ca78828b148b9052460ee426885
+      url: https://github.com/msitarzewski/agency-agents
+    extensions: []
+  univer:
+    status: named
+    named:
+    - repo: dream-num/univer
+      license: Apache-2.0
+      stars: 24243
+      last_push: '2026-11-14'
+      commit_sha: 0d7923dd7a26e6bea56f1bc791a03618235a4618
+      url: https://github.com/dream-num/univer
+    extensions: []
+  openwa:
+    status: named
+    named:
+    - repo: rmyndharis/OpenWA
+      license: MIT
+      stars: 16840
+      last_push: '2026-11-14'
+      commit_sha: bf97fbd2436d3d4bef33c3c6fe5b300cbf1e9701
+      url: https://github.com/rmyndharis/OpenWA
+    extensions: []
+  autosecscan:
+    status: named
+    named:
+    - repo: jhammant/AutoSecScan
+      license: MIT
+      stars: 1
+      last_push: '2026-07-03'
+      commit_sha: 881d9602bfa1e45d8e0df021df4dd6b247df92f0
+      url: https://github.com/jhammant/AutoSecScan
+    extensions: []
+  openhack:
+    status: named
+    named:
+    - repo: openhackai/OpenHack
+      license: MIT
+      stars: 442
+      last_push: '2026-10-17'
+      commit_sha: 6a0675ebd1287e8d7a651cccffae9b8f5d1e02a2
+      url: https://github.com/openhackai/OpenHack
+    extensions: []
+  open-kritt:
+    status: named
+    named:
+    - repo: Kritt-ai/open-kritt
+      license: AGPL-3.0
+      stars: 2430
+      last_push: '2026-11-09'
+      commit_sha: ab240adc8d5731a45f8a8218ff03a6a3ac382e6e
+      url: https://github.com/Kritt-ai/open-kritt
+    extensions: []
+  vulnhunter:
+    status: named
+    named:
+    - repo: capitalone/VulnHunter
+      license: Apache-2.0
+      stars: 1171
+      last_push: '2026-10-07'
+      commit_sha: 6d25b5c58b7820809b391ecda6a102537effe3ba
+      url: https://github.com/capitalone/VulnHunter
+    extensions: []
+  strix:
+    status: named
+    named:
+    - repo: usestrix/strix
+      license: Apache-2.0
+      stars: 75506
+      last_push: '2026-11-13'
+      commit_sha: 4719329d1c3eb0db796714397551945c514a2301
+      url: https://github.com/usestrix/strix
+    extensions: []
+  nocodb:
+    status: named-unlicensed
+    named: []
+    extensions:
+    - repo: teableio/teable
+      license: AGPL-3.0
+      stars: 21982
+      last_push: '2026-11-13'
+      license_note: AGPL core apps; MIT packages/
+      commit_sha: b8425f5a60d056205adc456b9e8011ff7d622a29
+      url: https://github.com/teableio/teable
+    blocked_reason: nocodb/nocodb moved to the Sustainable Use License (not OSI, Jan 2026)
+    d1: "No Usable License \u2014 Add-On Replaces"
+  dataforge:
+    status: named-not-found
+    named: []
+    extensions: []
+    blocked_reason: no public repository for 'dataforge' email finder; L2 waterfall skips to the Hunter-compatible fallback
+    d1: "No Public Repo \u2014 Add-On Replaces"
+star_gate:
+  min_stars: 10000
+  max_days_since_commit: 90
