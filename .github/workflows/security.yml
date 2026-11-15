@@ -85,9 +85,12 @@ jobs:
           else
             export LLM_PROVIDER=github-models GITHUB_MODELS_MODEL="$OPEN_MODEL" GITHUB_TOKEN="$GH_MODELS_TOKEN"
             echo "model: GitHub Models $OPEN_MODEL"
-            # Preflight: one tiny call, so a model the token cannot reach is reported, not silently skipped.
-            code=$(curl -sS -o /tmp/preflight.json -w '%{http_code}' https://models.github.ai/inference/chat/completions \
-              -H "authorization: Bearer $GH_MODELS_TOKEN" -H 'content-type: application/json' \
+            # Preflight: is the model in GitHub's catalog, and does one tiny call return a real completion?
+            H=(-H "accept: application/vnd.github+json" -H "x-github-api-version: 2022-11-28" -H "authorization: Bearer $GH_MODELS_TOKEN")
+            curl -sSL "${H[@]}" https://models.github.ai/catalog/models -o /tmp/catalog.json || true
+            python3 -c "import json,sys; ids=[m.get('id') for m in json.load(open('/tmp/catalog.json'))]; m=sys.argv[1]; print('catalog:', len(ids), 'models;', m, 'listed' if m in ids else 'NOT listed; open-weight options:', [i for i in ids if i.split('/')[0] in ('meta','mistral-ai','deepseek','microsoft','cohere')][:15])" "$OPEN_MODEL" || head -c 300 /tmp/catalog.json
+            code=$(curl -sSL -o /tmp/preflight.json -w '%{http_code}' -X POST "${H[@]}" -H 'content-type: application/json' \
+              https://models.github.ai/inference/chat/completions \
               -d "{\"model\":\"$OPEN_MODEL\",\"messages\":[{\"role\":\"user\",\"content\":\"reply ok\"}],\"max_tokens\":5}")
             echo "preflight HTTP $code: $(head -c 300 /tmp/preflight.json)"
           fi
