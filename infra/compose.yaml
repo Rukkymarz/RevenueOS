@@ -120,6 +120,7 @@ services:
       args: { PACKAGES: "./packages/mcp-common ./infra/sandbox-supervisor ./services/runtime-omni", DESKTOP: "1" }
     entrypoint: ["/usr/local/bin/runtime-omni-entrypoint"]
     command: ["revenueos-runtime-omni"]
+    working_dir: /workspace   # screen capture writes its temp file to the current directory
     environment:
       <<: *pyenv
       PORT: "8102"
