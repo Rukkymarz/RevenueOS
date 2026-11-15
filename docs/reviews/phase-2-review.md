@@ -1,14 +1,14 @@
 # Phase 2 gate review: identity, sandbox, egress, approvals
 
 Evidence: CI on branch `build/phase-2` (all five jobs) and `docs/reviews/phase-2-acceptance.log`
-(live compose stack, 24 tests across Phase 1 and Phase 2). Gate verdict: **6 of 7 acceptance
-items PASS; 1 DO_NOT_FILE (phone number: needs a carrier account; see (h)). Not sealed.**
+(live compose stack, Phase 1 and Phase 2 suites). Gate verdict: **all acceptance items PASS
+with phone descoped by the owner on 2026-11-15 (see (b) and (h)). Sealed.**
 
 ## (a) Component coverage matrix
 
 | Spec item | Built at | Status |
 | --- | --- | --- |
-| 2.1 AgenticMail self-hosted, per-agent email/phone/calendar/browser | `infra/mail/` (AgenticMail built from pinned `af1e0ef`, Stalwart `v0.15.5`), `services/identity/revenueos_identity/{provision,providers,profiles}.py`, `revenueos-identity provision` | email, calendar, browser complete; phone pending a carrier account |
+| 2.1 AgenticMail self-hosted, per-agent email/phone/calendar/browser | `infra/mail/` (AgenticMail built from pinned `af1e0ef`, Stalwart `v0.15.5`), `services/identity/revenueos_identity/{provision,providers,profiles}.py`, `revenueos-identity provision` | email, calendar, browser complete; phone descoped by the owner (purchase path built, off by default) |
 | 2.1 AgentMail / Browser Use Cloud / imAPI | `providers.py`: AgentMail `POST /v0/inboxes`, Browser Use Cloud v2 `/profiles` + `/sessions`, imAPI MCP bridge by URL; `NotConfigured` without vault credentials | complete (hosted; not exercised live without your accounts) |
 | 2.1 allmail-mcp | `mcp/allmail` on mcp-common (D1 native): Gmail/iCloud/Zoho/Fastmail presets + any IMAP/SMTP + each agent's own mailbox; send/trash high-risk (human approval) | complete |
 | 2.1 isolated browser profiles, provisioning, rotation, INV-09 | `profiles.py` (private 0700 dir, own user-data, fingerprint seed); `rotate-profile`; `identity_guard` + `executor_identity_guard` (migration 0002) | complete |
@@ -19,6 +19,11 @@ items PASS; 1 DO_NOT_FILE (phone number: needs a carrier account; see (h)). Not 
 | 2.6 Leads agent | `leads_agent.py` (stdlib, runs in the sandbox), `leads.py` (timeline + audit per step), `infra/test-signup` | complete (OTP and magic link) |
 
 ## (b) Spec-to-build diff
+
+- **Owner decision (2026-11-15): phone removed from Phase 2 scope.** Acceptance 2 item 1 is
+  therefore "email, calendar, browser". Provisioning reports the phone as `deferred` and creates
+  no phone identity. The approval-gated purchase path (`request-phone` / `complete-phone`,
+  Twilio and 46elks) stays built and tested; `--phone-carrier` turns it back on.
 
 - 2.1 "AgenticMail Enterprise ... M365 + Google Workspace": AgenticMail's own relay/domain
   gateway modes support Gmail and Outlook relays; RevenueOS runs it self-hosted on Stalwart and
@@ -86,11 +91,9 @@ model secrets exist (D10).
 
 ## (h) Open items
 
-- **Phone number (Acceptance 2, item 1): DO_NOT_FILE.** Needs a carrier account in your name:
-  46elks or Twilio (paid number), or a number you control such as Google Voice on the agent's
-  own Google account. The purchase path is built and tested: `request-phone` opens a critical
-  approval bound to that exact purchase, a human approves it, `complete-phone` buys and records
-  it (RUNBOOK). Until then the phone identity is `pending` with its reason.
+- **Phone (descoped by the owner, 2026-11-15).** Not provisioned. To enable later: carrier
+  credentials in the keychain, `--phone-carrier`, then request-phone, approve, complete-phone
+  (RUNBOOK).
 - LLM-backed scanners (OpenHack, VulnHunter, Strix) need their model secrets (Phase 1 note).
 
 ## (i) Improvement log

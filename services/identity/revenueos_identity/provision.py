@@ -27,6 +27,9 @@ class Settings:
     master_key_ref: str = "keychain://agenticmail-master-key"
 
 
+PHONE_DEFERRED = "phone descoped by the owner (2026-11-15); enable with --phone-carrier twilio|46elks"
+
+
 @dataclass
 class Provisioned:
     agent_id: str
@@ -94,24 +97,26 @@ def provision(db: Database, vault: SecretResolver, name: str, role: str, *, allo
         prof = {"profile_path": str(path)}
     out.identities["browser_profile"] = {"status": "active", "profile_path": prof["profile_path"]}
 
-    # Phone: a carrier number is a paid external resource. Provisioning never buys one: it records
-    # the identity as pending with the reason, and `request-phone` / `complete-phone` buy it only
-    # after a human approves that exact purchase (INV-06). Never faked.
+    # Phone: descoped by the owner on 2026-11-15. Provisioning skips it unless a carrier is named;
+    # even then it never buys a number: request-phone / complete-phone do that only after a human
+    # approves that exact purchase (INV-06).
     phone = _active(db, agent_id, "phone")
-    if phone is None:
+    if phone is not None:
+        out.identities["phone"] = {"status": "active", "address": phone["address"]}
+    elif not phone_carrier:
+        out.identities["phone"] = {"status": "deferred", "reason": PHONE_DEFERRED}
+    else:
         try:
             providers.carrier(phone_carrier, vault)
             reason = f"{phone_carrier} configured; the number purchase needs an approved request (request-phone)"
         except providers.NotConfigured as e:
             reason = str(e)
             db.scalar("SELECT credential_report('phone', $ref, 'UNCONFIGURED') IS NULL AS ok",
-                      ref=(providers.CARRIER_REFS.get(phone_carrier or "", ("keychain://phone-carrier-unset",))[0]))
+                      ref=providers.CARRIER_REFS[phone_carrier][0])
         if db.one("SELECT id FROM agent_identities WHERE agent_id=$a::uuid AND kind='phone' AND status='pending'",
                   a=agent_id) is None:
-            _identity(db, agent_id, "phone", phone_carrier or "unset", status="pending", meta={"reason": reason})
+            _identity(db, agent_id, "phone", phone_carrier, status="pending", meta={"reason": reason})
         out.identities["phone"] = {"status": "pending", "reason": reason}
-    else:
-        out.identities["phone"] = {"status": "active", "address": phone["address"]}
 
     # Egress: the agent's own inbox (its key injected by the proxy) plus any task hosts.
     for host in [s.agenticmail_host, *allow_hosts]:

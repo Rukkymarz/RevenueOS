@@ -213,7 +213,7 @@ def leads():
     return out
 
 
-def test_one_command_provisions_email_calendar_browser_and_reports_phone(leads):
+def test_one_command_provisions_email_calendar_and_browser(leads):
     ids = leads["identities"]
     assert ids["email"]["status"] == "active" and ids["email"]["address"].endswith("@agents.revenueos.test")
     assert ids["calendar"]["status"] == "active" and ids["calendar"]["address"].startswith("http://stalwart:8080/")
@@ -221,8 +221,8 @@ def test_one_command_provisions_email_calendar_browser_and_reports_phone(leads):
     ls = subprocess.run([*COMPOSE, "exec", "-T", "identity", "ls", ids["browser_profile"]["profile_path"]],
                         capture_output=True, text=True)
     assert "user-data" in ls.stdout and "profile.json" in ls.stdout
-    # A phone number is a paid carrier resource: without carrier credentials it is pending, never faked.
-    assert ids["phone"]["status"] == "pending" and "carrier" in ids["phone"]["reason"]
+    # Phone descoped by the owner (2026-11-15): reported as deferred, no identity row created.
+    assert ids["phone"]["status"] == "deferred"
     agent = leads["agent_id"]
     assert psql(f"SELECT count(*) FROM agent_identities WHERE agent_id='{agent}' AND status='active'") == "3"
     key_ref = psql(f"SELECT secret_ref FROM agent_identities WHERE agent_id='{agent}' AND kind='email'")

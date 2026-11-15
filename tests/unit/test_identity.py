@@ -149,7 +149,7 @@ def prov(db, tmp_path):
     return database, vault, s, db
 
 
-def test_one_command_provisions_email_calendar_profile_and_records_phone_as_pending(prov):
+def test_one_command_provisions_email_calendar_and_profile_with_phone_deferred(prov):
     database, vault, s, db = prov
     mail = FakeMail()
     out = provision.provision(database, vault, "leads-agent", "leads", allow_hosts=["signup-test:8090"], settings=s,
@@ -158,9 +158,8 @@ def test_one_command_provisions_email_calendar_profile_and_records_phone_as_pend
     assert out.identities["email"] == {"status": "active", "address": "leads-agent@agents.revenueos.test"}
     assert out.identities["calendar"]["address"].endswith("/dav/cal/leads-agent/")
     assert Path(out.identities["browser_profile"]["profile_path"]).is_dir()
-    assert out.identities["phone"]["status"] == "pending" and "carrier" in out.identities["phone"]["reason"]
-    assert db.one(f"SELECT meta->>'reason' FROM agent_identities WHERE agent_id='{out.agent_id}' AND kind='phone'") \
-        == out.identities["phone"]["reason"]
+    assert out.identities["phone"] == {"status": "deferred", "reason": provision.PHONE_DEFERRED}
+    assert db.one(f"SELECT count(*) FROM agent_identities WHERE agent_id='{out.agent_id}' AND kind='phone'") == "0"
     # secrets only in the vault, referenced from the database
     ref = db.one(f"SELECT secret_ref FROM agent_identities WHERE agent_id='{a}' AND kind='email'")
     assert ref == f"keychain://agent-{a}-mail-api-key" and vault.get(ref) == "ak_" + "1" * 30
@@ -169,12 +168,19 @@ def test_one_command_provisions_email_calendar_profile_and_records_phone_as_pend
     assert db.one(f"SELECT format||'|'||header FROM secret_bindings WHERE secret_ref='{ref}'") == "Bearer {}|authorization"
     assert set(out.egress_hosts) == {"agenticmail:3829", "signup-test:8090"}
     assert db.one(f"SELECT count(*) FROM audit_log WHERE action='identity.active' AND target='{a}'") == "3"
-    assert db.one("SELECT status FROM credential_status WHERE integration='phone'") == "UNCONFIGURED"
     # idempotent: a second run reuses everything
     again = provision.provision(database, vault, "leads-agent", "leads", settings=s, mail=mail,
                                 caldav=lambda *x: pytest.fail("calendar should be reused"))
     assert again.agent_id == a and mail.created == ["leads-agent"]
-    assert db.one(f"SELECT count(*) FROM agent_identities WHERE agent_id='{a}'") == "4"
+    assert db.one(f"SELECT count(*) FROM agent_identities WHERE agent_id='{a}'") == "3"
+
+
+def test_naming_a_carrier_without_credentials_records_phone_pending(prov):
+    database, vault, s, db = prov
+    out = provision.provision(database, vault, "with-phone", "leads", settings=s, mail=FakeMail(),
+                              caldav=lambda url, user, pw: f"{url}/c/", phone_carrier="twilio")
+    assert out.identities["phone"]["status"] == "pending" and "Twilio" in out.identities["phone"]["reason"]
+    assert db.one("SELECT status FROM credential_status WHERE integration='phone'") == "UNCONFIGURED"
 
 
 def test_profile_rotation_retires_the_old_profile(prov):

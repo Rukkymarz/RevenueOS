@@ -20,7 +20,7 @@ tests/e2e/test_phase2_stack.py::test_high_risk_call_without_approval_is_refused 
 tests/e2e/test_phase2_stack.py::test_approval_flow_single_use_and_rejections_are_logged PASSED [ 75%]
 tests/e2e/test_phase2_stack.py::test_expired_approval_is_refused_and_logged PASSED [ 79%]
 tests/e2e/test_phase2_stack.py::test_approver_list_and_role_separation PASSED [ 83%]
-tests/e2e/test_phase2_stack.py::test_one_command_provisions_email_calendar_browser_and_reports_phone PASSED [ 87%]
+tests/e2e/test_phase2_stack.py::test_one_command_provisions_email_calendar_and_browser PASSED [ 87%]
 tests/e2e/test_phase2_stack.py::test_leads_agent_signs_up_unattended_from_its_own_inbox[otp] PASSED [ 91%]
 tests/e2e/test_phase2_stack.py::test_leads_agent_signs_up_unattended_from_its_own_inbox[magic-link] PASSED [ 95%]
 tests/e2e/test_phase2_stack.py::test_allmail_mcp_reads_the_agents_own_inbox_and_send_needs_approval PASSED [100%]
@@ -30,8 +30,8 @@ tests/e2e/test_phase2_stack.py::test_allmail_mcp_reads_the_agents_own_inbox_and_
 {"verdict": "PASS", "findings": []}
 
 # Acceptance 2, item by item
-# 1 identity in one command (email, phone, calendar, browser)  email/calendar/browser PASS; phone DO_NOT_FILE (no carrier account)
-#                                                               test_one_command_provisions_email_calendar_browser_and_reports_phone
+# 1 identity in one command (email, calendar, browser)          PASS  (phone descoped by the owner, 2026-11-15)
+#                                                               test_one_command_provisions_email_calendar_and_browser
 # 2 leads agent signs up unattended, OTP from own inbox          PASS  test_leads_agent_signs_up_unattended_from_its_own_inbox[otp|magic-link]
 # 3 direct egress from sandbox blocked + logged                  PASS  test_direct_egress_from_sandbox_is_blocked_and_logged
 # 4 disallowed domain blocked + logged (HTTP and HTTPS); allowed  PASS  test_disallowed_domain_via_proxy_is_blocked_and_logged,

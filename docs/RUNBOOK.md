@@ -102,7 +102,7 @@ closed-session or foreign-session requests are denied. The identity HMAC key is
 ## Identity (Phase 2)
 
 Provision an agent in one command (email via AgenticMail on Stalwart, calendar via CalDAV,
-private browser profile, phone):
+private browser profile):
 
 ```bash
 docker compose -f infra/compose.yaml exec identity revenueos-identity provision --name leads-agent --role leads \
@@ -115,7 +115,8 @@ docker compose -f infra/compose.yaml exec identity revenueos-identity leads-sign
 The mailbox API key and password go to the keychain only; the proxy injects the key when the
 agent calls its own inbox.
 
-Phone numbers are paid carrier resources, so they take an approval:
+Phone is off by default (descoped 2026-11-15). Numbers are paid carrier resources, so enabling
+it takes an approval:
 
 ```bash
 # 1. carrier credentials into the keychain (one of):
