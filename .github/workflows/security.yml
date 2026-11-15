@@ -51,19 +51,24 @@ jobs:
   openhack:
     name: OpenHack (every PR; open models only)
     runs-on: ubuntu-latest
+    timeout-minutes: 75
+    # Open-weight model on GitHub Models, authenticated by this workflow's own token (no user
+    # secret). A self-hosted OpenAI-compatible endpoint can replace it via the
+    # SECURITY_OPEN_MODEL_* secrets. A scan that does not complete is DO_NOT_FILE, never PASS.
+    permissions: { contents: read, models: read }
     env:
-      OPENAI_BASE_URL: ${{ secrets.SECURITY_OPEN_MODEL_BASE_URL }}
-      OPENAI_API_KEY: ${{ secrets.SECURITY_OPEN_MODEL_API_KEY }}
-      OPENHACK_MODEL: ${{ secrets.SECURITY_OPEN_MODEL_NAME }}
+      SELF_BASE_URL: ${{ secrets.SECURITY_OPEN_MODEL_BASE_URL }}
+      SELF_API_KEY: ${{ secrets.SECURITY_OPEN_MODEL_API_KEY }}
+      SELF_MODEL: ${{ secrets.SECURITY_OPEN_MODEL_NAME }}
+      GH_MODELS_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      OPEN_MODEL: ${{ vars.OPENHACK_OPEN_MODEL || 'meta/Llama-3.3-70B-Instruct' }}
     steps:
       - uses: actions/checkout@v4
-      - name: applicability and credentials
+      - name: applicability
         id: gate
         run: |
           if [ "$EVENT_NAME" != "pull_request" ]; then
             python3 scripts/security_verdict.py openhack NOT_APPLICABLE "runs on pull requests"; echo "run=false" >> "$GITHUB_OUTPUT"
-          elif [ -z "$OPENAI_API_KEY" ] || [ -z "$OPENAI_BASE_URL" ]; then
-            python3 scripts/security_verdict.py openhack DO_NOT_FILE "SECURITY_OPEN_MODEL_BASE_URL / _API_KEY secrets not set"
           else
             echo "run=true" >> "$GITHUB_OUTPUT"
           fi
@@ -73,23 +78,20 @@ jobs:
       - if: steps.gate.outputs.run == 'true'
         name: scan
         run: |
-          pip install "git+https://github.com/openhackai/OpenHack@6a0675ebd1287e8d7a651cccffae9b8f5d1e02a2"
-          openhack --scan "$GITHUB_WORKSPACE" || true
-          report=$(ls -t ~/.openhack/scans/*.json 2>/dev/null | head -1)
-          if [ -z "$report" ]; then
-            python3 scripts/security_verdict.py openhack DO_NOT_FILE "no report produced"
+          pip install -q "git+https://github.com/openhackai/OpenHack@6a0675ebd1287e8d7a651cccffae9b8f5d1e02a2"
+          if [ -n "$SELF_BASE_URL" ] && [ -n "$SELF_API_KEY" ]; then
+            export LLM_PROVIDER=openai OPENAI_BASE_URL="$SELF_BASE_URL" OPENAI_API_KEY="$SELF_API_KEY" OPENAI_MODEL="$SELF_MODEL"
+            echo "model: self-hosted endpoint ($SELF_MODEL)"
+          else
+            export LLM_PROVIDER=github-models GITHUB_MODELS_MODEL="$OPEN_MODEL" GITHUB_TOKEN="$GH_MODELS_TOKEN"
+            echo "model: GitHub Models $OPEN_MODEL"
           fi
-          mkdir -p .security && cp "$report" .security/openhack.json
-          python3 - "$report" <<'PY'
-          import json, subprocess, sys
-          data = json.load(open(sys.argv[1]))
-          findings = data.get("findings") or data.get("vulnerabilities")
-          if not isinstance(findings, list):
-              sys.exit(subprocess.call(["python3", "scripts/security_verdict.py", "openhack", "DO_NOT_FILE", "unrecognized report shape"]))
-          high = [f for f in findings if str(f.get("severity", "")).lower() in ("high", "critical")]
-          verdict = "FAIL" if high else "PASS"
-          sys.exit(subprocess.call(["python3", "scripts/security_verdict.py", "openhack", verdict, f"{len(high)} high/critical of {len(findings)}"]))
-          PY
+          export PROMPT_CACHING=false
+          timeout 60m openhack --scan "$GITHUB_WORKSPACE" || echo "openhack exited $?"
+          mkdir -p .security
+          report=$(ls -t ~/.openhack/scans/*.json 2>/dev/null | head -1)
+          [ -n "$report" ] && cp "$report" .security/openhack.json
+          python3 scripts/openhack_verdict.py .security/openhack.json
       - uses: actions/upload-artifact@v4
         if: always()
         with: { name: openhack, path: .security, include-hidden-files: true }

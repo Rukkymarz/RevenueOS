@@ -34,3 +34,33 @@ def test_triaged_false_positive_and_downgrade_pass(tmp_path):
                         {"title": "down", "severity": "high", "ai_severity": "medium"}]}
     code, verdict, _ = run(tmp_path, rep)
     assert (code, verdict) == (0, "PASS")
+
+
+OH = Path(__file__).resolve().parents[2] / "scripts" / "openhack_verdict.py"
+
+
+def oh(tmp_path, report):
+    f = tmp_path / ".security" / "openhack.json"
+    f.parent.mkdir(exist_ok=True)
+    if report is not None:
+        f.write_text(report if isinstance(report, str) else json.dumps(report))
+    r = subprocess.run([sys.executable, str(OH), str(f)], cwd=tmp_path, capture_output=True, text=True)
+    return r.returncode, json.loads((tmp_path / ".security" / "openhack.verdict.json").read_text())["verdict"]
+
+
+def test_openhack_completed_clean_scan_passes(tmp_path):
+    assert oh(tmp_path, {"status": "completed", "findings": []}) == (0, "PASS")
+
+
+def test_openhack_unfinished_or_missing_scan_is_do_not_file(tmp_path):
+    assert oh(tmp_path, {"status": "failed", "findings": []}) == (1, "DO_NOT_FILE")
+    assert oh(tmp_path / "x" if (tmp_path / "x").mkdir() is None else tmp_path, None) == (1, "DO_NOT_FILE")
+
+
+def test_openhack_high_finding_fails_even_if_unfinished(tmp_path):
+    rep = {"status": "running", "findings": [{"severity": "high", "category": "sqli", "file_path": "a.py"}]}
+    assert oh(tmp_path, rep) == (1, "FAIL")
+
+
+def test_openhack_garbage_report_is_do_not_file(tmp_path):
+    assert oh(tmp_path, "{not json") == (1, "DO_NOT_FILE")
