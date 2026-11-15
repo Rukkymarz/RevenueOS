@@ -124,6 +124,7 @@ services:
       <<: *pyenv
       PORT: "8102"
       DISPLAY: ":1"
+      XDG_SESSION_TYPE: x11      # pyscreeze uses Pillow's X11 capture only when it sees an X11 session
       RUNTIME_WORKDIR: /workspace
       EGRESS_PROXY: "envoy:10000"
     volumes: ["./secrets/keychain:/run/revenueos/keychain:ro"]
