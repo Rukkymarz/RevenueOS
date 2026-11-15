@@ -69,3 +69,4 @@ def test_inbox_and_syscall_isolation(api):
     sid = client.post("/v1/syscalls", json={"task_id": nava.task, "tool": "test.echo", "args": {}},
                       headers=hdr).json()["id"]
     assert client.get(f"/v1/syscalls/{sid}", headers=hdr2).status_code == 404
+
