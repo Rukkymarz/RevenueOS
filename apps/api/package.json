@@ -21,7 +21,8 @@
     "@revenueos/contracts": "workspace:*",
     "pg": "^8.13.0",
     "reflect-metadata": "^0.2.2",
-    "rxjs": "^7.8.1"
+    "rxjs": "^7.8.1",
+    "zod": "^4.1.0"
   },
   "devDependencies": {
     "@types/express": "^5.0.0",

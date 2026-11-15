@@ -22,7 +22,7 @@ def authz(tmp_path, monkeypatch):
     mod = importlib.import_module("revenueos_egress_authz.app")
     from revenueos_common.secrets import KeychainStore
     KeychainStore(keychain).put("upstream-echo-token", "s3cret-value-123")
-    policy = {"agents": {AGENT: {"allow": ["upstream-echo:8080"]}},
+    policy = {"agents": {AGENT: {"allow": ["upstream-echo:8080"], "tasks": {}}},
               "secret_bindings": [{"host": "upstream-echo:8080", "header": "authorization", "format": "Bearer {}",
                                    "secret_ref": "keychain://upstream-echo-token", "agents": [AGENT]}]}
     return mod, policy

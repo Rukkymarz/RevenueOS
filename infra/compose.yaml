@@ -77,10 +77,7 @@ services:
     <<: *python
     build: { context: .., dockerfile: infra/docker/python.Dockerfile, args: { PACKAGES: "./infra/egress" } }
     command: ["python", "-m", "uvicorn", "revenueos_egress_authz.app:app", "--host", "0.0.0.0", "--port", "9100"]
-    environment: { <<: *pyenv, EGRESS_POLICY: /etc/revenueos/egress-policy.yaml }
-    volumes:
-      - ./secrets/keychain:/run/revenueos/keychain:ro
-      - ./egress/policy.yaml:/etc/revenueos/egress-policy.yaml:ro
+    # Rules and secret bindings live in Postgres (egress_rules, secret_bindings).
     healthcheck: { test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:9100/health').status==200 else 1)"], interval: 5s, retries: 30 }
 
   envoy:
@@ -123,7 +120,9 @@ services:
       PGPASSFILE: /run/secrets/pgpass
       ORCHESTRATOR_URL: http://orchestrator:8101
       OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+      REVENUEOS_KEYCHAIN_DIR: /run/revenueos/keychain
     secrets: [pgpass]
+    volumes: ["./secrets/keychain:/run/revenueos/keychain:ro"]
     ports: ["127.0.0.1:3000:3000"]
     depends_on:
       orchestrator: { condition: service_healthy }

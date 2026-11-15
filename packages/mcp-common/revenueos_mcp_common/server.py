@@ -92,7 +92,7 @@ class RevenueOSMcpServer:
                     started = time.perf_counter()
                     result, verdict, approved = None, "ok", risk_class in ("low", "medium")
                     try:
-                        server.receipts.consume_approval(approval_id, args, risk_class)
+                        server.receipts.consume_approval(approval_id, args, risk_class, task_id=task_id, tool=name)
                         approved = True
                         if args_model is not None:
                             args_model.model_validate(args)

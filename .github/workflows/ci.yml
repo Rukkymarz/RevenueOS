@@ -50,7 +50,9 @@ jobs:
       - uses: actions/download-artifact@v4
         with: { name: contracts, path: packages/contracts-artifacts }
       - run: cp -r packages/contracts-artifacts/packages/contracts/* packages/contracts/ && rm -rf packages/contracts-artifacts
-      - run: sudo apt-get update && sudo apt-get install -y postgresql-client bubblewrap
+      - run: sudo apt-get update && sudo apt-get install -y postgresql-client meson ninja-build libcap-dev pkg-config
+      - name: Bubblewrap from the pinned commit; allow its unprivileged user namespaces (docs/RUNBOOK.md)
+        run: sh scripts/build-bwrap.sh && sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
       - uses: actions/setup-python@v5
         with: { python-version: "3.12" }
       - run: >-
@@ -86,7 +88,7 @@ jobs:
       - run: pnpm --filter @revenueos/contracts test:ts2
 
   compose:
-    name: docker compose up + Phase 1 acceptance
+    name: docker compose up + acceptance (all phases) + trace secret scan
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -102,15 +104,21 @@ jobs:
       - run: pip install pytest requests pyyaml
       - name: acceptance
         shell: bash
-        run: set -o pipefail; REVENUEOS_E2E=1 pytest -v -rA tests/e2e -p no:cacheprovider 2>&1 | tee phase-1-acceptance.log
+        run: set -o pipefail; REVENUEOS_E2E=1 pytest -v -rA tests/e2e -p no:cacheprovider 2>&1 | tee acceptance.log
       - if: always()
         run: docker compose -f infra/compose.yaml --profile test logs --no-color 2>&1 | tee compose.log | tail -300 || true
+      - name: secret scan across emitted traces and logs (spec 2.4)
+        if: always()
+        run: >-
+          sudo chmod -R a+r infra/otel/out &&
+          python scripts/scan_traces.py --keychain infra/secrets/keychain --secret-file infra/secrets/pg_owner_password
+          --require infra/otel/out/traces.jsonl infra/otel/out compose.log acceptance.log
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: acceptance
           path: |
-            phase-1-acceptance.log
+            acceptance.log
             compose.log
             infra/otel/out/traces.jsonl
 

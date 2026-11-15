@@ -81,10 +81,22 @@ def test_otel_span_chain_api_to_orchestrator_to_mcp_with_all_four_attributes():
     assert psql(f"SELECT count(*) FROM tool_calls WHERE task_id='{TASK}' AND trace_id='{trace_id}'") == "1"
 
 
+def pinned_headers() -> dict:
+    """What the sandbox supervisor's forwarder adds (Phase 2 identity pinning): an open session
+    for the probe agent and an HMAC stamp. Unsigned requests are denied."""
+    import sys
+    sys.path.insert(0, str(ROOT / "packages" / "pycommon"))
+    from revenueos_common import egress_identity
+    session = psql(f"INSERT INTO egress_sessions(agent_id, task_id, socket_path) "
+                   f"VALUES ('{AGENT}', '{TASK}', 'e2e-{uuid.uuid4().hex}') RETURNING id").splitlines()[0]
+    key = (SECRETS / "keychain" / "egress-identity-hmac").read_text().strip()
+    return egress_identity.sign(key, session, AGENT, TASK)
+
+
 def test_envoy_denies_unlisted_host_and_logs_it():
     marker = uuid.uuid4().hex[:8]
     r = requests.get(f"http://denied-{marker}.example/steal", proxies={"http": ENVOY},
-                     headers={"x-revenueos-agent": AGENT}, timeout=15)
+                     headers=pinned_headers(), timeout=15)
     assert r.status_code == 403
     assert "not allowlisted" in r.json()["reason"]
     assert psql(f"SELECT count(*) FROM audit_log WHERE action='egress.deny' AND target LIKE 'denied-{marker}%'") == "1"
@@ -93,7 +105,7 @@ def test_envoy_denies_unlisted_host_and_logs_it():
 def test_envoy_injects_secret_the_agent_never_sees():
     secret = (SECRETS / "keychain" / "upstream-echo-token").read_text().strip()
     r = requests.get("http://upstream-echo:8080/ok", proxies={"http": ENVOY},
-                     headers={"x-revenueos-agent": AGENT}, timeout=15)
+                     headers=pinned_headers(), timeout=15)
     assert r.status_code == 200, r.text
     body = r.json()
     assert body["authorization_present"] is True
@@ -107,6 +119,12 @@ def test_envoy_injects_secret_the_agent_never_sees():
 def test_unidentified_agent_is_denied_by_envoy():
     r = requests.get("http://upstream-echo:8080/ok", proxies={"http": ENVOY}, timeout=15)
     assert r.status_code == 403
+
+
+def test_self_declared_agent_without_a_signed_stamp_is_denied():
+    r = requests.get("http://upstream-echo:8080/ok", proxies={"http": ENVOY},
+                     headers={"x-revenueos-agent": AGENT, "x-revenueos-task": TASK}, timeout=15)
+    assert r.status_code == 403 and "not identity-pinned" in r.json()["reason"]
 
 
 def test_audit_chain_intact_after_the_run():

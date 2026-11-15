@@ -13,7 +13,7 @@ class Handler(BaseHTTPRequestHandler):
             "path": self.path,
             "authorization_present": auth is not None,
             "authorization_sha256": hashlib.sha256(auth.encode()).hexdigest() if auth else None,
-            "agent_header_leaked": self.headers.get("x-revenueos-agent") is not None,
+            "agent_header_leaked": any(k.lower().startswith("x-revenueos-") for k in self.headers.keys()),
         }).encode()
         self.send_response(200)
         self.send_header("content-type", "application/json")

@@ -3,6 +3,7 @@ import { context, propagation, trace } from "@opentelemetry/api";
 import { HealthResponse, ProbeRequest, ProbeResponse } from "@revenueos/contracts";
 import type { Response } from "express";
 import pg from "pg";
+import { ApprovalsController } from "./approvals.js";
 
 const started = Date.now();
 const ORCHESTRATOR = process.env.ORCHESTRATOR_URL ?? "http://orchestrator:8101";
@@ -60,5 +61,5 @@ export class ProbeController {
   }
 }
 
-@Module({ controllers: [HealthController, ProbeController] })
+@Module({ controllers: [HealthController, ProbeController, ApprovalsController] })
 export class AppModule {}

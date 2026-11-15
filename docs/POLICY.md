@@ -36,11 +36,20 @@ production tasks (INV-10).
 
 ## Egress
 
-All agent egress goes through Envoy (`infra/egress/envoy.yaml`). Each request needs an agent
-identity; the decision service (`infra/egress/revenueos_egress_authz`) allows only hosts on that
-agent's allowlist (`infra/egress/policy.yaml`, moving to Postgres in Phase 2), injects bound
-secrets by reference, fails closed on any policy or secret error, and writes every decision to
-the audit ledger without secret values.
+Agents run in the Bubblewrap sandbox with no network of their own. Their one route out is a
+per-session Unix socket to the sandbox supervisor, whose forwarder strips any identity headers
+the agent sent and stamps the request with the session, agent, task and time, signed with
+`keychain://egress-identity-hmac`. Envoy (`infra/egress/envoy.yaml`) asks the decision service
+(`infra/egress/revenueos_egress_authz`) about every request. It is allowed only if:
+
+- the stamp is authentic, at most 5 minutes old, and its session is open and belongs to that
+  agent and task (identity pinning; an agent cannot speak as another agent or task);
+- the host is in the agent's rules in Postgres `egress_rules`, agent-wide or for that task;
+- every secret bound to the host (`secret_bindings`, by reference) resolves and is header-safe.
+
+Anything else is denied, and any error fails closed. Each decision is an append-only
+`egress_log` row and an audit entry (agent, task, host, reason; never secret values). CONNECT
+tunnels are refused: encrypted tunnels cannot be inspected or have secrets injected.
 
 ## Approvals
 

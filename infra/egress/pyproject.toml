@@ -2,7 +2,7 @@
 name = "revenueos-egress-authz"
 version = "0.1.0"
 requires-python = ">=3.12"
-dependencies = ["revenueos-common", "revenueos-contracts", "pyyaml>=6"]
+dependencies = ["revenueos-common", "revenueos-contracts"]
 
 [tool.uv.sources]
 revenueos-common = { workspace = true }

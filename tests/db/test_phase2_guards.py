@@ -98,3 +98,24 @@ class TestEgressLog:
                    "egress_rules_host_check")
         db.rejects(f"INSERT INTO egress_rules(agent_id, host, created_by) VALUES ('{world['exec']}','a.com/x','t')",
                    "egress_rules_host_check")
+
+
+class TestApprovalBinding:
+    def _approved_for(self, db, world, tool):
+        a = db.one(f"INSERT INTO approvals(task_id, tool_call_args_hash, requested_by, expires_at, tool) "
+                   f"VALUES ('{world['task']}','{H}','agent:exec',now() + interval '5 minutes','{tool}') RETURNING id")
+        db.q(f"SELECT approval_decide('{a}','human:christine',true)")
+        return a
+
+    def test_approval_cannot_be_spent_on_another_tool(self, db, world):
+        a = self._approved_for(db, world, "mail_send")
+        assert db.one(f"SELECT consume_approval('{a}','{H}','{world['task']}','mail_trash')") == "f"
+        assert _reasons(db, a)[-1] == "bound to a different tool"
+        assert db.one(f"SELECT consume_approval('{a}','{H}','{world['task']}','mail_send')") == "t"
+
+    def test_approval_cannot_be_spent_on_another_task(self, db, world):
+        a = self._approved_for(db, world, "mail_send")
+        other = db.one("INSERT INTO tasks(objective, task_class, acceptance_criteria) "
+                       "VALUES ('other','code','[{\"check\":\"x\"}]') RETURNING id")
+        assert db.one(f"SELECT consume_approval('{a}','{H}','{other}','mail_send')") == "f"
+        assert _reasons(db, a)[-1] == "bound to a different task"

@@ -27,14 +27,16 @@ class Receipts:
     def __init__(self, db: Database):
         self.db = db
 
-    def consume_approval(self, approval_id: str | None, args: dict, risk_class: str) -> str | None:
+    def consume_approval(self, approval_id: str | None, args: dict, risk_class: str,
+                         task_id: str | None = None, tool: str | None = None) -> str | None:
         if risk_class not in ("high", "critical"):
             return approval_id
         if not approval_id:
             raise ApprovalRequired(f"{risk_class} tool call requires a hash-bound approval")
-        ok = self.db.scalar("SELECT consume_approval($id::uuid, $h) AS ok", id=approval_id, h=args_hash(args))
+        ok = self.db.scalar("SELECT consume_approval($id::uuid, $h, nullif($task,'')::uuid, nullif($tool,'')) AS ok",
+                            id=approval_id, h=args_hash(args), task=task_id or "", tool=tool or "")
         if not ok:
-            raise ApprovalRequired("approval is missing, expired, already used, or bound to different arguments")
+            raise ApprovalRequired("approval is missing, expired, already used, or bound to different arguments, task or tool")
         return approval_id
 
     def deny(self, *, task_id, agent_id, server, tool, args, risk_class, reason, trace_id) -> None:

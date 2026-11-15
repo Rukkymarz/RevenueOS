@@ -261,29 +261,36 @@ EXCEPTION WHEN raise_exception THEN
   RAISE;
 END $$;
 
--- Replaces the Phase 1 version: same contract (true only for an approved, unexpired, unused
--- approval bound to exactly this args hash), and every refusal now records why.
-CREATE OR REPLACE FUNCTION consume_approval(p_approval uuid, p_args_hash text) RETURNS boolean
+-- Binds an approval to the exact args hash and, when given, the task and tool it was requested
+-- for: an approval for one tool cannot be spent on another tool with identical arguments.
+-- True only for an approved, unexpired, unused match; every refusal records why.
+CREATE FUNCTION consume_approval(p_approval uuid, p_args_hash text, p_task uuid, p_tool text) RETURNS boolean
 LANGUAGE plpgsql AS $$
 DECLARE a approvals%ROWTYPE; why text;
 BEGIN
   SELECT * INTO a FROM approvals WHERE id = p_approval FOR UPDATE;
   why := CASE
-    WHEN NOT FOUND                         THEN 'not found'
-    WHEN a.status = 'used'                 THEN 'reuse: already used'
-    WHEN a.status <> 'approved'            THEN 'not approved (' || a.status || ')'
-    WHEN a.expires_at <= now()             THEN 'expired'
+    WHEN NOT FOUND                            THEN 'not found'
+    WHEN a.status = 'used'                    THEN 'reuse: already used'
+    WHEN a.status <> 'approved'               THEN 'not approved (' || a.status || ')'
+    WHEN a.expires_at <= now()                THEN 'expired'
     WHEN a.tool_call_args_hash <> p_args_hash THEN 'args hash mismatch'
+    WHEN p_task IS NOT NULL AND a.task_id <> p_task THEN 'bound to a different task'
+    WHEN p_tool IS NOT NULL AND a.tool IS NOT NULL AND a.tool <> p_tool THEN 'bound to a different tool'
   END;
   IF why IS NOT NULL THEN
     PERFORM audit_append(coalesce(nullif(current_setting('revenueos.actor', true), ''), session_user),
       'approval.consume_rejected', coalesce(p_approval::text, '?'),
-      jsonb_build_object('reason', why, 'presented_hash', p_args_hash));
+      jsonb_build_object('reason', why, 'presented_hash', p_args_hash, 'task_id', p_task, 'tool', p_tool));
     RETURN false;
   END IF;
   UPDATE approvals SET status = 'used', used_at = now() WHERE id = p_approval;
   RETURN true;
 END $$;
+
+-- Replaces the Phase 1 two-argument form (same contract), now with logged reasons.
+CREATE OR REPLACE FUNCTION consume_approval(p_approval uuid, p_args_hash text) RETURNS boolean
+LANGUAGE sql AS $$ SELECT consume_approval(p_approval, p_args_hash, NULL::uuid, NULL::text) $$;
 
 CREATE FUNCTION approval_expire_sweep() RETURNS integer LANGUAGE plpgsql AS $$
 DECLARE n integer;

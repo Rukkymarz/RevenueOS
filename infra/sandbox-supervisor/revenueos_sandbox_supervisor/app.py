@@ -25,7 +25,14 @@ from revenueos_sandbox.supervisor import Quotas, run_in_sandbox
 UUID = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")
 WORKSPACE_ROOT = Path(os.environ.get("REVENUEOS_WORKSPACE_ROOT", "/var/lib/revenueos/workspaces"))
 db = Database(actor="sandbox-supervisor")
-secrets = SecretResolver(KeychainStore(os.environ.get("REVENUEOS_KEYCHAIN_DIR", "/run/revenueos/keychain")))
+secrets: SecretResolver | None = None   # built on first use, so importing never touches the keychain
+
+
+def _secrets() -> SecretResolver:
+    global secrets
+    if secrets is None:
+        secrets = SecretResolver(KeychainStore(os.environ.get("REVENUEOS_KEYCHAIN_DIR", "/run/revenueos/keychain")))
+    return secrets
 
 
 def _proxy() -> tuple[str, int]:
@@ -64,7 +71,7 @@ async def run(request: Request) -> JSONResponse:
         if not body.get("egress"):
             return run_in_sandbox(argv, ws, yolo=bool(body.get("yolo")), agent_id=agent, task_id=task,
                                   quotas=q, recorder=recorder)
-        key = secrets.get(egress_identity.KEY_REF)
+        key = _secrets().get(egress_identity.KEY_REF)
         if not key:
             raise RuntimeError("egress identity key unavailable (fail closed)")
         opened, closed = egress_hooks(db)

@@ -40,8 +40,12 @@ static_resources:
                             local hdrs = h:headers()
                             local check_headers = {
                               [":method"] = "POST", [":path"] = "/v1/check", [":authority"] = "egress-authz",
+                              -- identity stamp from the sandbox supervisor's forwarder (verified by egress-authz)
+                              ["x-egress-session"] = hdrs:get("x-revenueos-session") or "",
                               ["x-egress-agent"] = hdrs:get("x-revenueos-agent") or "",
                               ["x-egress-task"] = hdrs:get("x-revenueos-task") or "",
+                              ["x-egress-ts"] = hdrs:get("x-revenueos-ts") or "",
+                              ["x-egress-sig"] = hdrs:get("x-revenueos-sig") or "",
                               ["x-egress-host"] = hdrs:get(":authority") or "",
                               ["x-egress-method"] = hdrs:get(":method") or "",
                               ["x-egress-path"] = hdrs:get(":path") or "",
@@ -54,8 +58,9 @@ static_resources:
                             end
                             -- httpCall yields: header handles taken before it are no longer valid.
                             local out = h:headers()
-                            out:remove("x-revenueos-agent")
-                            out:remove("x-revenueos-task")
+                            for _, n in ipairs({"session", "agent", "task", "ts", "sig"}) do
+                              out:remove("x-revenueos-" .. n)   -- the identity stamp never reaches the upstream
+                            end
                             local injected = 0
                             for name, value in string.gmatch(body or "", "([%w%-]+)=([^\n]*)\n") do
                               out:replace(name, value)
