@@ -92,6 +92,21 @@ jobs:
             echo "preflight HTTP $code: $(head -c 300 /tmp/preflight.json)"
           fi
           export PROMPT_CACHING=false
+          # Probe OpenHack's own LLM client once and print any exception (its agents swallow them).
+          python - <<'PY2' || true
+          import asyncio, traceback, logging
+          logging.basicConfig(level=logging.WARNING)
+          from openhack.agents.llm import LLMClient, Message
+          async def main():
+              c = LLMClient(temperature=0.0, max_tokens=16)
+              print("openhack client:", c.provider, c.model)
+              try:
+                  r = await c.chat([Message(role="user", content="reply ok")])
+                  print("openhack client reply:", str(getattr(r, "content", r))[:200], "tokens:", c.total_tokens)
+              except Exception:
+                  traceback.print_exc()
+          asyncio.run(main())
+          PY2
           # The `openhack` CLI insists on an OpenHack account key even when another provider is
           # selected; its headless scanner (same pipeline) only needs the provider above.
           timeout 60m python -c 'import asyncio, sys; from openhack.headless_scan import run_headless_scan; asyncio.run(run_headless_scan(sys.argv[1]))' "$GITHUB_WORKSPACE" || echo "openhack exited $?"
