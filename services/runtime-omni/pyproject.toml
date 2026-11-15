@@ -6,7 +6,7 @@ requires-python = ">=3.12"
 dependencies = [
   "revenueos-common", "revenueos-mcp-common", "revenueos-risk", "revenueos-sandbox-supervisor",
   # OmniPilot (named, C02) with its desktop, system, server and MCP extras, at the reviewed commit
-  "omnipilot[gui,system,server,mcp] @ git+https://github.com/xrchris7/OmniPilot@2e3a6bd02f1e508275f7242accad065805993a22",
+  "omnipilot-agent[gui,system,server,mcp] @ git+https://github.com/xrchris7/OmniPilot@2e3a6bd02f1e508275f7242accad065805993a22",
 ]
 
 [project.scripts]
