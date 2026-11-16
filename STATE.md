@@ -26,6 +26,12 @@ on the two owner blockers, so the phase is **not sealed**. No seal commit exists
 
 **Capital deployed:** $0.
 
+**Warning (2026-11-15 ~22:35 ET):** the repository was switched from public to private. Since
+then, CI jobs fail at checkout with `repository 'https://github.com/Rukkymarz/RevenueOS/' not
+found` (run 43798403220 attempts 1–2; security run 43692377257 attempts 3–4). CI on `852dc24`
+is therefore **not green**; the last fully green commit is `735990e` (CI 43792363729). The first
+attempt of 43798403220 also hit `No space left on device` building aegis-os.
+
 ## Owner blocker (the only thing between Phase 3 and its seal)
 
 | Blocker | What clears it | Evidence |
