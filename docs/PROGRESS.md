@@ -125,3 +125,11 @@
   push). Step 3 (review) red on the two owner blockers. The acceptance log was refreshed from
   43791376552.
 
+### 2026-11-15 (late) — owner decisions: re-phase (ADR-0002); OpenHack secrets set but scan refused
+- Owner chose to move browser-use, magentic-ui and openclaw-heartbeat to Phase 13
+  ([ADR-0002](adr/ADR-0002-rephase-model-driven-c02-components.md)). They stay pinned and in the
+  component map; README phase column updated. That seal blocker is closed.
+- Owner set the `SECURITY_OPEN_MODEL_*` secrets. Re-run of security run 43692377257 (attempt 2,
+  PR #3): the key reaches OpenRouter, which answered `402 - Insufficient credits. This account
+  never purchased credits`. Verdict stays DO_NOT_FILE. One owner blocker remains; not sealed.
+

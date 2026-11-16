@@ -7,16 +7,15 @@ Gate runs: CI 43791376552 (Validate RevenueOS) had every job green, with live ac
 across Phases 1–3 (raw output: `phase-3-acceptance.log`), Q1/Q2/Q6/Q7 PASS (Q3–Q5 not
 applicable yet), the trace secret scan, and contracts ts1/ts2. Security 43791376467 green, with
 AutoSecScan scan success; OpenHack and VulnHunter are skipped on push by design. The review
-(Step 3) still fails on the two owner blockers below, so the phase is not sealed.
+(Step 3) still fails on the owner blocker below, so the phase is not sealed.
 Section (a) shows every built row `complete`. The NAVA fork is decided by
-[ADR-0001](../adr/ADR-0001-nava-vs-openhands.md). Two owner blockers remain. Neither is a build
-gap, and either one alone still fails the gate under the protocol. They are listed first so
+[ADR-0001](../adr/ADR-0001-nava-vs-openhands.md). One owner blocker remains (the model-driven C02 components were re-phased to Phase 13 by the owner, [ADR-0002](../adr/ADR-0002-rephase-model-driven-c02-components.md)). It is not a build
+gap, but it still fails the gate under the protocol. It is listed first so
 nobody reads the rest as a seal.
 
 | Open item | Why it blocks | What closes it |
 | --- | --- | --- |
-| **browser-use, magentic-ui, openclaw-heartbeat** are C02 components scheduled for Phase 3 in the component map and are not integrated. | Component coverage must be complete. Each needs an LLM to do anything, and the model provider decides each one's client code. browser-use: `Agent(llm=...)` resolves a provider model and raises before any browser starts if the key is missing; with `llm=None` it "runs (and bills) bu-fast" (`browser_use/agent/service.py` @ `e717df18`). magentic-ui: two OpenAI-compatible model clients, orchestrator and web surfer (`config.yaml.example` @ `d3c9d13c`). openclaw-heartbeat: the `automations`/`cron` CLI is gateway-only (`src/cli/cron-cli/register.ts`: `"Manage automations (via Gateway)"` @ `c787d0fa`). Its per-agent "proactive job" needs the full openclaw gateway with a model-backed agent, and the job exists to prompt that model on wake. Root cause: these three are scheduled for Phase 3, but the model router (C01; open-weights default `ollama`/`vllm`) is scheduled for Phase 13. | Owner: choose and provide a model provider (self-hosted open weights is policy-first; hosted BYOK is a fallback and needs approval under INV-06), **or** re-phase the three components to Phase 13. R04 forbids the build agent from deferring a named component or substituting a native stand-in. |
-| **OpenHack** security scan records DO_NOT_FILE. | D10: a scan that did not run is never PASS. PR #3's security run 43692377257 logged `openhack client: github-models meta/Llama-3.3-70B-Instruct` → `reply: None tokens: 0` → `DO_NOT_FILE - scan made no model calls (0 tokens)`. On push events the scan is skipped by design ("runs on pull requests"), so a green push run is not an OpenHack pass. | Owner: enable GitHub Models for the repo, or set the `SECURITY_OPEN_MODEL_*` secrets. |
+| **OpenHack** security scan records DO_NOT_FILE. | D10: a scan that did not run is never PASS. The owner set the `SECURITY_OPEN_MODEL_*` secrets on 2026-11-15 and the scan now reaches the provider (OpenRouter), but the re-run of PR #3's security run 43692377257 (attempt 2) was refused: `Error code: 402 - Insufficient credits. This account never purchased credits` → `DO_NOT_FILE - scan did not complete (status 'failed')`. | Owner: set `SECURITY_OPEN_MODEL_NAME` to a model the account can use for free (on OpenRouter these end in `:free`), or add credits, or switch the three secrets to another provider. |
 
 **Closed 2026-11-15:** *nava* (named-not-found; documented add-on OpenHands). Decided by
 [ADR-0001](../adr/ADR-0001-nava-vs-openhands.md), status Accepted: the in-repo kernel is NAVA's
