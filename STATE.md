@@ -26,17 +26,15 @@ on the two owner blockers, so the phase is **not sealed**. No seal commit exists
 
 **Capital deployed:** $0.
 
-**Warning (2026-11-15 ~22:35 ET):** the repository was switched from public to private. Since
-then, CI jobs fail at checkout with `repository 'https://github.com/Rukkymarz/RevenueOS/' not
-found` (run 43798403220 attempts 1–2; security run 43692377257 attempts 3–4). CI on `852dc24`
-is therefore **not green**; the last fully green commit is `735990e` (CI 43792363729). The first
-attempt of 43798403220 also hit `No space left on device` building aegis-os.
+**CI status (2026-11-15 ~23:10 ET):** the repo is public again and CI works. On head `78eb9fd`,
+PR #4 (draft, `build/phase-3` → `main`): CI 43800695849 every job green; security 43800695820
+green except OpenHack.
 
 ## Owner blocker (the only thing between Phase 3 and its seal)
 
 | Blocker | What clears it | Evidence |
 | --- | --- | --- |
-| OpenHack scan is DO_NOT_FILE. The `SECURITY_OPEN_MODEL_*` secrets are set and reach OpenRouter, but it refuses the calls: `402 - Insufficient credits. This account never purchased credits` | Set `SECURITY_OPEN_MODEL_NAME` to a free model (OpenRouter free models end in `:free`), or add credits, or point the three secrets at another provider | security run 43692377257, attempt 2, on PR #3 |
+| OpenHack scan is DO_NOT_FILE. The secrets reach OpenRouter, but the model name is refused: `404 - This model is unavailable for free. The paid version is available now - use this slug instead: meta-llama/llama-3.3-70b-instruct` | Set `SECURITY_OPEN_MODEL_NAME` to `meta-llama/llama-3.3-70b-instruct` (paid, uses OpenRouter credits), or to a model OpenRouter currently lists as free | security run 43800695820 on PR #4 |
 
 Closed: NAVA-native vs OpenHands ([ADR-0001](docs/adr/ADR-0001-nava-vs-openhands.md)); the three
 model-driven C02 components, moved to Phase 13 by the owner
