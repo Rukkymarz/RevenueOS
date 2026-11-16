@@ -27,7 +27,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends build-essential
  && rm -rf /var/lib/apt/lists/* \
  && git clone -q https://github.com/heurion-org/aegis-os /aegis-os && cd /aegis-os && git checkout -q "$AEGIS_OS_SHA" \
  && cargo build --release --locked -p aos-cli \
- && install -m 0755 target/release/aos-cli /usr/local/bin/aegis-os
+ # The crate is `aos-cli`, but its own Cargo.toml names the binary `aegis-os`
+ # ([[bin]] name = "aegis-os" in crates/aos-cli/Cargo.toml) -- not `aos-cli`.
+ && install -m 0755 target/release/aegis-os /usr/local/bin/aegis-os
 
 FROM python:3.12-slim AS bwrap
 ARG BWRAP_SHA=1fb0aa26d3eb66254f7742e704add7f82f41a582
