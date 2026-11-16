@@ -93,3 +93,11 @@
 - ambient-watchers (previously code-complete but missing from `tests/unit/test_services.py`'s
   service layout and lacking the `/health` + `/v1/info` surface every other service has) now
   has both, via a background scan-loop thread behind a minimal HTTP app.
+- openclaw-heartbeat investigated against the pinned commit (`c787d0fac8`): confirmed a real,
+  genuine heartbeat feature exists (migrated from a standalone `HEARTBEAT.md` file into a
+  per-agent auto-provisioned "proactive job" on openclaw's generic cron/automation system), but
+  its only interface (`automations`/`cron` CLI) is explicitly gateway-bound
+  (`"Manage automations (via Gateway)"` — no standalone CLI/library path exists), and the
+  gateway itself needs a configured agent with model access before the feature does anything.
+  Not integrated this phase for the same reason as browser-use/magentic-ui — missing model
+  key — now confirmed by direct evidence rather than assumed. See phase-3-review.md's top table.

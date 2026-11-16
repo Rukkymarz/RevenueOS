@@ -30,3 +30,25 @@ class McpClient:
         envelope = {"task_id": task_id, "agent_id": agent_id, "args": args,
                     "approval_id": approval_id, "traceparent": inject_traceparent()}
         return await self._call(tool, envelope)
+
+
+class RawMcpClient:
+    """Spec 1.3: the MCP SDK is only ever imported here, in mcp-common — every caller, even one
+    talking to a genuine third-party MCP server (not one of our own `RevenueOSMcpServer`
+    instances), goes through this module (`tests/connectivity/test_mcp_boundary.py`).
+
+    Unlike `McpClient`, this sends no RevenueOS envelope (`{task_id, agent_id, args,
+    approval_id, traceparent}`) — a third-party server's tools take their own native argument
+    shapes directly, the same as any generic MCP client would send them. Used by
+    `services/runtime-os/revenueos_runtime_os/tools.py`'s `browser_call` to reach the pinned
+    playwright-mcp server."""
+
+    def __init__(self, url: str, timeout_s: float = 30.0):
+        self.url = url.rstrip("/") + "/mcp"
+        self.timeout_s = timeout_s
+
+    async def acall(self, tool: str, args: dict):
+        transport = StreamableHttpTransport(self.url)
+        async with Client(transport, timeout=self.timeout_s) as client:
+            res = await client.call_tool(tool, args)
+            return res.structured_content if res.structured_content is not None else res.data

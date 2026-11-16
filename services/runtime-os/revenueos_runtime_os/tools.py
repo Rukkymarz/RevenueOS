@@ -115,16 +115,15 @@ PATH = {"type": "string", "maxLength": 1024}
 
 
 async def _call_playwright_mcp(tool: str, args: dict, url: str, timeout_s: float = 30.0):
-    """A plain MCP client call — unlike McpClient (packages/mcp-common), no RevenueOS envelope:
-    playwright-mcp is a real third-party MCP server and its tools (browser_navigate,
-    browser_click, ...) take their own native arguments directly, the same as any generic MCP
-    client would send them."""
-    from fastmcp import Client
-    from fastmcp.client.transports import StreamableHttpTransport
-    transport = StreamableHttpTransport(url.rstrip("/") + "/mcp")
-    async with Client(transport, timeout=timeout_s) as client:
-        res = await client.call_tool(tool, args)
-        return res.structured_content if res.structured_content is not None else res.data
+    """A plain MCP client call — unlike McpClient, no RevenueOS envelope: playwright-mcp is a
+    real third-party MCP server and its tools (browser_navigate, browser_click, ...) take their
+    own native arguments directly, the same as any generic MCP client would send them.
+
+    Spec 1.3: the MCP SDK is only ever imported inside packages/mcp-common
+    (tests/connectivity/test_mcp_boundary.py), so this goes through mcp-common's
+    `RawMcpClient` rather than importing `fastmcp` here directly."""
+    from revenueos_mcp_common import RawMcpClient
+    return await RawMcpClient(url, timeout_s=timeout_s).acall(tool, args)
 
 
 def browser_call(ctx: CallContext, args: dict):
