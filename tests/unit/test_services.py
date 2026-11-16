@@ -12,7 +12,8 @@ HEALTH_KEYS = {"service", "status", "version", "checks"}
 
 def test_every_service_directory_from_the_layout_exists():
     expected = {"orchestrator", "runtime-omni", "runtime-os", "identity", "discovery", "pm", "research", "web",
-                "social", "marketing", "qc", "insight", "learning", "media", "scrape", "outreach"}
+                "social", "marketing", "qc", "insight", "learning", "media", "scrape", "outreach",
+                "ambient-watchers"}
     assert set(SERVICES) == expected
 
 

@@ -88,7 +88,7 @@ def shell_run(ctx: CallContext, args: dict):
     # CPU budget sits just above the wall clock so a runaway is reported as the wall-clock
     # timeout it is, while a multi-threaded burner is still bounded.
     kw = dict(agent_id=ctx.agent_id, task_id=ctx.task_id, quotas=Quotas(wall_seconds=wall, cpu_seconds=wall + 5),
-              keep_shadow=True, yolo=ctx.mode == "yolo")
+              keep_shadow=True, yolo=ctx.mode == "yolo", engine=args.get("engine", "bubblewrap"))
     if args.get("network"):
         # The sandbox's only route out: an identity-pinned egress session for this agent and task
         # (rules, secret injection and logging happen at the proxy, as for every agent process).
@@ -105,9 +105,9 @@ def shell_run(ctx: CallContext, args: dict):
             out["applied"] = commit(r, ws, r.changeset_hash)
         return out
     finally:
-        if r.shadow is not None:
+        if r.shadow_root is not None:
             import shutil
-            shutil.rmtree(r.shadow.parent, ignore_errors=True)
+            shutil.rmtree(r.shadow_root, ignore_errors=True)
 
 
 WS = {"type": "string", "maxLength": 64}
@@ -130,7 +130,11 @@ def builtin_tools() -> dict[str, ToolSpec]:
         ToolSpec("sandbox.run", shell_run, {"type": "object", "required": ["workspace", "argv"], "additionalProperties": False,
                                           "properties": {"workspace": WS, "argv": {"type": "array", "items": {"type": "string"}},
                                                          "timeout_s": {"type": "integer"},
-                                                         "network": {"type": "boolean"}}},
+                                                         "network": {"type": "boolean"},
+                                                         # engine="aegis" (C03, named — docs/PINS.md) runs argv through the
+                                                         # pinned aegis-os binary instead of our own direct bwrap call; see
+                                                         # infra/sandbox-supervisor/revenueos_sandbox/aegis.py.
+                                                         "engine": {"type": "string", "enum": ["bubblewrap", "aegis"]}}},
                  risk="medium", mutating=True, resources=_ws_res),
     ]
     return {s.name: s for s in t}

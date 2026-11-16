@@ -28,7 +28,7 @@ from typing import Callable
 
 from revenueos_common.canonical import args_hash
 
-from . import blocklist
+from . import aegis, blocklist
 from .egress import EgressSession
 
 RELAY = Path(__file__).with_name("relay.py")
@@ -63,6 +63,10 @@ class SandboxResult:
     command_hash: str = ""
     changeset_hash: str | None = None
     shadow: Path | None = None
+    shadow_root: Path | None = None   # the whole tempdir to clean up; equals shadow's parent for
+                                       # bubblewrap/seatbelt, but for engine="aegis" `shadow` is a
+                                       # nested session dir under it, so callers must rmtree THIS,
+                                       # not shadow.parent, to avoid leaking the rest of the tempdir
     backend: str = "bubblewrap"
 
 
@@ -172,9 +176,27 @@ def seatbelt_profile(shadow_ws: Path, egress_sock: Path | None) -> str:
 def run_in_sandbox(argv: list[str], workspace: Path | str | None = None, *, yolo: bool = False,
                    agent_id: str | None = None, task_id: str | None = None, quotas: Quotas | None = None,
                    egress: EgressSession | None = None, env: dict[str, str] | None = None,
-                   keep_shadow: bool = False, recorder=None) -> SandboxResult:
+                   keep_shadow: bool = False, recorder=None, engine: str = "bubblewrap") -> SandboxResult:
     """Run argv in a fresh sandbox. `yolo` skips approval prompts upstream; it never relaxes the
-    blocklist, the namespaces, the quotas or the shadow workspace."""
+    blocklist, the namespaces, the quotas or the shadow workspace.
+
+    `engine` selects the kernel-sandbox backend: "bubblewrap" (default; our own tested
+    bwrap/Seatbelt path) or "aegis" (the pinned, named `aegis-os` binary — C03,
+    docs/PINS.md). "aegis" is Linux-only, needs neither `egress` nor `env` yet (both raise
+    NotImplementedError rather than silently doing nothing), and raises SandboxUnavailable
+    if the image wasn't built with the binary."""
+    if engine not in ("bubblewrap", "aegis"):
+        raise ValueError(f"unknown engine: {engine!r}")
+    if engine == "aegis":
+        if sys.platform != "linux":
+            raise SandboxUnavailable("engine='aegis' is Linux-only")
+        if not aegis.binary():
+            raise SandboxUnavailable("engine='aegis' requested but the aegis-os binary is not installed")
+        if egress is not None:
+            raise NotImplementedError("engine='aegis' does not yet support egress sessions")
+        if env:
+            raise NotImplementedError("engine='aegis' does not yet support extra env vars")
+
     argv = [str(x) for x in argv]
     q = quotas or Quotas()
     command_hash = sha256_json(argv)
@@ -196,7 +218,17 @@ def run_in_sandbox(argv: list[str], workspace: Path | str | None = None, *, yolo
         shadow_ws.mkdir()
     before = _manifest(src) if src is not None else {}
 
-    if sys.platform == "darwin":  # pragma: no cover - developer machines only
+    run_env = {"PATH": SANDBOX_PATH}
+    if engine == "aegis":
+        # aegis-os's own session/shadow bookkeeping lands under AOS_RUNTIME_DIR: pin it inside
+        # our own `shadow` tempdir so it is isolated per-run (no cross-run/concurrent sharing of
+        # $HOME/.aegis) and is cleaned up by the same `shutil.rmtree(shadow)` below.
+        aegis_runtime = shadow / "aegis-runtime"
+        cmd = aegis.run_argv(_pid_cap(argv, q))
+        backend, cwd = "aegis-os", shadow_ws
+        run_env["AOS_RUNTIME_DIR"] = str(aegis_runtime)
+        run_env["HOME"] = str(shadow)
+    elif sys.platform == "darwin":  # pragma: no cover - developer machines only
         cmd = ["sandbox-exec", "-p", seatbelt_profile(shadow_ws, egress.socket_path if egress else None), *argv]
         backend, cwd = "seatbelt", shadow_ws
     else:
@@ -214,7 +246,7 @@ def run_in_sandbox(argv: list[str], workspace: Path | str | None = None, *, yolo
         cmd = cmd[:i] + extra + cmd[i:]
 
     proc = subprocess.Popen(cmd, cwd=cwd, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                            preexec_fn=_limits(q), start_new_session=True, env={"PATH": SANDBOX_PATH})
+                            preexec_fn=_limits(q), start_new_session=True, env=run_env)
     status, reason = None, None
     try:
         out, err = proc.communicate(timeout=q.wall_seconds)
@@ -229,12 +261,21 @@ def run_in_sandbox(argv: list[str], workspace: Path | str | None = None, *, yolo
         else:
             status = "ok" if rc == 0 else "failed"
 
-    changes = _diff(before, _manifest(shadow_ws))
+    after_root = shadow_ws
+    if engine == "aegis":
+        diff_proc = subprocess.run(aegis.diff_argv(), cwd=shadow_ws, env=run_env,
+                                   stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=30)
+        session_diff = aegis.parse_diff(diff_proc.stdout) if diff_proc.returncode == 0 else None
+        if session_diff is not None:
+            after_root = session_diff.shadow
+
+    changes = _diff(before, _manifest(after_root))
     result = SandboxResult(status, None if status == "timeout" else rc,
                            out.decode(errors="replace"), err.decode(errors="replace"), reason,
                            changeset=list(changes), changes=changes, command_hash=command_hash,
                            changeset_hash=sha256_json(changes) if changes else None,
-                           shadow=shadow_ws if keep_shadow else None, backend=backend)
+                           shadow=after_root if keep_shadow else None,
+                           shadow_root=shadow if keep_shadow else None, backend=backend)
     if recorder:
         recorder.finish(session, result)
     if not keep_shadow:

@@ -18,6 +18,17 @@ ARG NIB_SHA=1f23f70bb25a41eedef79acdc5068db438933ed3
 RUN git clone https://github.com/daniel-alexander4/nib /nib && cd /nib && git checkout "$NIB_SHA" \
  && CGO_ENABLED=0 go build -trimpath -o /usr/local/bin/nib ./cmd/nib
 
+# Aegis OS (C03, named, pinned — docs/PINS.md): the spec's "Aegis" kernel-sandbox + CoW shadow
+# workspace + egress proxy, built from source at the pinned commit. Used as an opt-in engine
+# (engine="aegis") in infra/sandbox-supervisor alongside our own Bubblewrap-direct path (default).
+FROM rust:1.97-bookworm AS aegis
+ARG AEGIS_OS_SHA=d9bdfa978d721cae0dc2bfa277ed371c9db60c5a
+RUN apt-get update && apt-get install -y --no-install-recommends build-essential pkg-config git ca-certificates \
+ && rm -rf /var/lib/apt/lists/* \
+ && git clone -q https://github.com/heurion-org/aegis-os /aegis-os && cd /aegis-os && git checkout -q "$AEGIS_OS_SHA" \
+ && cargo build --release --locked -p aos-cli \
+ && install -m 0755 target/release/aos-cli /usr/local/bin/aegis-os
+
 FROM python:3.12-slim AS bwrap
 ARG BWRAP_SHA=1fb0aa26d3eb66254f7742e704add7f82f41a582
 RUN apt-get update && apt-get install -y --no-install-recommends git ca-certificates meson ninja-build gcc libc6-dev \
@@ -42,6 +53,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends postgresql-clie
  && rm -rf /var/lib/apt/lists/*
 COPY --from=bwrap /usr/local/bin/bwrap /usr/local/bin/bwrap
 COPY --from=nib /usr/local/bin/nib /usr/local/bin/nib
+COPY --from=aegis /usr/local/bin/aegis-os /usr/local/bin/aegis-os
 WORKDIR /src
 COPY packages/pycommon packages/pycommon
 COPY packages/contracts/python packages/contracts/python

@@ -45,6 +45,7 @@ jobs:
       REVENUEOS_PG_PORT: "5432"
       REVENUEOS_PG_USER: postgres
       REVENUEOS_REQUIRE_SANDBOX: "1"   # sandbox tests must run here; a missing bwrap fails, never skips
+      REVENUEOS_REQUIRE_AEGIS: "1"     # same for the aegis-os engine (C03, docs/PINS.md)
     steps:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
@@ -53,6 +54,8 @@ jobs:
       - run: sudo apt-get update && sudo apt-get install -y postgresql-client meson ninja-build libcap-dev pkg-config
       - name: Bubblewrap from the pinned commit; allow its unprivileged user namespaces (docs/RUNBOOK.md)
         run: sh scripts/build-bwrap.sh && sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+      - name: aegis-os from the pinned commit (C03, docs/PINS.md)
+        run: sh scripts/build-aegis-os.sh
       - uses: actions/setup-python@v5
         with: { python-version: "3.12" }
       - run: >-
