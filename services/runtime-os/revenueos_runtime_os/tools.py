@@ -114,6 +114,34 @@ WS = {"type": "string", "maxLength": 64}
 PATH = {"type": "string", "maxLength": 1024}
 
 
+async def _call_playwright_mcp(tool: str, args: dict, url: str, timeout_s: float = 30.0):
+    """A plain MCP client call — unlike McpClient (packages/mcp-common), no RevenueOS envelope:
+    playwright-mcp is a real third-party MCP server and its tools (browser_navigate,
+    browser_click, ...) take their own native arguments directly, the same as any generic MCP
+    client would send them."""
+    from fastmcp import Client
+    from fastmcp.client.transports import StreamableHttpTransport
+    transport = StreamableHttpTransport(url.rstrip("/") + "/mcp")
+    async with Client(transport, timeout=timeout_s) as client:
+        res = await client.call_tool(tool, args)
+        return res.structured_content if res.structured_content is not None else res.data
+
+
+def browser_call(ctx: CallContext, args: dict):
+    """Proxies one call to the pinned playwright-mcp server (C02, docs/PINS.md) over its own
+    HTTP MCP transport — a real, invokable domain, not a docs-only pin. `tool` is any tool name
+    playwright-mcp itself exposes (browser_navigate, browser_click, browser_snapshot, ...);
+    `args` are that tool's own native arguments, passed through unvalidated here since
+    playwright-mcp validates its own schema at the boundary."""
+    import asyncio
+    url = os.environ.get("PLAYWRIGHT_MCP_URL", "http://playwright-mcp:8931")
+    try:
+        return asyncio.run(_call_playwright_mcp(args["tool"], args.get("args") or {}, url,
+                                                timeout_s=min(int(args.get("timeout_s", 60)), MAX_SHELL_S)))
+    except Exception as e:
+        raise ToolError(f"playwright-mcp call failed: {type(e).__name__}: {e}") from None
+
+
 def builtin_tools() -> dict[str, ToolSpec]:
     t = [
         ToolSpec("fs.read", fs_read, {"type": "object", "required": ["workspace", "path"], "additionalProperties": False,
@@ -136,6 +164,17 @@ def builtin_tools() -> dict[str, ToolSpec]:
                                                          # infra/sandbox-supervisor/revenueos_sandbox/aegis.py.
                                                          "engine": {"type": "string", "enum": ["bubblewrap", "aegis"]}}},
                  risk="medium", mutating=True, resources=_ws_res),
+        # C02 playwright-mcp (named, pinned — docs/PINS.md): a thin, generic MCP passthrough,
+        # not 20+ hand-wired ToolSpecs — playwright-mcp validates its own tools' native argument
+        # shapes at its own boundary. "browser" is a shared lock resource: a persistent browser
+        # profile can only be driven by one call at a time (playwright-mcp's own documented
+        # constraint), so concurrent calls from the same agent serialize instead of racing.
+        ToolSpec("browser.call", browser_call, {"type": "object", "required": ["tool", "args"],
+                                                "additionalProperties": False,
+                                                "properties": {"tool": {"type": "string", "maxLength": 64},
+                                                               "args": {"type": "object"},
+                                                               "timeout_s": {"type": "integer"}}},
+                 risk="medium", mutating=False, resources=lambda a, c: ["browser"]),
     ]
     return {s.name: s for s in t}
 

@@ -3,16 +3,29 @@
 Gate protocol Step 3. Phase spec: v4 §3.1–3.6, Acceptance 3.
 
 **Gate status: NOT SEALED.** Acceptance 3 is green live (CI run 43702840418: 39/39 e2e across
-Phases 1–3, 1,100+ unit/invariant tests, coverage gate, trace secret scan PASS), but section (a)
-has rows that are `partial` or `missing`, and the protocol makes that a gate failure. They are
-listed first so nobody reads the rest as a seal.
+Phases 1–3, 1,100+ unit/invariant tests, coverage gate, trace secret scan PASS; the aegis-os
+engine and the restored ambient-watchers health check since re-confirmed green on CI run
+43783782183). Section (a) now shows every row `complete`, but two owner-blocked items remain
+open (NAVA-vs-OpenHands, OpenHack) plus three not-yet-integrated C02 components — any one of
+them still makes this a gate failure under the protocol. They are listed first so nobody reads
+the rest as a seal.
 
 | Open item | Why it blocks | What closes it |
 | --- | --- | --- |
-| **aegis-os** (named, public, pinned `heurion-org/aegis-os`) is not run anywhere. 3.4's behaviours (kernel sandbox, COW shadow workspace, pinned egress, A2A, workspace-boundary authorization, large clone) are delivered by RevenueOS's own Bubblewrap supervisor + NAVA. | R04: a named component with a usable repo may not be substituted. | Build the pinned Rust binary into the runtime image and run the sandbox path through `aegis-os run`, keeping the supervisor as the fallback; prove the clone under it. |
 | **nava** is named-not-found with documented add-on **OpenHands**; the 12-step gateway, bus, memory, 15 servers and 21 invariants are native code. | D1 says the documented add-on is the official implementation. Native code covers the spec sentences but OpenHands is not integrated. | Owner decision: accept native NAVA as the implementation (amend PINS/POLICY), or integrate OpenHands as the agent loop on top of the gateway (needs a model key). |
-| **browser-use, playwright-mcp, magentic-ui, openclaw-heartbeat, ambient-watchers** are C02 components scheduled for Phase 3 in the component map and are not integrated (only OmniPilot and Playwright are). | Component coverage must be complete. | Integrate each behind the gateway. browser-use and magentic-ui are model-driven and need a model key to do anything. |
+| **browser-use, magentic-ui, openclaw-heartbeat** are C02 components scheduled for Phase 3 in the component map and are not integrated. | Component coverage must be complete. | Integrate each behind the gateway. browser-use and magentic-ui are model-driven and need a model key to do anything. |
 | **OpenHack** security scan still records DO_NOT_FILE (GitHub Models returns a canned reply). | D10: a scan that did not run is never PASS; PR #3 stays blocked. | Enable GitHub Models for the repo, or set the `SECURITY_OPEN_MODEL_*` secrets. |
+
+**Closed since the table above was first written:** aegis-os is now built from the pinned
+commit (CI: `scripts/build-aegis-os.sh`, `infra/docker/python.Dockerfile`'s `aegis` stage) and
+run as an opt-in `engine="aegis"` option on `sandbox.run` (`infra/sandbox-supervisor/
+revenueos_sandbox/aegis.py`, `supervisor.py`) — the Bubblewrap path stays the default, aegis-os
+is a real, additional, selectable engine, not a doc-only pin (CI run 43783782183, green).
+playwright-mcp is built from its pinned commit (`infra/docker/playwright-mcp.Dockerfile`) and
+runs as its own compose service, callable through `runtime-os`'s `browser.call` tool
+(`services/runtime-os/revenueos_runtime_os/tools.py`) over its own HTTP MCP transport.
+ambient-watchers is a real scanner (`services/ambient-watchers/`) wired into compose with its
+own `/health` + `/v1/info` surface.
 
 Everything below describes what *is* built and proven.
 
@@ -31,13 +44,15 @@ Everything below describes what *is* built and proven.
 | 3.3 static agents ×7 | C03 | `services/runtime-os/revenueos_runtime_os/agents.py` — CodingAgent, TerminalAgent, ReviewerAgent, VerifierAgent, WebScraperAgent, BrowserAgent, ComputerAgent; DB deny fences; deterministic plan compilers | complete |
 | 3.3 dynamic JIT subagents | C03 | `Kernel.spawn` + `nava_subagents` (TTL, inherited fences, killed on expiry) | complete |
 | 3.3 managed system call: policy, risk, quotas, locks, rollback | C03 | steps 5 (policy), 4 (risk), 7 (quotas `nava_quotas`), 8 (`nava_locks`), 9/N14 (snapshot/rollback) | complete |
-| 3.4 Aegis: kernel sandboxes, COW, egress integration, A2A, workspace authz | C03 | Behaviours delivered by the Phase 2 bwrap supervisor + NAVA (`nava_locks`, per-agent workspaces, A2A bus); **the pinned aegis-os binary itself is not integrated** | **partial** |
+| 3.4 Aegis: kernel sandboxes, COW, egress integration, A2A, workspace authz | C03 | The pinned `heurion-org/aegis-os` binary is built from source (CI `scripts/build-aegis-os.sh`; `infra/docker/python.Dockerfile`'s `aegis` stage) and run as an opt-in `engine="aegis"` option on `sandbox.run` (`infra/sandbox-supervisor/revenueos_sandbox/aegis.py`); its own `run`/`diff --json` cycle feeds our existing, approval-hash-bound `commit()` (we do not call its own `commit`/`promote` — N13/N14, INV-06 stay the one host-write path). Bubblewrap stays the default engine. A2A bus and per-agent workspace authz are NAVA's own (`nava_locks`, A2A bus) either way. | complete |
 | 3.4 large repo clone inside sandbox, no host exposure | C03 | e2e `test_aegis_large_repo_clone_inside_sandbox` (cpython depth-1 through the pinned MITM proxy) | complete |
 | 3.5 OpenMuse persistent browser + takeover console | C03 | `services/runtime-omni/revenueos_runtime_omni/openmuse.py` — per-agent persistent Chromium on the Phase 2 profile; takeover: VNC (x11vnc) + noVNC web console (pinned add-on) + typing channel; agent paused 423 / resumes | complete |
 | 3.5 isolated terminal, 30 s, no host mounts | C03 | `sandbox.run` via bwrap (shadow workspace, ro root); the terminal MCP server clamps every command to 30 s | complete |
 | 3.5 durable plans pause/resume/retry | C03 | `plans`/`plan_steps` (0003) + `Kernel.plan_*`; survive restarts (test) | complete |
 | 3.5 attachment → PDF → filled form → reviewed reply | C03 | `pipeline.py` + nib (pinned `1f23f70`) + deterministic review + Drafts APPEND; e2e unattended | complete |
 | 3.6 remote control path, 41 receipts | C02 | orchestrator `/v1/runtime/tools/{name}` → runtime REST → receipt + span; e2e proves all 41 | complete |
+| 3.1/3.2 playwright-mcp: real, invokable MCP domain (not a docs-only pin) | C02 | Built from the pinned commit (`infra/docker/playwright-mcp.Dockerfile`), run as its own compose service, called via `browser.call` (`services/runtime-os/revenueos_runtime_os/tools.py`) over its own HTTP MCP transport — a thin passthrough, since playwright-mcp validates its own tools' native argument shapes at its own boundary | complete |
+| C02 ambient-watchers: scans NAVA's own durable state, A2A-notifies the owning agent | C02 | `services/ambient-watchers/` — its own package (no OmniPilot dependency), wired into compose with a `/health` + `/v1/info` surface (spec 1.1) | complete |
 
 ## (b) Spec-to-build diff
 
@@ -57,7 +72,11 @@ Everything below describes what *is* built and proven.
 
 ## (c) Substitution log
 
-**Two unresolved** (see the table at the top): the Bubblewrap supervisor stands in for aegis-os, and native code stands in for NAVA's documented add-on (OpenHands). Otherwise only the R03/D1 pins already recorded: OmniPilot `2e3a6bd` (named), nib `1f23f70`
+**One unresolved** (see the table at the top): native code stands in for NAVA's documented
+add-on (OpenHands) — an owner decision, not a build gap. aegis-os is no longer a substitution:
+it is built from its pinned commit and run as an opt-in engine (see the component matrix above);
+Bubblewrap remains the default engine for every existing caller, which is additive, not a
+stand-in. Otherwise only the R03/D1 pins already recorded: OmniPilot `2e3a6bd` (named), nib `1f23f70`
 (named), playwright + noVNC (documented add-on for unlicensed openmuse), bubblewrap `1fb0aa2`.
 
 ## (d) Defect list (found during the phase, all fixed)

@@ -79,6 +79,7 @@ services:
       RUNTIME_OMNI_URL: "http://runtime-omni:8102"
       REVENUEOS_WORKSPACE_ROOT: /var/lib/revenueos/workspaces
       EGRESS_PROXY: "envoy:10000"
+      PLAYWRIGHT_MCP_URL: "http://playwright-mcp:8931"
     networks: [core, runtime]
     # Same reason as sandbox-supervisor: shell syscalls run inside nested bubblewrap namespaces.
     security_opt: ["seccomp=unconfined", "apparmor=unconfined", "systempaths=unconfined"]
@@ -88,6 +89,7 @@ services:
     depends_on:
       migrate: { condition: service_completed_successfully }
       otel-collector: { condition: service_healthy }
+      playwright-mcp: { condition: service_healthy }
     healthcheck: { test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8103/health').status==200 else 1)"], interval: 5s, retries: 30 }
 
   # ---------------- The 15 NAVA MCP servers (spec 3.3), one process, each mounted at /<domain>/.
@@ -184,6 +186,17 @@ services:
     command: ["python", "-m", "revenueos_ambient_watchers", "--interval", "30"]
     networks: [core]
     healthcheck: { test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8117/health').status==200 else 1)"], interval: 5s, retries: 30 }
+
+  # ---------------- C02 playwright-mcp (named, pinned build): a real browser-automation MCP
+  # server agents can call through runtime-os's `browser.call` tool (packages/mcp-common's
+  # McpClient-style HTTP transport, see services/runtime-os/revenueos_runtime_os/tools.py).
+  # Headless chromium only; its own --no-sandbox is safe here because the container itself
+  # (no host mounts, `core` network only) is the sandbox boundary.
+  playwright-mcp:
+    build: { context: .., dockerfile: infra/docker/playwright-mcp.Dockerfile }
+    command: ["--port", "8931", "--host", "0.0.0.0", "--allowed-hosts", "playwright-mcp"]
+    networks: [core]
+    healthcheck: { test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/127.0.0.1/8931'"], interval: 5s, retries: 30 }
 
   # ---------------- C05 identity: AgenticMail (named, pinned build) on Stalwart v0.15.5
   stalwart:

@@ -75,9 +75,21 @@
 - **Acceptance 3, all seven green:** unattended browser signup → OTP → PDF → nib fill → reviewed
   draft; rm -rf blocked in ask/auto/YOLO; runaway process killed and reported; transactional
   rollback; human takeover attach/type/resume; 21 NAVA invariants; 41 receipts by remote control.
-- **Why it is not sealed** (`docs/reviews/phase-3-review.md`, top table): aegis-os binary not
-  integrated (Bubblewrap supervisor stands in); NAVA is native rather than its documented add-on
-  (OpenHands); five C02 components not integrated (browser-use, playwright-mcp, magentic-ui,
-  openclaw-heartbeat, ambient-watchers); OpenHack scan still DO_NOT_FILE.
+- **Why it is not sealed** (`docs/reviews/phase-3-review.md`, top table): NAVA is native rather
+  than its documented add-on (OpenHands, owner decision); three C02 components not integrated
+  (browser-use, magentic-ui — both need a model key; openclaw-heartbeat); OpenHack scan still
+  DO_NOT_FILE.
 - **Pins used this phase:** nib `1f23f70`, noVNC `e8b5024`, playwright (pip `>=1.49`), Chromium
   (Debian package in the runtime image, not SHA-pinned).
+
+### 2026-11-15 — aegis-os engine, playwright-mcp, ambient-watchers health surface (CI green: 43783782183)
+- aegis-os (`heurion-org/aegis-os`) built from its pinned commit and wired as an opt-in
+  `engine="aegis"` option on `sandbox.run` (Bubblewrap stays the default); its `run`/`diff --json`
+  cycle feeds our own approval-hash-bound `commit()` rather than its own commit/promote path.
+  Closes the R04 blocker in the phase-3 review's top table.
+- playwright-mcp (`microsoft/playwright-mcp`) built from its pinned commit, running as its own
+  compose service, called through the new `browser.call` tool (a thin generic MCP passthrough,
+  not 20+ hand-wired tool specs).
+- ambient-watchers (previously code-complete but missing from `tests/unit/test_services.py`'s
+  service layout and lacking the `/health` + `/v1/info` surface every other service has) now
+  has both, via a background scan-loop thread behind a minimal HTTP app.
