@@ -2,9 +2,12 @@
 
 Gate protocol Step 3. Phase spec: v4 §3.1–3.6, Acceptance 3.
 
-**Gate status: NOT SEALED.** The build is complete and green: CI run 43786346724 (Validate
-RevenueOS, `31d9000`) has every job green, including live acceptance across Phases 1–3,
-unit/invariant tests with the coverage gate, the trace secret scan, and the MCP SDK boundary.
+**Gate status: NOT SEALED. Gate re-run 2026-11-15 on `78d960e`: Steps 1–2 green, Step 3 red.**
+Gate runs: CI 43791376552 (Validate RevenueOS) had every job green, with live acceptance 39/39
+across Phases 1–3 (raw output: `phase-3-acceptance.log`), Q1/Q2/Q6/Q7 PASS (Q3–Q5 not
+applicable yet), the trace secret scan, and contracts ts1/ts2. Security 43791376467 green, with
+AutoSecScan scan success; OpenHack and VulnHunter are skipped on push by design. The review
+(Step 3) still fails on the two owner blockers below, so the phase is not sealed.
 Section (a) shows every built row `complete`. The NAVA fork is decided by
 [ADR-0001](../adr/ADR-0001-nava-vs-openhands.md). Two owner blockers remain. Neither is a build
 gap, and either one alone still fails the gate under the protocol. They are listed first so

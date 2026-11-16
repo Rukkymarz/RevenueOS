@@ -19,6 +19,10 @@ of record, ADR-0001) · OmniPilot `2e3a6bd` in `services/runtime-omni` · aegis-
 playwright-mcp `78eca853` via `browser.call` · ambient-watchers (in-repo) · nib `1f23f70` ·
 noVNC `e8b5024`.
 
+**Last gate run (2026-11-15, `78d960e`):** CI 43791376552 every job green (acceptance 39/39,
+Q1/Q2/Q6/Q7 PASS); security 43791376467 green (OpenHack skipped on push). The review step fails
+on the two owner blockers, so the phase is **not sealed**. No seal commit exists.
+
 **Capital deployed:** $0.
 
 ## Owner blockers (the only things between Phase 3 and its seal)

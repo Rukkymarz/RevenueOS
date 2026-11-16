@@ -120,4 +120,8 @@
   scheduled for Phase 13. Only the owner can resolve that: provide a provider now (hosted BYOK
   is a fallback and needs approval under INV-06; self-hosted open weights is policy-first), or
   re-phase the three components. R04 forbids the build agent from deferring a named component.
+- **Gate re-run on `78d960e`: not sealed.** Steps 1–2 green: CI 43791376552 (every job green;
+  acceptance 39/39; Q1/Q2/Q6/Q7 PASS) and security 43791376467 (green; OpenHack skipped on
+  push). Step 3 (review) red on the two owner blockers. The acceptance log was refreshed from
+  43791376552.
 

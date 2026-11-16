@@ -1,4 +1,4 @@
-1Z ##[group]Run set -o pipefail; REVENUEOS_E2E=1 pytest -v -rA tests/e2e -p no:cacheprovider 2>&1 | tee acceptance.log
+##[group]Run set -o pipefail; REVENUEOS_E2E=1 pytest -v -rA tests/e2e -p no:cacheprovider 2>&1 | tee acceptance.log
 [36;1mset -o pipefail; REVENUEOS_E2E=1 pytest -v -rA tests/e2e -p no:cacheprovider 2>&1 | tee acceptance.log[0m
 shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
 env:
@@ -96,4 +96,4 @@ PASSED tests/e2e/test_phase3_stack.py::test_nava_a2a_bus_and_memory
 PASSED tests/e2e/test_phase3_stack.py::test_human_takeover_attaches_types_and_agent_resumes
 PASSED tests/e2e/test_phase3_stack.py::test_openmuse_pipeline_signup_to_reviewed_draft_unattended
 PASSED tests/e2e/test_phase3_stack.py::test_aegis_large_repo_clone_inside_sandbox
-======================== 39 passed in 86.71s (0:01:26) =========================
+======================== 39 passed in 69.35s (0:01:09) =========================
