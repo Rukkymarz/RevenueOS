@@ -172,6 +172,16 @@ services:
       envoy: { condition: service_healthy }
     healthcheck: { test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8102/health').status==200 else 1)"], interval: 5s, retries: 40 }
 
+  # ---------------- C02 ambient-watchers (native, in-repo): scans NAVA's own durable state
+  # (expiring subagent TTLs, expiring approvals, stuck syscalls) and A2A-notifies the owning
+  # agent before the hard cutoff. No desktop, no OmniPilot — just `packages/pycommon` against
+  # Postgres, so it builds off the plain python image, not runtime-omni's DESKTOP=1 one.
+  ambient-watchers:
+    <<: *python
+    build: { context: .., dockerfile: infra/docker/python.Dockerfile, args: { PACKAGES: "./services/ambient-watchers" } }
+    command: ["revenueos-ambient-watchers", "--interval", "30"]
+    networks: [core]
+
   # ---------------- C05 identity: AgenticMail (named, pinned build) on Stalwart v0.15.5
   stalwart:
     image: stalwartlabs/stalwart:v0.15.5
