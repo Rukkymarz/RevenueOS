@@ -74,13 +74,16 @@ Phases and their seals are recorded in `docs/PROGRESS.md`.
                  ┌────────────── 15 NAVA MCP servers (mcp/nava-suite, one per domain) ──────────────┐
  agent ──bearer──> services/runtime-os  (NAVA kernel: 12-step managed syscall, docs/NAVA.md)
                      1 validate .. 5 policy (shared risk lib) .. 6 approval .. 8 locks
-                     9 snapshot ──> 10 execute ──────────────┬─> sandbox.run (bwrap, quotas)
-                     11 verify ──> 12 receipt + span + audit └─> omni.* ──> services/runtime-omni
+                     9 snapshot ──> 10 execute ──────────────┬─> sandbox.run (engine=bubblewrap
+                     11 verify ──> 12 receipt + span + audit │              default | aegis opt-in)
+                                                              └─> omni.* ──> services/runtime-omni
                                                                               (41 OmniPilot tools on
  plans (durable: pause/resume/retry) ── static agents (7, DB-fenced)           Xvfb desktop, x11vnc)
  A2A bus + 4-tier memory in Postgres ── JIT subagents (TTL, inherited fences)
  OpenMuse: persistent Chromium per agent profile ── human takeover console ── 30 s terminal
            signup -> OTP -> PDF -> nib fill -> deterministic review -> reply draft
+ browser.call ──> playwright-mcp (own compose service, HTTP MCP transport, headless chromium)
+ ambient-watchers: background scan of NAVA's own durable state ── A2A-alerts the owning agent
 ```
 
 | Path | What it is |
@@ -91,3 +94,6 @@ Phases and their seals are recorded in `docs/PROGRESS.md`.
 | `packages/risk` | shared risk classification (3.2): single-sourced for OmniPilot, NAVA and approvals |
 | `mcp/nava-suite` | the 15 specialized MCP servers, each a facade over governed syscalls |
 | `docs/NAVA.md` | the 12 steps and the 21 invariants, each with its enforcing object and test |
+| `infra/sandbox-supervisor/revenueos_sandbox/aegis.py` | the pinned aegis-os binary's `run`/`diff --json` cycle; feeds our own `commit()`, never its own commit/promote (N13/N14) |
+| `services/runtime-os/revenueos_runtime_os/tools.py` (`browser_call`) + `packages/mcp-common` (`RawMcpClient`) | thin, envelope-free passthrough to the pinned playwright-mcp server — the only other place besides mcp-common itself allowed to touch the MCP SDK's result shape, never its import (spec 1.3) |
+| `services/ambient-watchers` | native scanner over `nava_subagents`/`approvals`/`syscalls` for expiring TTLs, expiring approvals and stuck syscalls; A2A-notifies the owning agent, logs to `nava_memory` (episodic) pending the Phase 11 tares timeline |
