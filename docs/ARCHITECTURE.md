@@ -89,7 +89,7 @@ Phases and their seals are recorded in `docs/PROGRESS.md`.
 | Path | What it is |
 | --- | --- |
 | `db/migrations/0003_nava.sql` | syscalls + ordered step records, N01..N21 triggers, locks, A2A bus, 4-tier memory, JIT subagents, durable plans, agent tokens |
-| `services/runtime-os` | the NAVA gateway, kernel (bus/memory/subagents/plans), 7 static agents, HTTP surface, crash reaper |
+| `services/runtime-os` | the NAVA gateway, kernel (bus/memory/subagents/plans), 7 static agents, HTTP surface, crash reaper. This in-repo kernel is NAVA's implementation of record ([ADR-0001](adr/ADR-0001-nava-vs-openhands.md)). Any later model-driven agent loop (OpenHands is the fallback candidate) runs as a client of `Gateway.syscall`, never beside it |
 | `services/runtime-omni` | OmniPilot's 41 tools by remote control; OpenMuse browser, takeover console, acceptance pipeline |
 | `packages/risk` | shared risk classification (3.2): single-sourced for OmniPilot, NAVA and approvals |
 | `mcp/nava-suite` | the 15 specialized MCP servers, each a facade over governed syscalls |

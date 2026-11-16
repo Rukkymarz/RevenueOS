@@ -46,7 +46,7 @@ components:
   - {id: ambient-watchers, component: C02, kind: agent, role: specialist, oss: true,  license: in-repo,       buses: [a2a-bus, timeline, task-api]}
 
   # ---------------- C03 agent OS
-  - {id: nava,     component: C03, kind: framework, role: primary, oss: true, license: MIT, buses: [a2a-bus, mcp-gateway, event-store, telemetry],
+  - {id: nava,     component: C03, kind: framework, role: primary, oss: true, license: in-repo, buses: [a2a-bus, mcp-gateway, event-store, telemetry],
      agents: [CodingAgent, TerminalAgent, ReviewerAgent, VerifierAgent, WebScraperAgent, BrowserAgent, ComputerAgent]}
   - {id: aegis-os, component: C03, kind: service,   role: primary, oss: true, license: "Apache-2.0 + LGPL-2.1", buses: [a2a-bus, event-store]}
   - {id: openmuse, component: C03, kind: service,   role: primary, oss: true, license: "Apache-2.0 + MPL-2.0", buses: [mcp-gateway, a2a-bus, task-api]}

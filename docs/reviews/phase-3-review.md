@@ -2,19 +2,27 @@
 
 Gate protocol Step 3. Phase spec: v4 §3.1–3.6, Acceptance 3.
 
-**Gate status: NOT SEALED.** Acceptance 3 is green live (CI run 43702840418: 39/39 e2e across
-Phases 1–3, 1,100+ unit/invariant tests, coverage gate, trace secret scan PASS; the aegis-os
-engine and the restored ambient-watchers health check since re-confirmed green on CI run
-43783782183). Section (a) now shows every row `complete`, but two owner-blocked items remain
-open (NAVA-vs-OpenHands, OpenHack) plus three not-yet-integrated C02 components — any one of
-them still makes this a gate failure under the protocol. They are listed first so nobody reads
-the rest as a seal.
+**Gate status: NOT SEALED.** The build is complete and green: CI run 43786346724 (Validate
+RevenueOS, `31d9000`) has every job green, including live acceptance across Phases 1–3,
+unit/invariant tests with the coverage gate, the trace secret scan, and the MCP SDK boundary.
+Section (a) shows every built row `complete`. The NAVA fork is decided by
+[ADR-0001](../adr/ADR-0001-nava-vs-openhands.md). Two owner blockers remain. Neither is a build
+gap, and either one alone still fails the gate under the protocol. They are listed first so
+nobody reads the rest as a seal.
 
 | Open item | Why it blocks | What closes it |
 | --- | --- | --- |
-| **nava** is named-not-found with documented add-on **OpenHands**; the 12-step gateway, bus, memory, 15 servers and 21 invariants are native code. | D1 says the documented add-on is the official implementation. Native code covers the spec sentences but OpenHands is not integrated. | Owner decision: accept native NAVA as the implementation (amend PINS/POLICY), or integrate OpenHands as the agent loop on top of the gateway (needs a model key). |
-| **browser-use, magentic-ui, openclaw-heartbeat** are C02 components scheduled for Phase 3 in the component map and are not integrated. | Component coverage must be complete. | Integrate each behind the gateway. browser-use and magentic-ui are model-driven and need a model key to do anything. openclaw-heartbeat's own `automations`/`cron` CLI is explicitly client-to-"Gateway" only (`src/cli/cron-cli/register.ts`: `"Manage automations (via Gateway)"`) — there is no standalone CLI or library surface to call, unlike aegis-os's `aos-cli` binary or playwright-mcp's standalone MCP server (both integrated this phase with no server bootstrap needed). Provisioning its one auto-created "proactive job" per agent requires the full openclaw gateway running (its own Postgres schema, 40+ migrations) with a configured agent that has model access — the job's entire purpose is to prompt that model on wake. Confirmed at the pinned commit (2026-11-15) by reading `docs/gateway/heartbeat.md`, `src/cron/default-proactive-job.worker.ts`, and the gateway's own `Dockerfile`; not a build gap closed by more engineering, the same model-key gap as browser-use/magentic-ui, now with its own evidence rather than assumed by analogy. |
-| **OpenHack** security scan still records DO_NOT_FILE (GitHub Models returns a canned reply). | D10: a scan that did not run is never PASS; PR #3 stays blocked. | Enable GitHub Models for the repo, or set the `SECURITY_OPEN_MODEL_*` secrets. |
+| **browser-use, magentic-ui, openclaw-heartbeat** are C02 components scheduled for Phase 3 in the component map and are not integrated. | Component coverage must be complete. Each needs an LLM to do anything, and the model provider decides each one's client code. browser-use: `Agent(llm=...)` resolves a provider model and raises before any browser starts if the key is missing; with `llm=None` it "runs (and bills) bu-fast" (`browser_use/agent/service.py` @ `e717df18`). magentic-ui: two OpenAI-compatible model clients, orchestrator and web surfer (`config.yaml.example` @ `d3c9d13c`). openclaw-heartbeat: the `automations`/`cron` CLI is gateway-only (`src/cli/cron-cli/register.ts`: `"Manage automations (via Gateway)"` @ `c787d0fa`). Its per-agent "proactive job" needs the full openclaw gateway with a model-backed agent, and the job exists to prompt that model on wake. Root cause: these three are scheduled for Phase 3, but the model router (C01; open-weights default `ollama`/`vllm`) is scheduled for Phase 13. | Owner: choose and provide a model provider (self-hosted open weights is policy-first; hosted BYOK is a fallback and needs approval under INV-06), **or** re-phase the three components to Phase 13. R04 forbids the build agent from deferring a named component or substituting a native stand-in. |
+| **OpenHack** security scan records DO_NOT_FILE. | D10: a scan that did not run is never PASS. PR #3's security run 43692377257 logged `openhack client: github-models meta/Llama-3.3-70B-Instruct` → `reply: None tokens: 0` → `DO_NOT_FILE - scan made no model calls (0 tokens)`. On push events the scan is skipped by design ("runs on pull requests"), so a green push run is not an OpenHack pass. | Owner: enable GitHub Models for the repo, or set the `SECURITY_OPEN_MODEL_*` secrets. |
+
+**Closed 2026-11-15:** *nava* (named-not-found; documented add-on OpenHands). Decided by
+[ADR-0001](../adr/ADR-0001-nava-vs-openhands.md), status Accepted: the in-repo kernel is NAVA's
+implementation of record, and OpenHands is demoted to a fallback candidate for the model-driven
+agent loop, admissible only as a client of `Gateway.syscall`. The ADR lists three reversal
+triggers. Main evidence: the pinned `OpenHands/OpenHands@830c0459` is the Agent Canvas
+React/TypeScript frontend, not an agent; the OpenHands agent lives in the unpinned
+`software-agent-sdk`, requires an LLM, and its `LocalWorkspace` operates on the host filesystem
+directly.
 
 **Closed since the table above was first written:** aegis-os is now built from the pinned
 commit (CI: `scripts/build-aegis-os.sh`, `infra/docker/python.Dockerfile`'s `aegis` stage) and
@@ -72,8 +80,10 @@ Everything below describes what *is* built and proven.
 
 ## (c) Substitution log
 
-**One unresolved** (see the table at the top): native code stands in for NAVA's documented
-add-on (OpenHands) — an owner decision, not a build gap. aegis-os is no longer a substitution:
+**None unresolved.** NAVA's in-repo kernel is its implementation of record by
+[ADR-0001](../adr/ADR-0001-nava-vs-openhands.md). This follows the precedent of the in-repo D1
+components `llm-tracker` and `dataforge`. OpenHands stays pinned as a D1 fallback candidate for
+the agent loop, as D1 itself provides ("the add-on becomes the fallback"). aegis-os is no longer a substitution:
 it is built from its pinned commit and run as an opt-in engine (see the component matrix above);
 Bubblewrap remains the default engine for every existing caller, which is additive, not a
 stand-in. Otherwise only the R03/D1 pins already recorded: OmniPilot `2e3a6bd` (named), nib `1f23f70`
@@ -100,6 +110,15 @@ stand-in. Otherwise only the R03/D1 pins already recorded: OmniPilot `2e3a6bd` (
     entrypoint trusts the egress CA in the per-user NSS store.
 12. Receipt write refused at step 12 (e.g. INV-06) would have left a syscall `running` — the
     gateway now downgrades to failed/rolled_back and audits the denial.
+
+13. aegis-os install path: the `aos-cli` crate names its binary `aegis-os`
+    (`crates/aos-cli/Cargo.toml`), and both the Dockerfile and the CI build script installed
+    `target/release/aos-cli` (CI run 43783238847 red). Fixed in `a5a3dc9`; green in 43783782183.
+14. ambient-watchers lacked the standard service shape (`app.py`/`__main__.py`, `/health`,
+    `/v1/info`), so `tests/unit/test_services.py` failed in CI run 43781226568 too. Fixed in
+    `04fe05c`: the scan loop runs in a background thread behind the HTTP surface.
+15. Spec 1.3 boundary: `browser_call` imported `fastmcp` directly in runtime-os (CI run
+    43784872498, Q1/Q2 FAIL). Fixed in `dbb4b7e` with `RawMcpClient` in mcp-common.
 
 ## (e) Invariant audit (INV-01..15)
 

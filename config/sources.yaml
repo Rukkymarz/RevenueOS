@@ -289,7 +289,11 @@ nodes:
       stars: 93455
       last_push: '2026-11-14'
     blocked_reason: no public repository for NAVA
-    reason: no public NAVA repo found; OpenHands provides coding, terminal and browser agents; the 12-step mutation gateway is built in-repo
+    reason: 'no public NAVA repo found; the 12-step mutation gateway, bus, memory, 15 MCP servers and 21 invariants are built
+      in-repo and are NAVA''s implementation of record (docs/adr/ADR-0001-nava-vs-openhands.md). OpenHands is kept as
+      the D1 fallback candidate for the model-driven agent loop only, never the gateway. The pinned commit is the
+      Agent Canvas frontend; the agent itself lives in OpenHands/software-agent-sdk, to be pinned only if ADR-0001
+      reversal trigger 2 fires'
     d1: "No Public Repo \u2014 Add-On Replaces"
   aegis-os:
     status: named

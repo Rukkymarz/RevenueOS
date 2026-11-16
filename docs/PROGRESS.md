@@ -75,10 +75,11 @@
 - **Acceptance 3, all seven green:** unattended browser signup → OTP → PDF → nib fill → reviewed
   draft; rm -rf blocked in ask/auto/YOLO; runaway process killed and reported; transactional
   rollback; human takeover attach/type/resume; 21 NAVA invariants; 41 receipts by remote control.
-- **Why it is not sealed** (`docs/reviews/phase-3-review.md`, top table): NAVA is native rather
-  than its documented add-on (OpenHands, owner decision); three C02 components not integrated
-  (browser-use, magentic-ui — both need a model key; openclaw-heartbeat); OpenHack scan still
-  DO_NOT_FILE.
+- **Why it is not sealed** (`docs/reviews/phase-3-review.md`, top table; updated 2026-11-15):
+  the NAVA fork is decided — native NAVA is the implementation of record
+  ([ADR-0001](adr/ADR-0001-nava-vs-openhands.md)). Two owner blockers remain, both governance,
+  not build gaps: (1) a model provider for browser-use, magentic-ui and openclaw-heartbeat;
+  (2) model access for the OpenHack scan (DO_NOT_FILE on PR #3, security run 43692377257).
 - **Pins used this phase:** nib `1f23f70`, noVNC `e8b5024`, playwright (pip `>=1.49`), Chromium
   (Debian package in the runtime image, not SHA-pinned).
 
@@ -101,3 +102,22 @@
   gateway itself needs a configured agent with model access before the feature does anything.
   Not integrated this phase for the same reason as browser-use/magentic-ui — missing model
   key — now confirmed by direct evidence rather than assumed. See phase-3-review.md's top table.
+
+### 2026-11-15 — NAVA fork decided (ADR-0001); gate re-run
+- [ADR-0001](adr/ADR-0001-nava-vs-openhands.md), Accepted: the in-repo kernel is NAVA's
+  implementation of record. OpenHands is demoted to a fallback candidate for the model-driven
+  agent loop, admissible only as a client of `Gateway.syscall`. The ADR records three reversal
+  triggers. Key evidence: the pinned `OpenHands/OpenHands@830c0459` is the Agent Canvas frontend,
+  not an agent, and the OpenHands agent (`software-agent-sdk`) requires an LLM and writes the host
+  directly from its local workspace.
+- Pins updated to match: `components.yaml` `nava.license: in-repo`, `sources.yaml` `nava.reason`,
+  the PINS.md D1 row and nava row, and the README components row. aegis-os and playwright-mcp
+  source builds added to PINS.md "Runtime images and source builds".
+- Spec-1.3 MCP SDK boundary violation (direct `fastmcp` import in runtime-os) caught by CI run
+  43784872498 and fixed in `dbb4b7e` (`RawMcpClient` in mcp-common). Green in CI run 43786346724.
+- Root cause of the remaining model blocker: the component map schedules three model-driven C02
+  components in Phase 3, while the model router (C01, open-weights default `ollama`/`vllm`) is
+  scheduled for Phase 13. Only the owner can resolve that: provide a provider now (hosted BYOK
+  is a fallback and needs approval under INV-06; self-hosted open weights is policy-first), or
+  re-phase the three components. R04 forbids the build agent from deferring a named component.
+

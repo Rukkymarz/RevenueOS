@@ -30,7 +30,7 @@ cycle and, if usable, replaces the add-on and the add-on becomes the fallback.
 | harness-agent | No Public Repo — Add-On Replaces | OrcaKit harness-agent is not public (OrcaKit org exists; repo not accessible) | letta-ai/letta |
 | incagent | No Usable License — Add-On Replaces | incagent/incagent has no license file; using it would be copyright infringement | getlago/lago, documenso/documenso |
 | llm-tracker | No Public Repo — Add-On Replaces | no public repository matching the spec's llm-tracker | RevenueOS adapter (D3) |
-| nava | No Public Repo — Add-On Replaces | no public repository for NAVA | OpenHands/OpenHands |
+| nava | No Public Repo — Add-On Replaces | no public repository for NAVA | RevenueOS in-repo kernel (`services/runtime-os`, `0003_nava.sql`, `mcp/nava-suite`) per [ADR-0001](adr/ADR-0001-nava-vs-openhands.md); OpenHands/OpenHands demoted to fallback candidate for the agent loop only |
 | netsendo | No Usable License — Add-On Replaces | NetSendo/NetSendo ships under a proprietary end-user license agreement | knadh/listmonk |
 | nocodb | No Usable License — Add-On Replaces | nocodb/nocodb moved to the Sustainable Use License (not OSI, Jan 2026) | teableio/teable |
 | open-pages | No Public Repo — Add-On Replaces | no public repository for open-pages | dyad-sh/dyad |
@@ -88,7 +88,7 @@ Ads MCP server were found by direct lookup and pinned.
 | C03 | aegis-os | named | named | [containers/bubblewrap](https://github.com/containers/bubblewrap) | `1fb0aa26d3eb66254f7742e704add7f82f41a582` | LGPL-2.1 | 9,486 | 2026-10-14 | 2026-11-14 |
 | C03 | aegis-os | named | add-on | [google/gvisor](https://github.com/google/gvisor) | `e45d53c763ac5f2278fbee07bcf7e0a5ab6dce5c` | Apache-2.0 | 20,000 | 2026-11-14 | 2026-11-14 |
 | C03 | aegis-os | named | add-on | [firecracker-microvm/firecracker](https://github.com/firecracker-microvm/firecracker) | `cc88013eadcf432da1b37d47d445b7e8bcc3046e` | Apache-2.0 | 38,015 | 2026-11-13 | 2026-11-14 |
-| C03 | nava | named-not-found | add-on | [OpenHands/OpenHands](https://github.com/OpenHands/OpenHands) | `830c0459e2f6056ab81e020c22970e782ae1be75` | MIT | 93,455 | 2026-11-14 | 2026-11-14 |
+| C03 | nava | named-not-found | fallback (ADR-0001) | [OpenHands/OpenHands](https://github.com/OpenHands/OpenHands) | `830c0459e2f6056ab81e020c22970e782ae1be75` | MIT — pinned commit is the Agent Canvas frontend; the agent lives in OpenHands/software-agent-sdk (unpinned; pin only if ADR-0001 trigger 2 fires) | 93,455 | 2026-11-14 | 2026-11-15 |
 | C03 | openmuse | named-unlicensed | add-on | [microsoft/playwright](https://github.com/microsoft/playwright) | `b4d016aadc5cbd2b898a284307975fe73e05483d` | Apache-2.0 | 100,148 | 2026-11-14 | 2026-11-14 |
 | C03 | openmuse | named-unlicensed | add-on | [novnc/noVNC](https://github.com/novnc/noVNC) | `e8b5024d4603587b29ffede4fbd28b1fa2939829` | MPL-2.0 | 14,204 | 2026-10-23 | 2026-11-14 |
 | C04 | agent-discover | named | named | [keshrath/agent-discover](https://github.com/keshrath/agent-discover) | `c8a48bc73993d1cf75c00bb67352f0d20356ab3b` | MIT | 7 | 2026-11-14 | 2026-11-14 |
@@ -227,6 +227,8 @@ Ads MCP server were found by direct lookup and pinned.
 | --- | --- | --- | --- |
 | C05 stalwart-mail | `stalwartlabs/stalwart` image | `v0.15.5` | AgenticMail's own upstream pin: 0.16+ moved to JSON config and ignores the TOML layout AgenticMail provisions against |
 | C05 agenticmail | built from source (`infra/mail/agenticmail.Dockerfile`) | `af1e0ef546b5862c1f7134649e761f56356c688a` | named component, pinned commit; Node 22 for `node:sqlite` |
+| C03 aegis-os | built from source (`python.Dockerfile` `aegis` stage, `scripts/build-aegis-os.sh` in CI); the `aos-cli` crate's binary is named `aegis-os` | `d9bdfa978d721cae0dc2bfa277ed371c9db60c5a` | named component, pinned commit; opt-in `engine="aegis"` on `sandbox.run` |
+| C02 playwright-mcp | built from source (`infra/docker/playwright-mcp.Dockerfile`), own compose service | `78eca85361efb545a4c0f59b6140aef0721c5412` | named component, pinned commit instead of `npx @playwright/mcp@latest` |
 | C03/C17 bubblewrap | built from source (`python.Dockerfile`, `scripts/build-bwrap.sh` in CI) | `1fb0aa26d3eb66254f7742e704add7f82f41a582` (0.13.2) | same binary in compose and CI; no distro AppArmor profile in the way |
 | Q7 AutoSecScan | built from source in `security.yml` | `881d9602bfa1e45d8e0df021df4dd6b247df92f0` | the action's own image is a floating `:latest` |
 | C17 egress | `envoyproxy/envoy` | `v1.40.2` | |
