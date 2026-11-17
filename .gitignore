@@ -1,0 +1,15 @@
+infra/secrets/
+__pycache__/
+.pytest_cache/
+node_modules/
+.env*
+dist/
+.next/
+**/generated/
+packages/contracts/out/
+packages/contracts/python/revenueos_contracts/models.py
+.turbo/
+coverage/
+.coverage
+infra/otel/out/
+.env

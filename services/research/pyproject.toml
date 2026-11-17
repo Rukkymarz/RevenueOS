@@ -1,0 +1,19 @@
+[project]
+name = "revenueos-research"
+version = "0.1.0"
+description = "RevenueOS research service (C07)"
+requires-python = ">=3.12"
+dependencies = ["revenueos-common"]
+
+[project.scripts]
+revenueos-research = "revenueos_research.__main__:main"
+
+[tool.uv.sources]
+revenueos-common = { workspace = true }
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["revenueos_research"]

@@ -1,0 +1,19 @@
+[project]
+name = "revenueos-ambient-watchers"
+version = "0.1.0"
+description = "RevenueOS ambient-watchers (C02, specialist): scans NAVA's own durable state for expiring subagents, expiring approvals and stuck syscalls, and A2A-notifies the owning agent. Native, in-repo — see config/sources.yaml."
+requires-python = ">=3.12"
+dependencies = ["revenueos-common"]
+
+[project.scripts]
+revenueos-ambient-watchers = "revenueos_ambient_watchers.watchers:main"
+
+[tool.uv.sources]
+revenueos-common = { workspace = true }
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["revenueos_ambient_watchers"]

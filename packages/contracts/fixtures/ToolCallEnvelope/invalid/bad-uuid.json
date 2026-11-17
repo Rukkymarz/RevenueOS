@@ -1,0 +1,8 @@
+{
+  "task_id": "nope",
+  "agent_id": "1c8a2b41-5e1d-4b50-8a2a-0e1d2c3b4a59",
+  "server": "s",
+  "tool": "t",
+  "args": {},
+  "risk_class": "low"
+}

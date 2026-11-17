@@ -1,0 +1,8 @@
+{
+  "thing_type": "customer",
+  "thing_id": "acme",
+  "event_type": "outreach.sent",
+  "payload": {
+    "campaign": "q4"
+  }
+}
