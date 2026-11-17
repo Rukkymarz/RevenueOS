@@ -305,6 +305,15 @@ class Gateway:
         res.step = "authorize"
         if not self.db.scalar("SELECT nava_allowed($a::uuid, $tool) AS ok", a=ctx.agent_id, tool=spec.name):
             raise _Stop(3, "denied", f"capability denied: {spec.name}")
+        if spec.name == "mcp.call":   # INV-10 (spec 4.6): the database decides, the gateway enforces and logs
+            why = self.db.scalar("SELECT tool_activation_refusal($s, $t::uuid) AS why", s=args["server"], t=ctx.task_id)
+            if why:
+                self.db.scalar(
+                    "INSERT INTO tool_events(mcp_server_name, installation_id, task_id, agent_id, kind, detail) "
+                    "VALUES ($s, (SELECT id FROM tool_installations WHERE mcp_server_name = $s ORDER BY created_at DESC LIMIT 1), "
+                    "$t::uuid, $a::uuid, 'call_blocked', jsonb_build_object('reason', $w, 'syscall_id', $sid, 'tool', $tool)) "
+                    "RETURNING id", s=args["server"], t=ctx.task_id, a=ctx.agent_id, w=why, sid=sid, tool=args["tool"])
+                raise _Stop(3, "denied", why)
         self._step(sid, 3, "pass")
         # 4 classify
         res.step = "classify"

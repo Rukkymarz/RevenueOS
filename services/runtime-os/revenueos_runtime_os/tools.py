@@ -141,6 +141,69 @@ def browser_call(ctx: CallContext, args: dict):
         raise ToolError(f"playwright-mcp call failed: {type(e).__name__}: {e}") from None
 
 
+def _discovery(path: str, body: dict, timeout: int = 180) -> dict:
+    """runtime-os is the only caller of the discovery service's write surface (C04): an agent
+    reaches Forage and installed MCP servers through these syscalls, never directly."""
+    import json
+    import urllib.error
+    import urllib.request
+    url = os.environ.get("DISCOVERY_URL", "http://discovery:8104") + path
+    req = urllib.request.Request(url, data=json.dumps(body).encode(), method="POST",
+                                 headers={"content-type": "application/json"})
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as r:
+            return json.loads(r.read())
+    except urllib.error.HTTPError as e:
+        try:
+            reason = json.loads(e.read()).get("reason", f"HTTP {e.code}")
+        except ValueError:
+            reason = f"HTTP {e.code}"
+        raise ToolError(f"discovery: {reason}") from None
+    except OSError as e:
+        raise ToolError(f"discovery unreachable: {type(e).__name__}: {e}") from None
+
+
+def forage_search(ctx: CallContext, args: dict):
+    return _discovery("/v1/forage/search", {"query": args["query"], "limit": int(args.get("limit", 10))})
+
+
+def forage_install(ctx: CallContext, args: dict):
+    out = _discovery("/v1/forage/install", {"spec": args["spec"], "agent_id": ctx.agent_id, "task_id": ctx.task_id})
+    if out.get("status") == "denied":
+        raise ToolError("install denied by the selection policy: " + "; ".join(out.get("reasons", [])))
+    return out
+
+
+RULE_FILE = "AGENTS.md"
+
+
+def forage_learn(ctx: CallContext, args: dict):
+    """Writes the server's usage instructions into the agent rule file (workspace `rules`), one
+    marked block per server, replaced in place on re-learn. The next session reads the file."""
+    out = _discovery("/v1/forage/learn", {"server": args["server"]})
+    ws = ctx.workspaces.path(ctx.agent_id, args.get("workspace", "rules"))
+    ws.mkdir(parents=True, exist_ok=True)
+    f = ws / RULE_FILE
+    text = f.read_text() if f.exists() else "# Agent rules\n"
+    start, end = out["marker"], out["marker"].replace("forage:", "/forage:")
+    block = f"{start}\n{out['instructions']}{end}\n"
+    if start in text and end in text:
+        text = text[:text.index(start)] + block + text[text.index(end) + len(end):].lstrip("\n")
+    else:
+        text = text.rstrip("\n") + "\n\n" + block
+    f.write_text(text)
+    return {"server": args["server"], "rule_file": f"{args.get('workspace', 'rules')}/{RULE_FILE}", "bytes": len(text)}
+
+
+def mcp_call(ctx: CallContext, args: dict):
+    """One call to an installed MCP server. INV-10 was already checked at gateway step 3; the
+    discovery service checks it again and relays through agent-discover."""
+    out = _discovery("/v1/call", {"server": args["server"], "tool": args["tool"], "arguments": args.get("arguments") or {},
+                                  "task_id": ctx.task_id, "agent_id": ctx.agent_id,
+                                  "timeout_s": min(int(args.get("timeout_s", 60)), MAX_SHELL_S)})
+    return out.get("result")
+
+
 def builtin_tools() -> dict[str, ToolSpec]:
     t = [
         ToolSpec("fs.read", fs_read, {"type": "object", "required": ["workspace", "path"], "additionalProperties": False,
@@ -168,6 +231,25 @@ def builtin_tools() -> dict[str, ToolSpec]:
         # shapes at its own boundary. "browser" is a shared lock resource: a persistent browser
         # profile can only be driven by one call at a time (playwright-mcp's own documented
         # constraint), so concurrent calls from the same agent serialize instead of racing.
+        # C04 (Phase 4): Forage and the governed call path for installed MCP servers. Installing is
+        # medium, not high: what it produces is an experimental server in its own sandbox that
+        # INV-10 keeps away from production tasks until a human approves it.
+        ToolSpec("forage.search", forage_search, {"type": "object", "required": ["query"], "additionalProperties": False,
+                                                  "properties": {"query": {"type": "string", "maxLength": 200},
+                                                                 "limit": {"type": "integer"}}}),
+        ToolSpec("forage.install", forage_install, {"type": "object", "required": ["spec"], "additionalProperties": False,
+                                                    "properties": {"spec": {"type": "object"}}},
+                 risk="medium", resources=lambda a, c: ["forage:install"]),
+        ToolSpec("forage.learn", forage_learn, {"type": "object", "required": ["server"], "additionalProperties": False,
+                                                "properties": {"server": {"type": "string", "maxLength": 64},
+                                                               "workspace": WS}},
+                 mutating=True, resources=lambda a, c: [c.workspaces.resource(c.agent_id, a.get("workspace", "rules"))]),
+        ToolSpec("mcp.call", mcp_call, {"type": "object", "required": ["server", "tool"], "additionalProperties": False,
+                                        "properties": {"server": {"type": "string", "maxLength": 64},
+                                                       "tool": {"type": "string", "maxLength": 128},
+                                                       "arguments": {"type": "object"},
+                                                       "timeout_s": {"type": "integer"}}},
+                 risk="medium", resources=lambda a, c: [f"mcp:{a.get('server')}"]),
         ToolSpec("browser.call", browser_call, {"type": "object", "required": ["tool", "args"],
                                                 "additionalProperties": False,
                                                 "properties": {"tool": {"type": "string", "maxLength": 64},

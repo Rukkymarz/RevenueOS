@@ -9,9 +9,9 @@ from .receipts import ApprovalRequired, Receipts
 from .telemetry import setup_tracing, standard_attributes
 
 __all__ = ["McpClient", "RawMcpClient", "RateLimited", "TokenBucket", "retry_with_backoff", "ApprovalRequired",
-           "Receipts", "RevenueOSMcpServer", "create_server", "setup_tracing", "standard_attributes"]
+           "Receipts", "RawStdioClient", "plain_server", "run_stdio", "run_http", "RevenueOSMcpServer", "create_server", "setup_tracing", "standard_attributes"]
 
-_LAZY = {"McpClient": "client", "RawMcpClient": "client", "RevenueOSMcpServer": "server", "create_server": "server"}
+_LAZY = {"McpClient": "client", "RawMcpClient": "client", "RawStdioClient": "client", "plain_server": "plain", "run_stdio": "plain", "run_http": "plain", "RevenueOSMcpServer": "server", "create_server": "server"}
 
 
 def __getattr__(name: str):

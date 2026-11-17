@@ -52,3 +52,19 @@ class RawMcpClient:
         async with Client(transport, timeout=self.timeout_s) as client:
             res = await client.call_tool(tool, args)
             return res.structured_content if res.structured_content is not None else res.data
+
+
+class RawStdioClient:
+    """The stdio form of `RawMcpClient`: launch one plain MCP server process and call its tools
+    with their native arguments. Used to prove what the sandbox wrapper does to a real server
+    (tests/unit/test_mcp_sandbox.py) without a registry in between."""
+
+    def __init__(self, command: str, args: list[str], env: dict[str, str] | None = None, timeout_s: float = 30.0):
+        self.command, self.args, self.env, self.timeout_s = command, args, env, timeout_s
+
+    async def acall(self, tool: str, args: dict):
+        from fastmcp.client.transports import StdioTransport
+        transport = StdioTransport(self.command, self.args, env=self.env)
+        async with Client(transport, timeout=self.timeout_s) as client:
+            res = await client.call_tool(tool, args)
+            return res.structured_content if res.structured_content is not None else res.data

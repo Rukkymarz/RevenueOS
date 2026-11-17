@@ -93,6 +93,8 @@ Ads MCP server were found by direct lookup and pinned.
 | C03 | openmuse | named-unlicensed | add-on | [novnc/noVNC](https://github.com/novnc/noVNC) | `e8b5024d4603587b29ffede4fbd28b1fa2939829` | MPL-2.0 | 14,204 | 2026-10-23 | 2026-11-14 |
 | C04 | agent-discover | named | named | [keshrath/agent-discover](https://github.com/keshrath/agent-discover) | `c8a48bc73993d1cf75c00bb67352f0d20356ab3b` | MIT | 7 | 2026-11-14 | 2026-11-14 |
 | C04 | agent-discover | named | add-on | [PrefectHQ/fastmcp](https://github.com/PrefectHQ/fastmcp) | `a8745d61e650467756bb28b4157822dbfbdfa34f` | Apache-2.0 | 28,417 | 2026-11-14 | 2026-11-14 |
+| C04 | agent-discover | named | add-on | [wong2/awesome-mcp-servers](https://github.com/wong2/awesome-mcp-servers) | `39eb1d76d76e562657f3c657266a504cea159e23` | not verified — read as an index only (spec 4.4), never vendored | — | — | 2026-11-17 |
+| C04 | agent-discover | named | add-on | [tolkonepiu/best-of-mcp-servers](https://github.com/tolkonepiu/best-of-mcp-servers) | `d808a9a423a9bdb7ac338d1999e75acb6f2b843c` | not verified — read as an index only (spec 4.4), never vendored | — | — | 2026-11-17 |
 | C04 | forage | named-not-found | add-on | [PrefectHQ/fastmcp](https://github.com/PrefectHQ/fastmcp) | `a8745d61e650467756bb28b4157822dbfbdfa34f` | Apache-2.0 | 28,417 | 2026-11-14 | 2026-11-14 |
 | C04 | mcpfinder | named | named | [mcpfinder/mcpfinder](https://github.com/mcpfinder/mcpfinder) | `4c9e2f421a4bfda47e01052ce21931d9b6026b27` | AGPL-3.0 | 14 | 2026-11-13 | 2026-11-14 |
 | C04 | mcpfinder | named | add-on | [punkpeye/awesome-mcp-servers](https://github.com/punkpeye/awesome-mcp-servers) | `f431a5cd95cebf038e587715635b9d1a0a4d0c02` | MIT | 97,691 | 2026-11-06 | 2026-11-14 |

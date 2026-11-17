@@ -3,13 +3,16 @@ name = "revenueos-discovery"
 version = "0.1.0"
 description = "RevenueOS discovery service (C04)"
 requires-python = ">=3.12"
-dependencies = ["revenueos-common"]
+dependencies = ["revenueos-common", "revenueos-mcp-common", "revenueos-sandbox-supervisor"]
 
 [project.scripts]
 revenueos-discovery = "revenueos_discovery.__main__:main"
+revenueos-mcp-sandbox = "revenueos_discovery.sandbox_exec:main"
 
 [tool.uv.sources]
 revenueos-common = { workspace = true }
+revenueos-mcp-common = { workspace = true }
+revenueos-sandbox-supervisor = { workspace = true }
 
 [build-system]
 requires = ["hatchling"]

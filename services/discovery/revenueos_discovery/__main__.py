@@ -1,10 +1,11 @@
 from revenueos_common.service import run
 
 from . import DEFAULT_PORT
-from .app import app
+from .app import app, start
 
 
 def main() -> None:  # pragma: no cover - process entrypoint
+    start()
     run(app, DEFAULT_PORT)
 
 

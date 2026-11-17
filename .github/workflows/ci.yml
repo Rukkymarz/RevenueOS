@@ -51,7 +51,7 @@ jobs:
       - uses: actions/download-artifact@v4
         with: { name: contracts, path: packages/contracts-artifacts }
       - run: cp -r packages/contracts-artifacts/packages/contracts/* packages/contracts/ && rm -rf packages/contracts-artifacts
-      - run: sudo apt-get update && sudo apt-get install -y postgresql-client meson ninja-build libcap-dev pkg-config
+      - run: sudo apt-get update && sudo apt-get install -y postgresql-client meson ninja-build libcap-dev pkg-config strace
       - name: Bubblewrap from the pinned commit; allow its unprivileged user namespaces (docs/RUNBOOK.md)
         run: sh scripts/build-bwrap.sh && sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
       - name: aegis-os from the pinned commit (C03, docs/PINS.md)
@@ -102,7 +102,15 @@ jobs:
       # container; Ubuntu's AppArmor userns restriction would refuse that (see docs/RUNBOOK.md).
       - run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0 || true
       - run: docker compose -f infra/compose.yaml --profile test build
-      - run: docker compose -f infra/compose.yaml --profile test up -d --wait --wait-timeout 600
+      - name: bring up the stack (discovery reads the offline registry fixture, never the public registries)
+        env:
+          DISCOVERY_REGISTRY_URL: http://discovery-fixture:8085
+          DISCOVERY_SMITHERY_URL: http://discovery-fixture:8085
+          DISCOVERY_NPM_URL: http://discovery-fixture:8085
+          DISCOVERY_GITHUB_API: http://discovery-fixture:8085
+          DISCOVERY_RAW_BASE: http://discovery-fixture:8085
+          DISCOVERY_ALLOW_HTTP_HOSTS: mcp-fixture-echo,discovery-fixture
+        run: docker compose -f infra/compose.yaml --profile test up -d --wait --wait-timeout 900
       - uses: actions/setup-python@v5
         with: { python-version: "3.12" }
       - run: pip install pytest requests pyyaml

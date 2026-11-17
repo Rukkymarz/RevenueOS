@@ -40,12 +40,31 @@ RUN apt-get update && apt-get install -y --no-install-recommends git ca-certific
       -Dzsh_completion=disabled -Dpython=/usr/local/bin/python3 \
  && ninja -C /bw/build bwrap && install -m 0755 /bw/build/bwrap /usr/local/bin/bwrap
 
+# C04 agent-discover (named, pinned — docs/PINS.md): the registry of record for installed MCP
+# servers, built from source at the pinned commit. Its daemon runs next to the discovery service.
+FROM node:22-bookworm AS agentdiscover
+ARG AGENT_DISCOVER_SHA=c8a48bc73993d1cf75c00bb67352f0d20356ab3b
+ENV HUSKY=0 PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
+RUN git clone -q https://github.com/keshrath/agent-discover /ad && cd /ad && git checkout -q "$AGENT_DISCOVER_SHA" \
+ && npm ci --no-audit --no-fund && npm run build && npm prune --omit=dev --no-audit --no-fund \
+ && mkdir -p /opt/agent-discover && cp -r dist node_modules package.json /opt/agent-discover/
+
+# C04 MCPfinder (named, pinned): multi-registry search, trust signals, install-ready JSON. Built
+# from source; it runs as a sandboxed stdio MCP server registered in agent-discover.
+FROM node:22-bookworm AS mcpfinder
+ARG MCPFINDER_SHA=4c9e2f421a4bfda47e01052ce21931d9b6026b27
+RUN git clone -q https://github.com/mcpfinder/mcpfinder /mf && cd /mf && git checkout -q "$MCPFINDER_SHA" \
+ && corepack enable && pnpm install --frozen-lockfile --filter "@mcpfinder/core" --filter "@mcpfinder/server" --filter "mcpfinder" \
+ && pnpm --filter @mcpfinder/core build && pnpm --filter @mcpfinder/server build \
+ && mkdir -p /opt/mcpfinder && cp -r package.json node_modules packages /opt/mcpfinder/
+
 FROM python:3.12-slim
 ARG PACKAGES
 # DESKTOP=1 (runtime-omni, spec 3.1): a real X11 desktop for OmniPilot's GUI, screen,
 # clipboard, app and notification tools.
 ARG DESKTOP=0
 RUN apt-get update && apt-get install -y --no-install-recommends postgresql-client util-linux libcap2 git ca-certificates \
+      strace libstdc++6 libatomic1 \
  && if [ "$DESKTOP" = "1" ]; then apt-get install -y --no-install-recommends xvfb fluxbox x11vnc xterm xclip xsel \
       xdotool scrot x11-utils libnotify-bin dbus-x11 tk procps chromium libnss3-tools; fi \
  && if [ "$DESKTOP" = "1" ]; then \
@@ -56,6 +75,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends postgresql-clie
 COPY --from=bwrap /usr/local/bin/bwrap /usr/local/bin/bwrap
 COPY --from=nib /usr/local/bin/nib /usr/local/bin/nib
 COPY --from=aegis /usr/local/bin/aegis-os /usr/local/bin/aegis-os
+# Node (for agent-discover, MCPfinder and npx-launched MCP servers inside their sandboxes).
+COPY --from=agentdiscover /usr/local/bin/node /usr/local/bin/node
+COPY --from=agentdiscover /usr/local/lib/node_modules /usr/local/lib/node_modules
+RUN ln -s ../lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
+ && ln -s ../lib/node_modules/npm/bin/npx-cli.js /usr/local/bin/npx
+COPY --from=agentdiscover /opt/agent-discover /opt/agent-discover
+COPY --from=mcpfinder /opt/mcpfinder /opt/mcpfinder
 WORKDIR /src
 COPY packages/pycommon packages/pycommon
 COPY packages/contracts/python packages/contracts/python
@@ -65,6 +91,7 @@ COPY services services
 COPY mcp mcp
 COPY infra/egress infra/egress
 COPY infra/sandbox-supervisor infra/sandbox-supervisor
+COPY infra/discovery infra/discovery
 COPY scripts scripts
 COPY infra/docker/runtime-omni-entrypoint.sh /usr/local/bin/runtime-omni-entrypoint
 COPY config /src/config
@@ -72,12 +99,14 @@ COPY --from=contracts /src/packages/contracts/generated packages/contracts/gener
 RUN pip install --no-cache-dir "datamodel-code-generator>=0.26" \
  && ./scripts/gen-python-contracts.sh \
  && pip install --no-cache-dir ./packages/pycommon ./packages/contracts/python ./packages/risk $PACKAGES \
+ && pip install --no-cache-dir "mcptoon @ git+https://github.com/activeing123/mcptoon@3af4967dd24433948faf3dbe0259ca64751b8818" \
  && if [ "$DESKTOP" = "1" ]; then pip install --no-cache-dir "playwright>=1.49" "websockify>=0.11"; fi
 ENV REVENUEOS_CONFIG_DIR=/src/config PYTHONUNBUFFERED=1 HOME=/home/revenueos
 # Non-root runtime. compose runs it as the host owner of infra/secrets (REVENUEOS_UID, group 0) so
 # secrets stay 0600/0700; writable dirs are group-0 writable (the arbitrary-UID pattern).
 RUN useradd --uid 10001 --gid 0 --home-dir /home/revenueos --create-home revenueos \
  && mkdir -p /var/lib/revenueos/duckdb /var/lib/revenueos/workspaces /var/lib/revenueos/profiles /workspace \
+      /var/lib/revenueos/mcp /var/lib/revenueos/agent-discover \
  && chgrp -R 0 /var/lib/revenueos /home/revenueos /workspace && chmod -R g=u /var/lib/revenueos /home/revenueos /workspace \
  && chmod 0755 /usr/local/bin/runtime-omni-entrypoint
 USER 10001
