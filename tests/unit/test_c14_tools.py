@@ -186,7 +186,7 @@ def test_extract_edges():
     assert extract.page(html)["text"] == "one two three"
 
 
-def test_guard_blocks_metadata_and_unresolvable_hosts(monkeypatch):
+def test_guard_blocks_metadata_and_unresolvable_hosts(env, monkeypatch):
     sc = load("revenueos_mcp_scraper.server")
     monkeypatch.setattr(socket, "getaddrinfo", lambda *a, **k: [(2, 1, 6, "", ("169.254.169.254", 80))])
     with pytest.raises(PermissionError):
