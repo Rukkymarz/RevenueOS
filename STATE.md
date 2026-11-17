@@ -5,7 +5,7 @@ Updated: 2026-11-17 (America/New_York). Read this file first; it is kept accurat
 **Target:** RevenueOS Phase 5 (C06 mission control, PM, decomposition), branch `build/phase-5`.
 Phases 3 and 4 are sealed.
 
-**Verdict:** Phase 4 SEALED 2026-11-17 (waiver ADR-0004). Phase 5 scoped (nothing built; see findings).
+**Verdict:** Phase 4 SEALED 2026-11-17 (waiver ADR-0004). Phase 5 SEALED (ADR-0005, ADR-0006 provisional: Piyaz live proof carried). Phase 6 built on build/phase-6.
 Decisions of record: ADR-0001..0004.
 
 **Proof of seal:** Phase 4: CI 44035789107 every job green (acceptance 45/45); security 44035789137
