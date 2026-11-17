@@ -50,9 +50,9 @@ def test_approval_gate_then_tree_then_run_and_mirror(world):
     st, planned = pm("POST", f"/v1/projects/{pid}/plan", {"plan": PLAN})
     assert st == 200 and planned["artifacts_approved"] is False and len(planned["tasks"]) == 8
     st, tree = pm("GET", f"/v1/projects/{pid}/tree")
-    slices = [s for m in tree["tree"] for s in m["slices"]]
+    slices = {r["slice_id"] for r in tree["tree"]}
     assert len(slices) == 4
-    tid = next(iter(planned["tasks"].values()))
+    tid = planned["tasks"]["s0t0"]
     # no approved Spec/Plan/Rules: the database refuses EXECUTING
     st, _ = pm("POST", f"/v1/tasks/{tid}/publish", {"premise_bundle_id": world["premise"]})
     assert st == 200
@@ -68,7 +68,7 @@ def test_approval_gate_then_tree_then_run_and_mirror(world):
         assert pm("POST", f"/v1/projects/{pid}/artifacts/{kind}/{v}/approve", {"approved_by": "human:christine"})[0] == 200
     assert pm("GET", f"/v1/projects/{pid}/tree")[1]["artifacts_approved"] is True
     # Auto Mode machinery with the scripted components completes a slice
-    sid = slices[0]["id"]
+    sid = tree["tree"][0]["slice_id"]
     st, rep = pm("POST", f"/v1/slices/{sid}/run", {"executor_agent_id": world["exec"], "verifier_agent_id": world["ver"],
                                                   "premise_bundle_id": world["premise"], "cost_per_task": 0.1})
     assert st == 200 and rep["status"] in ("done", "blocked"), rep

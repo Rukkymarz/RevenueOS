@@ -41,7 +41,9 @@ def mission_control() -> mirrors.MissionControl:
 
 
 def tracker() -> mirrors.FileTracker:
-    return _state.setdefault("tracker", mirrors.FileTracker(os.environ.get("PM_TRACKER_DIR", "/var/lib/revenueos/tracker")))
+    if "tracker" not in _state:
+        _state["tracker"] = mirrors.FileTracker(os.environ.get("PM_TRACKER_DIR", "/var/lib/revenueos/tracker"))
+    return _state["tracker"]
 
 
 def _fail(e: Exception) -> JSONResponse:
