@@ -5,6 +5,7 @@ import json
 import os
 import subprocess
 import tempfile
+import time
 import urllib.error
 import urllib.request
 from pathlib import Path
@@ -64,36 +65,51 @@ class MissionControl:
         out = self.rest("GET", f"/api/tasks/{external_id}")
         return out.get("task") or out
 
-    def via_cli(self, external_id: str) -> dict:
-        r = subprocess.run(["node", f"{self.scripts}/mc-cli.cjs", "tasks", "get", "--id", str(external_id), "--json"],
-                           capture_output=True, text=True, timeout=60,
-                           env={"PATH": os.environ.get("PATH", ""), "HOME": "/tmp", "MC_URL": self.base, "MC_API_KEY": self.key()})
-        if r.returncode != 0:
-            raise MirrorError(f"mc-cli exit {r.returncode}: {r.stderr[:200]}")
-        out = json.loads(r.stdout)
+    def _env(self) -> dict:
+        return {"PATH": os.environ.get("PATH", ""), "HOME": "/tmp", "MC_URL": self.base, "MC_API_KEY": self.key()}
+
+    @staticmethod
+    def _unwrap(out: dict) -> dict:
+        """mc-cli --json prints {ok, status, data}; the task sits under data (and often under data.task)."""
+        out = out.get("data", out) if isinstance(out, dict) else out
         return out.get("task") or out
 
+    def via_cli(self, external_id: str) -> dict:
+        r = subprocess.run(["node", f"{self.scripts}/mc-cli.cjs", "tasks", "get", "--id", str(external_id), "--json"],
+                           capture_output=True, text=True, timeout=60, env=self._env())
+        if r.returncode != 0:
+            raise MirrorError(f"mc-cli exit {r.returncode}: {r.stderr[:200]} {r.stdout[:200]}")
+        return self._unwrap(json.loads(r.stdout))
+
     def via_mcp(self, external_id: str) -> dict:
-        """The stdio MCP server, driven with the three JSON-RPC messages a client sends."""
+        """The stdio MCP server, driven as a client does: the server exits when stdin closes, so stdin
+        stays open until the tool reply for request 2 has arrived."""
         msgs = [{"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {"protocolVersion": "2024-11-05", "capabilities": {},
                                                                               "clientInfo": {"name": "revenueos-pm", "version": "1"}}},
                 {"jsonrpc": "2.0", "method": "notifications/initialized"},
                 {"jsonrpc": "2.0", "id": 2, "method": "tools/call", "params": {"name": "mc_get_task", "arguments": {"id": int(external_id)}}}]
-        r = subprocess.run(["node", f"{self.scripts}/mc-mcp-server.cjs"], input="\n".join(json.dumps(m) for m in msgs) + "\n",
-                           capture_output=True, text=True, timeout=60,
-                           env={"PATH": os.environ.get("PATH", ""), "HOME": "/tmp", "MC_URL": self.base, "MC_API_KEY": self.key()})
-        for line in r.stdout.splitlines():
-            try:
-                m = json.loads(line)
-            except ValueError:
-                continue
-            if m.get("id") == 2:
-                if "error" in m or m.get("result", {}).get("isError"):
-                    raise MirrorError(f"mcp: {json.dumps(m)[:200]}")
-                text = m["result"]["content"][0]["text"]
-                out = json.loads(text)
-                return out.get("task") or out
-        raise MirrorError(f"mcp: no reply ({r.stderr[:200]})")
+        p = subprocess.Popen(["node", f"{self.scripts}/mc-mcp-server.cjs"], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                             stderr=subprocess.PIPE, text=True, env=self._env())
+        try:
+            p.stdin.write("\n".join(json.dumps(m) for m in msgs) + "\n")
+            p.stdin.flush()
+            deadline = time.time() + 60
+            while time.time() < deadline:
+                line = p.stdout.readline()
+                if not line:
+                    break
+                try:
+                    m = json.loads(line)
+                except ValueError:
+                    continue
+                if m.get("id") == 2:
+                    if "error" in m or m.get("result", {}).get("isError"):
+                        raise MirrorError(f"mcp: {json.dumps(m)[:200]}")
+                    return self._unwrap(json.loads(m["result"]["content"][0]["text"]))
+            raise MirrorError("mcp: no reply")
+        finally:
+            p.kill()
+            p.wait()
 
     def via_web_session(self, external_id: str) -> dict:
         """What the dashboard's task panel does: sign in, then read the task with the session cookie."""

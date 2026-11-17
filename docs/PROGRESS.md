@@ -147,3 +147,7 @@
   policy, INV-10 in the database and at NAVA step 3, sandboxed servers, api-anything experimental.
 - Gate: CI 44035789107 every job green (acceptance 45/45); security 44035789137 green except
   OpenHack (DO_NOT_FILE, waived for the seal only). See `docs/reviews/phase-4-review.md`.
+
+### 2026-11-17 — Phase 5 built (ADR-0005 re-phase, ADR-0006 Piyaz carry)
+PM layer, approval gate in Postgres, task tree, FIST lifecycle, slice runner, Mission Control live,
+roster. Piyaz live proof and the model-driven planner/Auto Mode are carried. See docs/reviews/phase-5-review.md.
