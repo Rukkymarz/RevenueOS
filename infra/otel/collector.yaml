@@ -1,0 +1,16 @@
+# OpenTelemetry collector: OTLP/HTTP in, JSON lines file out (read by the Phase 1 trace acceptance test).
+receivers:
+  otlp:
+    protocols:
+      http: { endpoint: 0.0.0.0:4318 }
+processors:
+  batch: { timeout: 1s }
+exporters:
+  file: { path: /out/traces.jsonl }
+  debug: { verbosity: basic }
+extensions:
+  health_check: { endpoint: 0.0.0.0:13133 }
+service:
+  extensions: [health_check]
+  pipelines:
+    traces: { receivers: [otlp], processors: [batch], exporters: [file, debug] }

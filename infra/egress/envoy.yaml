@@ -1,0 +1,130 @@
+# Envoy egress proxy (spec 1.5, INV-11). Agents send plain-HTTP absolute-form requests
+# here; a Lua filter asks egress-authz for a decision before any upstream connection
+# is made. Denied requests get 403 and never leave. Allowed requests have their
+# secret headers injected here, so the calling agent never holds the secret.
+# The decision call carries only header metadata (no body), and every decision is
+# written to the hash-chained audit ledger by egress-authz.
+# HTTPS: the sandbox forwarder ends the agent's TLS (egress CA) and sends the request here
+# flagged `x-revenueos-upstream-tls: 1`; that route uses a cluster that originates TLS to the
+# upstream with SNI and certificate validation against the system CA store.
+admin:
+  address: { socket_address: { address: 0.0.0.0, port_value: 9901 } }
+
+static_resources:
+  listeners:
+    - name: egress
+      address: { socket_address: { address: 0.0.0.0, port_value: 10000 } }
+      filter_chains:
+        - filters:
+            - name: envoy.filters.network.http_connection_manager
+              typed_config:
+                "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
+                stat_prefix: egress
+                access_log:
+                  - name: envoy.access_loggers.stdout
+                    typed_config:
+                      "@type": type.googleapis.com/envoy.extensions.access_loggers.stream.v3.StdoutAccessLog
+                route_config:
+                  name: egress_routes
+                  virtual_hosts:
+                    - name: all
+                      domains: ["*"]
+                      routes:
+                        - match:
+                            prefix: "/"
+                            headers: [{ name: x-revenueos-upstream-tls, string_match: { exact: "1" } }]
+                          route: { cluster: dynamic_forward_proxy_tls, timeout: 30s }
+                          request_headers_to_remove: [x-revenueos-upstream-tls]
+                        - match: { prefix: "/" }
+                          route: { cluster: dynamic_forward_proxy_cluster, timeout: 30s }
+                http_filters:
+                  - name: envoy.filters.http.lua
+                    typed_config:
+                      "@type": type.googleapis.com/envoy.extensions.filters.http.lua.v3.Lua
+                      default_source_code:
+                        inline_string: |
+                          -- Fail closed: any script error denies the request (Envoy would otherwise let it through).
+                          local function decide(h)
+                            local hdrs = h:headers()
+                            local check_headers = {
+                              [":method"] = "POST", [":path"] = "/v1/check", [":authority"] = "egress-authz",
+                              -- identity stamp from the sandbox supervisor's forwarder (verified by egress-authz)
+                              ["x-egress-session"] = hdrs:get("x-revenueos-session") or "",
+                              ["x-egress-agent"] = hdrs:get("x-revenueos-agent") or "",
+                              ["x-egress-task"] = hdrs:get("x-revenueos-task") or "",
+                              ["x-egress-ts"] = hdrs:get("x-revenueos-ts") or "",
+                              ["x-egress-sig"] = hdrs:get("x-revenueos-sig") or "",
+                              ["x-egress-host"] = hdrs:get(":authority") or "",
+                              ["x-egress-method"] = hdrs:get(":method") or "",
+                              ["x-egress-path"] = hdrs:get(":path") or "",
+                            }
+                            local rh, body = h:httpCall("egress_authz", check_headers, "", 3000)
+                            if rh == nil or rh[":status"] ~= "200" then
+                              h:respond({[":status"] = "403", ["content-type"] = "application/json"},
+                                        body or '{"error":"egress denied"}')
+                              return
+                            end
+                            -- httpCall yields: header handles taken before it are no longer valid.
+                            local out = h:headers()
+                            for _, n in ipairs({"session", "agent", "task", "ts", "sig"}) do
+                              out:remove("x-revenueos-" .. n)   -- the identity stamp never reaches the upstream
+                            end
+                            local injected = 0
+                            for name, value in string.gmatch(body or "", "([%w%-]+)=([^\n]*)\n") do
+                              out:replace(name, value)
+                              injected = injected + 1
+                            end
+                            h:logInfo("egress allowed; injected headers: " .. injected)
+                          end
+
+                          function envoy_on_request(h)
+                            local ok, err = pcall(decide, h)
+                            if not ok then
+                              h:logErr("egress filter error, denying: " .. tostring(err))
+                              h:respond({[":status"] = "403", ["content-type"] = "application/json"},
+                                        '{"error":"egress denied","reason":"proxy filter error (fail closed)"}')
+                            end
+                          end
+                  - name: envoy.filters.http.dynamic_forward_proxy
+                    typed_config:
+                      "@type": type.googleapis.com/envoy.extensions.filters.http.dynamic_forward_proxy.v3.FilterConfig
+                      dns_cache_config: { name: egress_dns, dns_lookup_family: V4_ONLY }
+                  - name: envoy.filters.http.router
+                    typed_config:
+                      "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
+
+  clusters:
+    - name: egress_authz
+      type: STRICT_DNS
+      connect_timeout: 2s
+      load_assignment:
+        cluster_name: egress_authz
+        endpoints:
+          - lb_endpoints:
+              - endpoint: { address: { socket_address: { address: egress-authz, port_value: 9100 } } }
+    - name: dynamic_forward_proxy_cluster
+      lb_policy: CLUSTER_PROVIDED
+      cluster_type:
+        name: envoy.clusters.dynamic_forward_proxy
+        typed_config:
+          "@type": type.googleapis.com/envoy.extensions.clusters.dynamic_forward_proxy.v3.ClusterConfig
+          dns_cache_config: { name: egress_dns, dns_lookup_family: V4_ONLY }
+    - name: dynamic_forward_proxy_tls
+      lb_policy: CLUSTER_PROVIDED
+      cluster_type:
+        name: envoy.clusters.dynamic_forward_proxy
+        typed_config:
+          "@type": type.googleapis.com/envoy.extensions.clusters.dynamic_forward_proxy.v3.ClusterConfig
+          dns_cache_config: { name: egress_dns, dns_lookup_family: V4_ONLY }
+      transport_socket:
+        name: envoy.transport_sockets.tls
+        typed_config:
+          "@type": type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext
+          common_tls_context:
+            tls_params: { tls_minimum_protocol_version: TLSv1_2 }
+            validation_context: { trusted_ca: { filename: /etc/ssl/certs/ca-certificates.crt } }
+      typed_extension_protocol_options:
+        envoy.extensions.upstreams.http.v3.HttpProtocolOptions:
+          "@type": type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions
+          upstream_http_protocol_options: { auto_sni: true, auto_san_validation: true }
+          explicit_http_config: { http_protocol_options: {} }

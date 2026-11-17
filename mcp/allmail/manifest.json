@@ -1,0 +1,18 @@
+{
+  "name": "allmail",
+  "version": "0.1.0",
+  "description": "Mail for agents over IMAP/SMTP: Gmail, iCloud, Zoho, Fastmail, any IMAP/SMTP host, and each agent's own self-hosted mailbox. Credentials by keychain/vault reference; send and trash are high-risk and need a human approval (the 'human click').",
+  "resolution_mode": "native",
+  "status": "approved",
+  "transport": "streamable-http",
+  "endpoint": "/mcp",
+  "health": "/health",
+  "auth": { "type": "bearer", "secret_ref": "keychain://mcp-allmail-token" },
+  "requires": { "secrets": ["keychain://mcp-allmail-token"] },
+  "tools": [
+    { "name": "mail_list",  "risk_class": "low",  "description": "List recent messages in a folder of the caller's mailbox" },
+    { "name": "mail_read",  "risk_class": "low",  "description": "Read one message (text) by UID" },
+    { "name": "mail_send",  "risk_class": "high", "description": "Send a message (needs a hash-bound human approval)" },
+    { "name": "mail_trash", "risk_class": "high", "description": "Move a message to Trash (needs a hash-bound human approval)" }
+  ]
+}

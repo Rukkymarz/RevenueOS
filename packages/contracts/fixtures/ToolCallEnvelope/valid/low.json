@@ -1,0 +1,11 @@
+{
+  "task_id": "0b9b3a52-6f2e-4c61-9a3b-1f2e3d4c5b6a",
+  "agent_id": "1c8a2b41-5e1d-4b50-8a2a-0e1d2c3b4a59",
+  "server": "scraper",
+  "tool": "fetch",
+  "args": {
+    "url": "https://example.com"
+  },
+  "risk_class": "low",
+  "traceparent": "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+}
