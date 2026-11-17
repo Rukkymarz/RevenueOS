@@ -337,7 +337,7 @@ services:
     build: { context: .., dockerfile: infra/docker/python.Dockerfile, args: { PACKAGES: "./packages/mcp-common ./mcp/photo-generator" } }
     command: ["revenueos-mcp-photo-generator"]
     environment: { <<: *pyenv, PORT: "8203", PHOTO_ROOT: /var/lib/revenueos/photos }
-    volumes: [photos:/var/lib/revenueos/photos]
+    volumes: [./secrets/keychain:/run/revenueos/keychain:ro, photos:/var/lib/revenueos/photos]
     depends_on:
       migrate: { condition: service_completed_successfully }
       otel-collector: { condition: service_healthy }
