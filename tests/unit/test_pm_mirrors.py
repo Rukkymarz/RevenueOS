@@ -138,7 +138,8 @@ def test_http_flow_project_to_completed_slice_and_mirrors(client, world):
     run = c.post(f"/v1/slices/{sid}/run", json={"executor_agent_id": world["exec"], "verifier_agent_id": world["ver"],
                                                "premise_bundle_id": world["premise"]}).json()
     assert run["status"] == "done" and run["completed"] == [t]
-    assert c.post(f"/v1/tasks/{t}/mirror/sync", json={}).json()["mission-control"] == "1"
+    synced = c.post(f"/v1/tasks/{t}/mirror/sync", json={}).json()
+    assert synced.get("mission-control") == "1", synced
     assert FakeMC.tasks["1"]["status"] == "done"
     assert c.post(f"/v1/tasks/{t}/archive", json={}).json() == {"archived": True}
     assert c.post(f"/v1/tasks/{t}/bogus", json={}).status_code == 400

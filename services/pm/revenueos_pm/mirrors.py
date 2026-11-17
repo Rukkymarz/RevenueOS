@@ -205,6 +205,6 @@ def sync(db, task_id: str, *, mc: MissionControl | None = None, piyaz: Piyaz | N
             db.rows("INSERT INTO task_mirrors(task_id, system, external_id) VALUES ($t::uuid, $s, $e) ON CONFLICT (task_id, system) "
                     "DO UPDATE SET external_id = EXCLUDED.external_id, synced_at = now() RETURNING task_id", t=task_id, s=system, e=new)
             out[system] = new
-        except MirrorError as e:
-            out[system] = f"error: {e}"
+        except Exception as e:  # noqa: BLE001 - a down or misbehaving mirror never blocks the task
+            out[system] = f"error: {type(e).__name__}: {e}"
     return out
