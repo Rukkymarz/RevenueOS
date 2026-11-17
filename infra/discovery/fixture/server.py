@@ -48,6 +48,14 @@ class Handler(BaseHTTPRequestHandler):
         path = unquote(u.path)
         if path == "/health":
             return self._send({"status": "ok"})
+        if path == "/site/acme":          # Acceptance 6: a public-looking business page for the scraper
+            page = (b"<html><head><title>Acme Offices</title><meta name=description content='Office park'></head><body>"
+                    b"<p>Facilities: hello@acme.example, 404-555-1212</p><a href='/site/contact'>Contact</a></body></html>")
+            self.send_response(200)
+            self.send_header("content-type", "text/html")
+            self.send_header("content-length", str(len(page)))
+            self.end_headers()
+            return self.wfile.write(page)
         if path in ("/v0/servers", "/v0.1/servers"):
             term = (q.get("search") or "").lower()
             hits = [s for s in SERVERS if term in (s["name"] + s["description"]).lower()]

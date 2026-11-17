@@ -16,6 +16,7 @@ for d in files terminal python processes system screen gui clipboard apps notify
   gen "$DIR/keychain/mcp-nava-$d-token"      # the 15 NAVA MCP servers (spec 3.3)
 done
 gen "$DIR/keychain/mcp-forage-token"        # Forage, the single manually configured MCP gateway (spec 4.1)
+for s in photo-generator scraper outreach; do gen "$DIR/keychain/mcp-$s-token"; done   # C14 tools (spec 6)
 gen "$DIR/keychain/mission-control-api-key"   # C06 Mission Control: REST/CLI/MCP key and the dashboard login
 gen "$DIR/keychain/mission-control-password"
 # Mission Control reads its settings from environment variables; this file is generated here, never committed.

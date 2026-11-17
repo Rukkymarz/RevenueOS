@@ -1,0 +1,31 @@
+{
+  "name": "photo-generator",
+  "version": "0.1.0",
+  "description": "Style-locked images from a project's committed design direction (procedural, model-free; a model-backed generator plugs in at Phase 13). photo_verify re-checks every image against the direction's palette.",
+  "resolution_mode": "native",
+  "status": "approved",
+  "transport": "streamable-http",
+  "endpoint": "/mcp",
+  "health": "/health",
+  "auth": {
+    "type": "bearer",
+    "secret_ref": "keychain://mcp-photo-generator-token"
+  },
+  "requires": {
+    "secrets": [
+      "keychain://mcp-photo-generator-token"
+    ]
+  },
+  "tools": [
+    {
+      "name": "photo_generate",
+      "risk_class": "low",
+      "description": "Render a PNG locked to a design direction's palette and record it"
+    },
+    {
+      "name": "photo_verify",
+      "risk_class": "low",
+      "description": "Re-read a stored image and check it matches its direction's palette"
+    }
+  ]
+}

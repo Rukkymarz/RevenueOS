@@ -1,0 +1,36 @@
+{
+  "name": "scraper",
+  "version": "0.1.0",
+  "description": "Robots-aware fetch and extraction with an SSRF guard and a fallback chain: Agent-Reach, EasySpider, api-anything (each reported not_configured until its adapter is set).",
+  "resolution_mode": "native",
+  "status": "approved",
+  "transport": "streamable-http",
+  "endpoint": "/mcp",
+  "health": "/health",
+  "auth": {
+    "type": "bearer",
+    "secret_ref": "keychain://mcp-scraper-token"
+  },
+  "requires": {
+    "secrets": [
+      "keychain://mcp-scraper-token"
+    ]
+  },
+  "tools": [
+    {
+      "name": "scrape_fetch",
+      "risk_class": "low",
+      "description": "Fetch a public page and extract title, text, links and contacts"
+    },
+    {
+      "name": "scrape_extract",
+      "risk_class": "low",
+      "description": "Select text from supplied HTML (tag, tag.class, #id, .class)"
+    },
+    {
+      "name": "scrape_fallbacks",
+      "risk_class": "low",
+      "description": "List the fallback chain and which adapters are configured"
+    }
+  ]
+}

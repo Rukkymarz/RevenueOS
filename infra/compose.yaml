@@ -332,6 +332,38 @@ services:
       stalwart: { condition: service_healthy }
     healthcheck: { test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8202/health').status==200 else 1)"], interval: 5s, retries: 30 }
 
+  photo-generator:
+    <<: *python
+    build: { context: .., dockerfile: infra/docker/python.Dockerfile, args: { PACKAGES: "./packages/mcp-common ./mcp/photo-generator" } }
+    command: ["revenueos-mcp-photo-generator"]
+    environment: { <<: *pyenv, PORT: "8203", PHOTO_ROOT: /var/lib/revenueos/photos }
+    volumes: [photos:/var/lib/revenueos/photos]
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      otel-collector: { condition: service_healthy }
+    healthcheck: { test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8203/health').status==200 else 1)"], interval: 5s, retries: 30 }
+
+  scraper:
+    <<: *python
+    build: { context: .., dockerfile: infra/docker/python.Dockerfile, args: { PACKAGES: "./packages/mcp-common ./mcp/scraper" } }
+    command: ["revenueos-mcp-scraper"]
+    environment: { <<: *pyenv, PORT: "8204", SCRAPER_ALLOW_HOSTS: "discovery-fixture" }
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      otel-collector: { condition: service_healthy }
+    healthcheck: { test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8204/health').status==200 else 1)"], interval: 5s, retries: 30 }
+
+  outreach:
+    <<: *python
+    build: { context: .., dockerfile: infra/docker/python.Dockerfile, args: { PACKAGES: "./packages/mcp-common ./mcp/outreach" } }
+    command: ["revenueos-mcp-outreach"]
+    environment: { <<: *pyenv, PORT: "8205", OUTREACH_SEND_DOMAINS: "agents.revenueos.test" }
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      otel-collector: { condition: service_healthy }
+      stalwart: { condition: service_healthy }
+    healthcheck: { test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8205/health').status==200 else 1)"], interval: 5s, retries: 30 }
+
   identity:
     <<: *python
     build: { context: .., dockerfile: infra/docker/python.Dockerfile, args: { PACKAGES: "./services/identity" } }
@@ -406,6 +438,7 @@ volumes:
   discovery-mcp: {}
   discovery-registry: {}
   mission-control-data: {}
+  photos: {}
   profiles: {}
   stalwart-data: {}
   agenticmail-data: {}

@@ -116,7 +116,7 @@ ENV REVENUEOS_CONFIG_DIR=/src/config PYTHONUNBUFFERED=1 HOME=/home/revenueos
 # secrets stay 0600/0700; writable dirs are group-0 writable (the arbitrary-UID pattern).
 RUN useradd --uid 10001 --gid 0 --home-dir /home/revenueos --create-home revenueos \
  && mkdir -p /var/lib/revenueos/duckdb /var/lib/revenueos/workspaces /var/lib/revenueos/profiles /workspace \
-      /var/lib/revenueos/mcp /var/lib/revenueos/agent-discover /var/lib/revenueos/tracker \
+      /var/lib/revenueos/mcp /var/lib/revenueos/agent-discover /var/lib/revenueos/tracker /var/lib/revenueos/photos \
  && chgrp -R 0 /var/lib/revenueos /home/revenueos /workspace && chmod -R g=u /var/lib/revenueos /home/revenueos /workspace \
  && chmod 0755 /usr/local/bin/runtime-omni-entrypoint
 USER 10001
