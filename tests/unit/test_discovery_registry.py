@@ -7,6 +7,11 @@ from revenueos_discovery import forage, registry
 from discovery_kit import Secrets
 
 
+@pytest.fixture(autouse=True)
+def mcp_root(tmp_path, monkeypatch):
+    monkeypatch.setattr(forage, "ROOT", tmp_path)
+
+
 @pytest.fixture
 def ad():
     return FakeAgentDiscover()

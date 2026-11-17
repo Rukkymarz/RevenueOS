@@ -26,16 +26,22 @@ _state: dict = {}
 
 
 def db() -> Database:
-    return _state.setdefault("db", Database(actor="discovery"))
+    if "db" not in _state:
+        _state["db"] = Database(actor="discovery")
+    return _state["db"]
 
 
 def ad() -> AgentDiscover:
-    return _state.setdefault("ad", AgentDiscover())
+    if "ad" not in _state:
+        _state["ad"] = AgentDiscover()
+    return _state["ad"]
 
 
 def secrets() -> SecretResolver:
-    return _state.setdefault("secrets", SecretResolver(KeychainStore(
-        os.environ.get("REVENUEOS_KEYCHAIN_DIR", "/run/revenueos/keychain"))))
+    if "secrets" not in _state:
+        _state["secrets"] = SecretResolver(KeychainStore(
+            os.environ.get("REVENUEOS_KEYCHAIN_DIR", "/run/revenueos/keychain")))
+    return _state["secrets"]
 
 
 def _fail(e: Exception) -> JSONResponse:
