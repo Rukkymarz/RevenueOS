@@ -9,3 +9,7 @@ test("next build produced the shell page and health route", () => {
   assert.match(html, /RevenueOS/);
   assert.ok(existsSync(".next/server/app/api/health/route.js"), "health route missing");
 });
+
+test("the roster view is built", () => {
+  assert.ok(existsSync(".next/server/app/roster/page.js"), "roster page missing");
+});

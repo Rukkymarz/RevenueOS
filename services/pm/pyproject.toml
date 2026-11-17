@@ -3,7 +3,7 @@ name = "revenueos-pm"
 version = "0.1.0"
 description = "RevenueOS pm service (C06)"
 requires-python = ">=3.12"
-dependencies = ["revenueos-common"]
+dependencies = ["revenueos-common", "pyyaml"]
 
 [project.scripts]
 revenueos-pm = "revenueos_pm.__main__:main"

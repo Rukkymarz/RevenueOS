@@ -2,8 +2,8 @@
  * Command Center shell (Phase 1). Each view lands in its phase; until then the
  * shell shows the view with an explicit empty state rather than invented data.
  */
-const views = [
-  { name: "Agent roster", phase: 5 }, { name: "Projects", phase: 5 }, { name: "Task board", phase: 5 },
+const views: { name: string; phase: number; href?: string }[] = [
+  { name: "Agent roster", phase: 5, href: "/roster" }, { name: "Projects", phase: 5 }, { name: "Task board", phase: 5 },
   { name: "Approvals inbox", phase: 2 }, { name: "Registries", phase: 4 }, { name: "Lead pipeline", phase: 10 },
   { name: "Timelines", phase: 11 }, { name: "Insights", phase: 11 }, { name: "Skills", phase: 12 },
   { name: "Audit", phase: 11 }, { name: "Takeover console", phase: 14 }, { name: "Design studio", phase: 9 },
@@ -24,7 +24,11 @@ export default function Home() {
         {views.map((v) => (
           <section key={v.name} className="rounded-lg border border-border bg-surface p-4">
             <h2 className="font-medium">{v.name}</h2>
-            <p className="mt-1 rounded-sm text-sm text-muted">Empty: available from phase {v.phase}</p>
+            {v.href ? (
+              <a className="mt-1 inline-block rounded-sm text-sm underline" href={v.href}>Open</a>
+            ) : (
+              <p className="mt-1 rounded-sm text-sm text-muted">Empty: available from phase {v.phase}</p>
+            )}
           </section>
         ))}
       </nav>

@@ -22,6 +22,9 @@ class TestINV13WebsiteGateStorage:
         db.q(f"UPDATE projects SET framework_contract_id='{fc}' WHERE id='{p}'")
         db.q(f"UPDATE tasks SET state='PLANNED' WHERE id='{t}'")
         db.q(f"UPDATE tasks SET state='AWAITING_APPROVAL' WHERE id='{t}'")
+        for kind in ("spec", "plan", "rules"):      # C06: a project's task executes only on approved artifacts
+            db.q(f"INSERT INTO decompositions(project_id, kind, content, version, approved_by) "
+                 f"VALUES ('{p}','{kind}','x',1,'human:christine')")
         db.q(f"UPDATE tasks SET executor_agent_id='{world['exec']}', state='EXECUTING' WHERE id='{t}'")
         db.q(f"INSERT INTO evidence(task_id, kind, uri, hash, oracle_tier, produced_by) VALUES ('{t}','shots','u','{H}','L3','pw')")
         db.rejects(f"UPDATE tasks SET state='EVIDENCE_SUBMITTED' WHERE id='{t}'", "INV-13")

@@ -125,6 +125,33 @@ services:
       envoy: { condition: service_healthy }
     healthcheck: { test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8104/health').status==200 else 1)"], interval: 5s, retries: 60 }
 
+  # ---------------- C06 pm (Phase 5): projects, Spec/Plan/Rules approval gate, task tree, FIST lifecycle,
+  # slice runner, mirrors and the Agency roster. Postgres is authoritative.
+  pm:
+    <<: *python
+    build: { context: .., dockerfile: infra/docker/python.Dockerfile, args: { PACKAGES: "./packages/mcp-common ./services/pm" } }
+    command: ["revenueos-pm"]
+    environment:
+      <<: *pyenv
+      PORT: "8106"
+      MISSION_CONTROL_URL: "http://mission-control:3000"
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      mission-control: { condition: service_healthy }
+    healthcheck: { test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8106/health').status==200 else 1)"], interval: 5s, retries: 60 }
+
+  # Mission Control (builderz-labs/mission-control, MIT), built from the pinned commit's own Dockerfile.
+  # SQLite inside, no Redis, no Postgres of its own. Its task rows are a view; Postgres stays authoritative.
+  mission-control:
+    build: { context: "https://github.com/builderz-labs/mission-control.git#c1a846fe020567bb3ceb3b65db9f00db875618cd" }
+    env_file: ./secrets/mc.env
+    environment:
+      MC_COOKIE_SECURE: "false"
+      MC_ALLOWED_HOSTS: "mission-control,localhost,127.0.0.1"
+      NEXT_TELEMETRY_DISABLED: "1"
+    volumes: [mission-control-data:/app/.data]
+    networks: [core]
+
   # Forage as the single manually configured MCP gateway (spec 4.1): a facade over governed syscalls.
   forage-mcp:
     <<: *python
@@ -348,6 +375,7 @@ services:
 
   command-center:
     build: { context: .., dockerfile: infra/docker/node.Dockerfile, args: { APP: "@revenueos/command-center", APP_DIR: apps/command-center } }
+    environment: { PM_URL: "http://pm:8106" }
     command: ["node", "node_modules/next/dist/bin/next", "start", "-p", "3001"]
     ports: ["127.0.0.1:3001:3001"]
     healthcheck: { test: ["CMD", "node", "-e", "fetch('http://localhost:3001/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"], interval: 5s, retries: 30 }
@@ -375,6 +403,7 @@ volumes:
   workspaces: {}
   discovery-mcp: {}
   discovery-registry: {}
+  mission-control-data: {}
   profiles: {}
   stalwart-data: {}
   agenticmail-data: {}

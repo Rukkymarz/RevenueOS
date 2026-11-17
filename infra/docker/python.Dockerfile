@@ -31,6 +31,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends build-essential
  # ([[bin]] name = "aegis-os" in crates/aos-cli/Cargo.toml) -- not `aos-cli`.
  && install -m 0755 target/release/aegis-os /usr/local/bin/aegis-os
 
+# C06 Mission Control (named, pinned — docs/PINS.md): its own container is built from the pinned
+# commit (compose). Its CLI and MCP scripts are zero-dependency Node and ship here so the pm service
+# can prove one task is visible through all four interfaces.
+FROM node:22-bookworm AS mcscripts
+ARG MISSION_CONTROL_SHA=c1a846fe020567bb3ceb3b65db9f00db875618cd
+RUN git clone -q https://github.com/builderz-labs/mission-control /mc && cd /mc && git checkout -q "$MISSION_CONTROL_SHA" \
+ && mkdir -p /opt/mission-control/scripts && cp scripts/mc-cli.cjs scripts/mc-mcp-server.cjs scripts/mc-base-url.cjs /opt/mission-control/scripts/
+
 FROM python:3.12-slim AS bwrap
 ARG BWRAP_SHA=1fb0aa26d3eb66254f7742e704add7f82f41a582
 RUN apt-get update && apt-get install -y --no-install-recommends git ca-certificates meson ninja-build gcc libc6-dev \
@@ -82,6 +90,7 @@ RUN ln -s ../lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
  && ln -s ../lib/node_modules/npm/bin/npx-cli.js /usr/local/bin/npx
 COPY --from=agentdiscover /opt/agent-discover /opt/agent-discover
 COPY --from=mcpfinder /opt/mcpfinder /opt/mcpfinder
+COPY --from=mcscripts /opt/mission-control /opt/mission-control
 WORKDIR /src
 COPY packages/pycommon packages/pycommon
 COPY packages/contracts/python packages/contracts/python
@@ -95,6 +104,7 @@ COPY infra/discovery infra/discovery
 COPY scripts scripts
 COPY infra/docker/runtime-omni-entrypoint.sh /usr/local/bin/runtime-omni-entrypoint
 COPY config /src/config
+COPY agents /src/agents
 COPY --from=contracts /src/packages/contracts/generated packages/contracts/generated
 RUN pip install --no-cache-dir "datamodel-code-generator>=0.26" \
  && ./scripts/gen-python-contracts.sh \
@@ -106,7 +116,7 @@ ENV REVENUEOS_CONFIG_DIR=/src/config PYTHONUNBUFFERED=1 HOME=/home/revenueos
 # secrets stay 0600/0700; writable dirs are group-0 writable (the arbitrary-UID pattern).
 RUN useradd --uid 10001 --gid 0 --home-dir /home/revenueos --create-home revenueos \
  && mkdir -p /var/lib/revenueos/duckdb /var/lib/revenueos/workspaces /var/lib/revenueos/profiles /workspace \
-      /var/lib/revenueos/mcp /var/lib/revenueos/agent-discover \
+      /var/lib/revenueos/mcp /var/lib/revenueos/agent-discover /var/lib/revenueos/tracker \
  && chgrp -R 0 /var/lib/revenueos /home/revenueos /workspace && chmod -R g=u /var/lib/revenueos /home/revenueos /workspace \
  && chmod 0755 /usr/local/bin/runtime-omni-entrypoint
 USER 10001
