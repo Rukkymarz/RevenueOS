@@ -141,3 +141,9 @@
 - Gate on `90b4333`: CI 44022282389 every job green; security 44022282817 green except OpenHack.
 - Phase 4 (C04 discovery) starts on `build/phase-4`.
 
+
+### 2026-11-17 — Phase 4 built and sealed (ADR-0004 carries the OpenHack waiver)
+- C04 discovery: Forage, agent-discover registry, mcptoon, MCPfinder, curated sources, selection
+  policy, INV-10 in the database and at NAVA step 3, sandboxed servers, api-anything experimental.
+- Gate: CI 44035789107 every job green (acceptance 45/45); security 44035789137 green except
+  OpenHack (DO_NOT_FILE, waived for the seal only). See `docs/reviews/phase-4-review.md`.
