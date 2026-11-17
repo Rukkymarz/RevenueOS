@@ -34,7 +34,7 @@ green except OpenHack.
 
 | Blocker | What clears it | Evidence |
 | --- | --- | --- |
-| OpenHack scan is DO_NOT_FILE. The secrets reach OpenRouter, but the model name is refused: `404 - This model is unavailable for free. The paid version is available now - use this slug instead: meta-llama/llama-3.3-70b-instruct` | Set `SECURITY_OPEN_MODEL_NAME` to `meta-llama/llama-3.3-70b-instruct` (paid, uses OpenRouter credits), or to a model OpenRouter currently lists as free | security run 43800695820 on PR #4 |
+| OpenHack scan is DO_NOT_FILE. The model now answers (`openhack client reply: ok tokens: 31`), but the scan hit OpenRouter's free daily cap: `429 - Rate limit exceeded: free-models-per-day. Add 10 credits to unlock 1000 free model requests per day` | Add $10 of OpenRouter credits (raises the free cap to 1000 requests/day), or point the secrets at another provider | security run 43800695820 attempt 2, PR #4 (2026-11-17) |
 
 Closed: NAVA-native vs OpenHands ([ADR-0001](docs/adr/ADR-0001-nava-vs-openhands.md)); the three
 model-driven C02 components, moved to Phase 13 by the owner
