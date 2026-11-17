@@ -2,16 +2,12 @@
 
 Gate protocol Step 3. Phase spec: v4 §3.1–3.6, Acceptance 3.
 
-**Gate status: NOT SEALED. Gate re-run 2026-11-15 on `78d960e`: Steps 1–2 green, Step 3 red.**
-Gate runs: CI 43791376552 (Validate RevenueOS) had every job green, with live acceptance 39/39
-across Phases 1–3 (raw output: `phase-3-acceptance.log`), Q1/Q2/Q6/Q7 PASS (Q3–Q5 not
-applicable yet), the trace secret scan, and contracts ts1/ts2. Security 43791376467 green, with
-AutoSecScan scan success; OpenHack and VulnHunter are skipped on push by design. The review
-(Step 3) still fails on the owner blocker below, so the phase is not sealed.
-Section (a) shows every built row `complete`. The NAVA fork is decided by
-[ADR-0001](../adr/ADR-0001-nava-vs-openhands.md). One owner blocker remains (the model-driven C02 components were re-phased to Phase 13 by the owner, [ADR-0002](../adr/ADR-0002-rephase-model-driven-c02-components.md)). It is not a build
-gap, but it still fails the gate under the protocol. It is listed first so
-nobody reads the rest as a seal.
+**Gate status: SEALED 2026-11-17 with one owner waiver.** Gate runs on `90b4333` (PR #4): CI
+44022282389 every job green; security 44022282817 green except OpenHack. OpenHack's verdict is
+still DO_NOT_FILE (free daily cap, `429`); the owner waived it as a seal condition in
+[ADR-0003](../adr/ADR-0003-openhack-waiver-phase-3.md). It is not a pass and blocks any merge to
+`main` or deploy until a full scan completes. NAVA fork: [ADR-0001](../adr/ADR-0001-nava-vs-openhands.md).
+Model-driven C02 components re-phased to Phase 13: [ADR-0002](../adr/ADR-0002-rephase-model-driven-c02-components.md).
 
 | Open item | Why it blocks | What closes it |
 | --- | --- | --- |

@@ -133,3 +133,11 @@
   PR #3): the key reaches OpenRouter, which answered `402 - Insufficient credits. This account
   never purchased credits`. Verdict stays DO_NOT_FILE. One owner blocker remains; not sealed.
 
+### 2026-11-17 — Phase 3 sealed with an owner waiver (ADR-0003)
+- OpenHack reached the model but was stopped by the provider's free daily cap (security run
+  43800695820 attempt 2; again in 44022282817). Verdict stays DO_NOT_FILE. The owner waived it
+  as a seal condition ([ADR-0003](adr/ADR-0003-openhack-waiver-phase-3.md)); it still blocks any
+  merge to `main` or deploy.
+- Gate on `90b4333`: CI 44022282389 every job green; security 44022282817 green except OpenHack.
+- Phase 4 (C04 discovery) starts on `build/phase-4`.
+
