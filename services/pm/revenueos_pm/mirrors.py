@@ -67,7 +67,7 @@ class MissionControl:
     def via_cli(self, external_id: str) -> dict:
         r = subprocess.run(["node", f"{self.scripts}/mc-cli.cjs", "tasks", "get", "--id", str(external_id), "--json"],
                            capture_output=True, text=True, timeout=60,
-                           env={"PATH": os.environ.get("PATH", ""), "MC_URL": self.base, "MC_API_KEY": self.key()})
+                           env={"PATH": os.environ.get("PATH", ""), "HOME": "/tmp", "MC_URL": self.base, "MC_API_KEY": self.key()})
         if r.returncode != 0:
             raise MirrorError(f"mc-cli exit {r.returncode}: {r.stderr[:200]}")
         out = json.loads(r.stdout)
@@ -81,7 +81,7 @@ class MissionControl:
                 {"jsonrpc": "2.0", "id": 2, "method": "tools/call", "params": {"name": "mc_get_task", "arguments": {"id": int(external_id)}}}]
         r = subprocess.run(["node", f"{self.scripts}/mc-mcp-server.cjs"], input="\n".join(json.dumps(m) for m in msgs) + "\n",
                            capture_output=True, text=True, timeout=60,
-                           env={"PATH": os.environ.get("PATH", ""), "MC_URL": self.base, "MC_API_KEY": self.key()})
+                           env={"PATH": os.environ.get("PATH", ""), "HOME": "/tmp", "MC_URL": self.base, "MC_API_KEY": self.key()})
         for line in r.stdout.splitlines():
             try:
                 m = json.loads(line)
