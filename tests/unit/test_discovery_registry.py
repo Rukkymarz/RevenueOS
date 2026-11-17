@@ -55,8 +55,7 @@ def test_approval_then_production_activation_works_and_an_agent_cannot_approve(d
 
 
 def test_promotion_inside_the_observation_window_is_refused_by_the_database(db, pgdb, ad, world):
-    forage.install(pgdb, ad, Secrets({}), manual_spec("watched", repo="example/watched"), )
-    pgdb.rows("UPDATE tool_installations SET observe_until = now() + interval '14 days' WHERE mcp_server_name = 'watched' RETURNING id")
+    forage.install(pgdb, ad, Secrets({}), manual_spec("watched", repo="example/watched", observe_days=14))
     with pytest.raises(Exception) as e:
         registry.approve(pgdb, "watched", "christine")
     assert "observ" in str(e.value).lower()
