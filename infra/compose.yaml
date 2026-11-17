@@ -1,0 +1,392 @@
+# RevenueOS Phase 1 stack. `docker compose -f infra/compose.yaml up --wait` must report every
+# service healthy. Secrets are created by infra/bootstrap.sh into infra/secrets (git-ignored).
+# Profile `test` adds the egress test upstream used by the Phase 1 acceptance suite.
+name: revenueos
+
+x-python: &python
+  build:
+    context: ..
+    dockerfile: infra/docker/python.Dockerfile
+  # Run as the host owner of infra/secrets (written to infra/.env by bootstrap.sh), never root.
+  user: "${REVENUEOS_UID:-10001}:0"
+  environment: &pyenv
+    PGHOST: postgres
+    PGUSER: revenueos_owner
+    PGDATABASE: revenueos
+    PGPASSFILE: /run/secrets/pgpass
+    OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+    REVENUEOS_KEYCHAIN_DIR: /run/revenueos/keychain
+  secrets: [pgpass]
+  volumes:
+    - ./secrets/keychain:/run/revenueos/keychain:ro
+  networks: [core]
+  depends_on:
+    migrate: { condition: service_completed_successfully }
+    otel-collector: { condition: service_healthy }
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: revenueos
+      POSTGRES_USER: revenueos_owner
+      POSTGRES_PASSWORD_FILE: /run/secrets/pg_owner_password
+    secrets: [pg_owner_password]
+    volumes: [pgdata:/var/lib/postgresql/data]
+    ports: ["127.0.0.1:5432:5432"]
+    healthcheck: { test: ["CMD-SHELL", "pg_isready -U revenueos_owner -d revenueos"], interval: 3s, retries: 30 }
+    networks: [core, runtime]
+
+  migrate:
+    image: postgres:16-alpine
+    depends_on: { postgres: { condition: service_healthy } }
+    environment: { PGHOST: postgres, PGUSER: revenueos_owner, PGDATABASE: revenueos, PGPASSFILE: /run/secrets/pgpass }
+    secrets: [pgpass]
+    volumes: [../db:/db:ro]
+    entrypoint: ["/bin/sh", "/db/migrate.sh"]
+    networks: [core]
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.164.0
+    command: ["--config=/etc/otel/collector.yaml"]
+    volumes:
+      - ./otel/collector.yaml:/etc/otel/collector.yaml:ro
+      - ./otel/out:/out
+    ports: ["127.0.0.1:4318:4318"]
+    healthcheck: { test: ["CMD", "/otelcol-contrib", "components"], interval: 5s, retries: 20 }
+    networks: [core, runtime]
+
+  orchestrator:
+    <<: *python
+    build: { context: .., dockerfile: infra/docker/python.Dockerfile, args: { PACKAGES: "./packages/mcp-common ./services/orchestrator" } }
+    command: ["revenueos-orchestrator"]
+    environment: { <<: *pyenv, PORT: "8101", ECHO_PROBE_URL: "http://echo-probe:8201", RUNTIME_OMNI_URL: "http://runtime-omni:8102" }
+    networks: [core, runtime]   # remote control of the desktop runtime (spec 3.6)
+    volumes:
+      - ./secrets/keychain:/run/revenueos/keychain:ro
+      - duckdb:/var/lib/revenueos/duckdb
+    healthcheck: { test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8101/health').status==200 else 1)"], interval: 5s, retries: 30 }
+
+  # ---------------- C03 runtime-os: the NAVA kernel — every agent tool call is a 12-step
+  # managed syscall with locks, quotas, snapshot/rollback and a receipt (spec 3.3; docs/NAVA.md).
+  runtime-os:
+    <<: *python
+    build: { context: .., dockerfile: infra/docker/python.Dockerfile, args: { PACKAGES: "./packages/mcp-common ./infra/sandbox-supervisor ./services/runtime-os" } }
+    command: ["revenueos-runtime-os"]
+    environment:
+      <<: *pyenv
+      PORT: "8103"
+      RUNTIME_OMNI_URL: "http://runtime-omni:8102"
+      REVENUEOS_WORKSPACE_ROOT: /var/lib/revenueos/workspaces
+      EGRESS_PROXY: "envoy:10000"
+      PLAYWRIGHT_MCP_URL: "http://playwright-mcp:8931"
+      DISCOVERY_URL: "http://discovery:8104"
+    networks: [core, runtime]
+    # Same reason as sandbox-supervisor: shell syscalls run inside nested bubblewrap namespaces.
+    security_opt: ["seccomp=unconfined", "apparmor=unconfined", "systempaths=unconfined"]
+    volumes:
+      - ./secrets/keychain:/run/revenueos/keychain:ro
+      - workspaces:/var/lib/revenueos/workspaces
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      otel-collector: { condition: service_healthy }
+      playwright-mcp: { condition: service_healthy }
+    healthcheck: { test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8103/health').status==200 else 1)"], interval: 5s, retries: 30 }
+
+  # ---------------- C04 discovery (Phase 4): Forage search/install/learn, the selection policy,
+  # INV-10 governance, and agent-discover (pinned build) as the registry of record, whose daemon
+  # runs inside this container on loopback. Every installed stdio MCP server is launched through
+  # `revenueos-mcp-sandbox`: its own Bubblewrap sandbox under strace (spec 4.5, 4.7), hence the
+  # same security_opt as runtime-os. Agents never call this service: runtime-os does, from the
+  # forage.* and mcp.call syscalls. Endpoint variables default to the public registries; the
+  # acceptance stack points them at discovery-fixture (see .github/workflows/ci.yml).
+  discovery:
+    <<: *python
+    build: { context: .., dockerfile: infra/docker/python.Dockerfile, args: { PACKAGES: "./packages/mcp-common ./infra/sandbox-supervisor ./services/discovery" } }
+    command: ["revenueos-discovery"]
+    environment:
+      <<: *pyenv
+      PORT: "8104"
+      EGRESS_PROXY: "envoy:10000"
+      DISCOVERY_REGISTRY_URL: "${DISCOVERY_REGISTRY_URL:-https://registry.modelcontextprotocol.io}"
+      DISCOVERY_SMITHERY_URL: "${DISCOVERY_SMITHERY_URL:-https://registry.smithery.ai}"
+      DISCOVERY_NPM_URL: "${DISCOVERY_NPM_URL:-https://registry.npmjs.org}"
+      DISCOVERY_GITHUB_API: "${DISCOVERY_GITHUB_API:-https://api.github.com}"
+      DISCOVERY_RAW_BASE: "${DISCOVERY_RAW_BASE:-https://raw.githubusercontent.com}"
+      DISCOVERY_ALLOW_HTTP_HOSTS: "${DISCOVERY_ALLOW_HTTP_HOSTS:-}"
+    security_opt: ["seccomp=unconfined", "apparmor=unconfined", "systempaths=unconfined"]
+    volumes:
+      - ./secrets/keychain:/run/revenueos/keychain:ro
+      - discovery-mcp:/var/lib/revenueos/mcp
+      - discovery-registry:/var/lib/revenueos/agent-discover
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      otel-collector: { condition: service_healthy }
+      envoy: { condition: service_healthy }
+    healthcheck: { test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8104/health').status==200 else 1)"], interval: 5s, retries: 60 }
+
+  # Forage as the single manually configured MCP gateway (spec 4.1): a facade over governed syscalls.
+  forage-mcp:
+    <<: *python
+    build: { context: .., dockerfile: infra/docker/python.Dockerfile, args: { PACKAGES: "./packages/mcp-common ./mcp/nava-suite ./mcp/forage" } }
+    command: ["revenueos-mcp-forage"]
+    environment: { <<: *pyenv, PORT: "8401", RUNTIME_OS_URL: "http://runtime-os:8103" }
+    volumes: ["./secrets/keychain:/run/revenueos/keychain:ro"]
+    depends_on:
+      runtime-os: { condition: service_healthy }
+    healthcheck: { test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8401/health').status==200 else 1)"], interval: 5s, retries: 30 }
+
+  # Test-only (Acceptance 4): offline stand-ins for the public registries, and a well-behaved
+  # remote MCP server for Forage to find and install.
+  discovery-fixture:
+    profiles: [test]
+    image: python:3.12-slim
+    command: ["python", "/srv/server.py"]
+    volumes: [./discovery/fixture/server.py:/srv/server.py:ro]
+    healthcheck: { test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8085/health')"], interval: 3s, retries: 20 }
+    networks: [core]
+
+  mcp-fixture-echo:
+    profiles: [test]
+    <<: *python
+    build: { context: .., dockerfile: infra/docker/python.Dockerfile, args: { PACKAGES: "./packages/mcp-common" } }
+    command: ["python", "/src/infra/discovery/test-servers/echo_server.py", "http", "8090"]
+    healthcheck: { test: ["CMD", "python", "-c", "import socket; socket.create_connection(('localhost', 8090), 2)"], interval: 3s, retries: 30 }
+
+  # ---------------- The 15 NAVA MCP servers (spec 3.3), one process, each mounted at /<domain>/.
+  nava-mcp:
+    <<: *python
+    build: { context: .., dockerfile: infra/docker/python.Dockerfile, args: { PACKAGES: "./packages/mcp-common ./mcp/nava-suite" } }
+    command: ["revenueos-mcp-nava", "all"]
+    environment: { <<: *pyenv, PORT: "8400", RUNTIME_OS_URL: "http://runtime-os:8103" }
+    volumes: ["./secrets/keychain:/run/revenueos/keychain:ro"]
+    depends_on:
+      runtime-os: { condition: service_healthy }
+    healthcheck: { test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8400/health').status==200 else 1)"], interval: 5s, retries: 30 }
+
+  echo-probe:
+    <<: *python
+    build: { context: .., dockerfile: infra/docker/python.Dockerfile, args: { PACKAGES: "./packages/mcp-common ./mcp/echo-probe" } }
+    command: ["revenueos-mcp-echo-probe"]
+    environment: { <<: *pyenv, PORT: "8201" }
+    healthcheck: { test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8201/health').status==200 else 1)"], interval: 5s, retries: 30 }
+
+  egress-authz:
+    <<: *python
+    build: { context: .., dockerfile: infra/docker/python.Dockerfile, args: { PACKAGES: "./infra/egress" } }
+    command: ["python", "-m", "uvicorn", "revenueos_egress_authz.app:app", "--host", "0.0.0.0", "--port", "9100"]
+    # Rules and secret bindings live in Postgres (egress_rules, secret_bindings).
+    healthcheck: { test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:9100/health').status==200 else 1)"], interval: 5s, retries: 30 }
+
+  envoy:
+    image: envoyproxy/envoy:v1.40.2
+    command: ["envoy", "-c", "/etc/envoy/envoy.yaml", "--log-level", "warn"]
+    volumes: [./egress/envoy.yaml:/etc/envoy/envoy.yaml:ro]
+    ports: ["127.0.0.1:10000:10000", "127.0.0.1:9901:9901"]
+    depends_on: { egress-authz: { condition: service_healthy } }
+    # Envoy rejects HTTP/1.0, so the probe speaks HTTP/1.1 to the admin /ready endpoint.
+    healthcheck: { test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/127.0.0.1/9901 && printf \"GET /ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n\" >&3 && grep -q LIVE <&3'"], interval: 5s, retries: 30 }
+    networks: [core, egress, runtime]
+
+  sandbox-supervisor:
+    <<: *python
+    # The identity package is installed too: the leads agent runs from it inside the sandbox.
+    build: { context: .., dockerfile: infra/docker/python.Dockerfile, args: { PACKAGES: "./infra/sandbox-supervisor ./services/identity" } }
+    command: ["python", "-m", "uvicorn", "revenueos_sandbox_supervisor.app:app", "--host", "0.0.0.0", "--port", "8300"]
+    environment: { <<: *pyenv, EGRESS_PROXY: "envoy:10000", REVENUEOS_WORKSPACE_ROOT: /var/lib/revenueos/workspaces }
+    # Bubblewrap nests unprivileged user namespaces inside this container. Docker's default
+    # seccomp and masked /proc forbid that, so the supervisor alone runs without them; it stays
+    # a non-root user with no added capabilities, and every agent process is boxed by bwrap.
+    security_opt: ["seccomp=unconfined", "apparmor=unconfined", "systempaths=unconfined"]
+    volumes:
+      - ./secrets/keychain:/run/revenueos/keychain:ro
+      - workspaces:/var/lib/revenueos/workspaces
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      otel-collector: { condition: service_healthy }
+      envoy: { condition: service_healthy }
+    healthcheck: { test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8300/health').status==200 else 1)"], interval: 5s, retries: 30 }
+
+  # ---------------- C02 runtime-omni: OmniPilot's 41 tools on a real desktop (spec 3.1, 3.6).
+  # Only on the internal `runtime` network: no route out except the identity-pinned proxy.
+  runtime-omni:
+    <<: *python
+    build:
+      context: ..
+      dockerfile: infra/docker/python.Dockerfile
+      args: { PACKAGES: "./packages/mcp-common ./infra/sandbox-supervisor ./services/runtime-omni", DESKTOP: "1" }
+    entrypoint: ["/usr/local/bin/runtime-omni-entrypoint"]
+    command: ["revenueos-runtime-omni"]
+    working_dir: /workspace   # screen capture writes its temp file to the current directory
+    environment:
+      <<: *pyenv
+      PORT: "8102"
+      DISPLAY: ":1"
+      XDG_SESSION_TYPE: x11      # pyscreeze uses Pillow's X11 capture only when it sees an X11 session
+      RUNTIME_WORKDIR: /workspace
+      EGRESS_PROXY: "envoy:10000"
+    volumes:
+      - ./secrets/keychain:/run/revenueos/keychain:ro
+      - profiles:/var/lib/revenueos/profiles       # agents' persistent browser profiles (OpenMuse)
+    networks: [runtime]
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      otel-collector: { condition: service_healthy }
+      envoy: { condition: service_healthy }
+    healthcheck: { test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8102/health').status==200 else 1)"], interval: 5s, retries: 40 }
+
+  # ---------------- C02 ambient-watchers (native, in-repo): scans NAVA's own durable state
+  # (expiring subagent TTLs, expiring approvals, stuck syscalls) and A2A-notifies the owning
+  # agent before the hard cutoff. No desktop, no OmniPilot — just `packages/pycommon` against
+  # Postgres, so it builds off the plain python image, not runtime-omni's DESKTOP=1 one. The
+  # scan loop runs in a background thread behind a /health + /v1/info surface (__main__.py) so
+  # it looks like every other service to this healthcheck and the Command Center (spec 1.1).
+  ambient-watchers:
+    <<: *python
+    build: { context: .., dockerfile: infra/docker/python.Dockerfile, args: { PACKAGES: "./services/ambient-watchers" } }
+    command: ["python", "-m", "revenueos_ambient_watchers", "--interval", "30"]
+    networks: [core]
+    healthcheck: { test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8117/health').status==200 else 1)"], interval: 5s, retries: 30 }
+
+  # ---------------- C02 playwright-mcp (named, pinned build): a real browser-automation MCP
+  # server agents can call through runtime-os's `browser.call` tool (packages/mcp-common's
+  # McpClient-style HTTP transport, see services/runtime-os/revenueos_runtime_os/tools.py).
+  # Headless chromium only; its own --no-sandbox is safe here because the container itself
+  # (no host mounts, `core` network only) is the sandbox boundary.
+  playwright-mcp:
+    build: { context: .., dockerfile: infra/docker/playwright-mcp.Dockerfile }
+    command: ["--port", "8931", "--host", "0.0.0.0", "--allowed-hosts", "playwright-mcp"]
+    networks: [core]
+    healthcheck: { test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/127.0.0.1/8931'"], interval: 5s, retries: 30 }
+
+  # ---------------- C05 identity: AgenticMail (named, pinned build) on Stalwart v0.15.5
+  stalwart:
+    image: stalwartlabs/stalwart:v0.15.5
+    volumes:
+      - stalwart-data:/opt/stalwart
+      - ./mail/stalwart.toml:/opt/stalwart/etc/config.toml:ro
+    secrets: [stalwart_admin]
+    healthcheck: { test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/127.0.0.1/143 && exec 4<>/dev/tcp/127.0.0.1/25'"], interval: 5s, retries: 40 }
+    # runtime too: an agent's own mailbox is part of its identity (INV-09); the OpenMuse pipeline
+    # reads OTPs and appends reply drafts over IMAP from the desktop runtime. Web traffic still
+    # has no route but the pinned proxy — mail is first-party infrastructure, not egress.
+    networks: [core, runtime]
+
+  agenticmail:
+    build: { context: .., dockerfile: infra/mail/agenticmail.Dockerfile }
+    user: "${REVENUEOS_UID:-1000}:0"
+    environment:
+      STALWART_URL: http://stalwart:8080
+      STALWART_ADMIN_USER: admin
+      SMTP_HOST: stalwart
+      SMTP_PORT: "587"
+      IMAP_HOST: stalwart
+      IMAP_PORT: "143"
+      AGENTICMAIL_API_HOST: 0.0.0.0
+      AGENTICMAIL_API_PORT: "3829"
+      REVENUEOS_KEYCHAIN_DIR: /run/revenueos/keychain
+    volumes:
+      - ./secrets/keychain:/run/revenueos/keychain:ro
+      - agenticmail-data:/data
+    depends_on: { stalwart: { condition: service_healthy } }
+    healthcheck: { test: ["CMD", "node", "-e", "fetch('http://localhost:3829/api/agenticmail/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"], interval: 5s, retries: 40 }
+    networks: [core]
+
+  allmail:
+    <<: *python
+    build: { context: .., dockerfile: infra/docker/python.Dockerfile, args: { PACKAGES: "./packages/mcp-common ./mcp/allmail" } }
+    command: ["revenueos-mcp-allmail"]
+    environment: { <<: *pyenv, PORT: "8202", ALLMAIL_ACCOUNTS: /src/config/allmail-accounts.yaml }
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      otel-collector: { condition: service_healthy }
+      stalwart: { condition: service_healthy }
+    healthcheck: { test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8202/health').status==200 else 1)"], interval: 5s, retries: 30 }
+
+  identity:
+    <<: *python
+    build: { context: .., dockerfile: infra/docker/python.Dockerfile, args: { PACKAGES: "./services/identity" } }
+    command: ["revenueos-identity"]
+    environment:
+      <<: *pyenv
+      PORT: "8105"
+      AGENTICMAIL_URL: http://agenticmail:3829
+      STALWART_URL: http://stalwart:8080
+      SANDBOX_SUPERVISOR_URL: http://sandbox-supervisor:8300
+      REVENUEOS_PROFILE_ROOT: /var/lib/revenueos/profiles
+    # The identity service is the one writer of agent credentials (vault by reference).
+    volumes:
+      - ./secrets/keychain:/run/revenueos/keychain
+      - profiles:/var/lib/revenueos/profiles
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      agenticmail: { condition: service_healthy }
+      sandbox-supervisor: { condition: service_healthy }
+    healthcheck: { test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8105/health').status==200 else 1)"], interval: 5s, retries: 30 }
+
+  api:
+    build: { context: .., dockerfile: infra/docker/node.Dockerfile, args: { APP: "@revenueos/api", APP_DIR: apps/api } }
+    command: ["node", "dist/src/main.js"]
+    user: "${REVENUEOS_UID:-1000}:0"
+    environment:
+      PORT: "3000"
+      PGHOST: postgres
+      PGUSER: revenueos_owner
+      PGDATABASE: revenueos
+      PGPASSFILE: /run/secrets/pgpass
+      ORCHESTRATOR_URL: http://orchestrator:8101
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+      REVENUEOS_KEYCHAIN_DIR: /run/revenueos/keychain
+    secrets: [pgpass]
+    volumes: ["./secrets/keychain:/run/revenueos/keychain:ro"]
+    ports: ["127.0.0.1:3000:3000"]
+    depends_on:
+      orchestrator: { condition: service_healthy }
+      otel-collector: { condition: service_healthy }
+    healthcheck: { test: ["CMD", "node", "-e", "fetch('http://localhost:3000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"], interval: 5s, retries: 30 }
+    networks: [core]
+
+  command-center:
+    build: { context: .., dockerfile: infra/docker/node.Dockerfile, args: { APP: "@revenueos/command-center", APP_DIR: apps/command-center } }
+    command: ["node", "node_modules/next/dist/bin/next", "start", "-p", "3001"]
+    ports: ["127.0.0.1:3001:3001"]
+    healthcheck: { test: ["CMD", "node", "-e", "fetch('http://localhost:3001/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"], interval: 5s, retries: 30 }
+    networks: [core]
+
+  upstream-echo:
+    profiles: [test]
+    image: python:3.12-slim
+    command: ["python", "/srv/server.py"]
+    volumes: [./egress/test-upstream/server.py:/srv/server.py:ro]
+    healthcheck: { test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/health')"], interval: 3s, retries: 20 }
+    networks: [egress]
+
+  # Stands in for a third-party product the leads agent signs up for (Acceptance 2).
+  signup-test:
+    profiles: [test]
+    image: python:3.12-slim
+    command: ["python", "/srv/server.py"]
+    environment: { SMTP_HOST: stalwart, PUBLIC_URL: "http://signup-test:8090" }
+    volumes: [./test-signup/server.py:/srv/server.py:ro, ./test-signup/intake-form.pdf:/srv/intake-form.pdf:ro]
+    healthcheck: { test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8090/health')"], interval: 3s, retries: 20 }
+    networks: [core]
+
+volumes:
+  workspaces: {}
+  discovery-mcp: {}
+  discovery-registry: {}
+  profiles: {}
+  stalwart-data: {}
+  agenticmail-data: {}
+  pgdata: {}
+  duckdb: {}
+
+networks:
+  core: {}
+  egress: {}
+  runtime: { internal: true }   # desktop runtime: Postgres, OTel and Envoy only; no route to the internet    # only envoy joins both networks: it is the one path from agents to anything outside
+
+secrets:
+  pg_owner_password: { file: ./secrets/pg_owner_password }
+  pgpass: { file: ./secrets/pgpass }
+  stalwart_admin: { file: ./secrets/keychain/stalwart-admin-password }

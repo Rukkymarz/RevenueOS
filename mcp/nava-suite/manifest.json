@@ -1,0 +1,32 @@
+{
+  "name": "nava-suite",
+  "version": "0.1.0",
+  "description": "NAVA's 15 specialized MCP servers (spec 3.3): files, terminal, python, processes, system, screen, gui, clipboard, apps, notify, web, browser, memory, bus, plans. Each tool forwards to the NAVA gateway (runtime-os), where the 12-step managed syscall — classification, policy, approvals, quotas, locks, snapshot/rollback, receipt — happens exactly once; the facade adds no risk of its own (spec 3.2: classification is single-sourced).",
+  "resolution_mode": "native",
+  "status": "approved",
+  "transport": "streamable-http",
+  "endpoint": "/<domain>/mcp (all 15 mounted by `revenueos-mcp-nava all`, compose service nava-mcp)",
+  "health": "/health",
+  "auth": { "type": "bearer", "secret_ref": "keychain://mcp-nava-<domain>-token" },
+  "requires": { "secrets": ["keychain://mcp-nava-<domain>-token", "keychain://nava-agent-<agent_id>"] },
+  "servers": {
+    "nava-files":     ["read", "write", "list", "delete"],
+    "nava-terminal":  ["run  (the OpenMuse isolated terminal: bwrap sandbox, 30 s hard cap, no host mounts)"],
+    "nava-python":    ["run_python"],
+    "nava-processes": ["list_processes", "kill_process"],
+    "nava-system":    ["get_system_info", "get_environment_variable", "list_drives"],
+    "nava-screen":    ["screenshot", "get_screen_size", "locate_image"],
+    "nava-gui":       ["move_mouse", "click", "double_click", "right_click", "drag", "scroll", "type_text", "press_key", "hotkey"],
+    "nava-clipboard": ["get_clipboard", "set_clipboard"],
+    "nava-apps":      ["list_applications", "open_application", "close_application", "open_file"],
+    "nava-notify":    ["send_notification"],
+    "nava-web":       ["fetch_url", "http_request", "download_file", "search_web"],
+    "nava-browser":   ["open_url"],
+    "nava-memory":    ["remember", "recall"],
+    "nava-bus":       ["send", "inbox"],
+    "nava-plans":     ["create", "run", "pause", "resume", "retry", "status"]
+  },
+  "tools": [
+    { "name": "*", "risk_class": "low", "description": "Declared low at the facade; real risk is classified and enforced per call by the NAVA gateway (critical blocks in every mode, high needs a hash-bound approval)." }
+  ]
+}

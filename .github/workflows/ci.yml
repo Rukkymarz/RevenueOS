@@ -1,0 +1,148 @@
+name: ci
+on: [push, pull_request]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  node:
+    name: node build, lint, test (contracts ts1)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 9.15.0 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - run: pnpm install --no-frozen-lockfile
+      - run: pnpm turbo run build
+      - run: pnpm turbo run lint
+      - run: pnpm turbo run test
+      - name: keep contract artifacts for the Python side
+        uses: actions/upload-artifact@v4
+        with:
+          name: contracts
+          path: |
+            packages/contracts/generated
+            packages/contracts/out/ts
+            packages/contracts/dist
+            pnpm-lock.yaml
+
+  python:
+    name: python tests, coverage, invariants, Q-gates (contracts py)
+    needs: node
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env: { POSTGRES_HOST_AUTH_METHOD: trust }
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-retries 20
+    env:
+      REVENUEOS_PG_HOST: localhost
+      REVENUEOS_PG_PORT: "5432"
+      REVENUEOS_PG_USER: postgres
+      REVENUEOS_REQUIRE_SANDBOX: "1"   # sandbox tests must run here; a missing bwrap fails, never skips
+      REVENUEOS_REQUIRE_AEGIS: "1"     # same for the aegis-os engine (C03, docs/PINS.md)
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with: { name: contracts, path: packages/contracts-artifacts }
+      - run: cp -r packages/contracts-artifacts/packages/contracts/* packages/contracts/ && rm -rf packages/contracts-artifacts
+      - run: sudo apt-get update && sudo apt-get install -y postgresql-client meson ninja-build libcap-dev pkg-config strace
+      - name: Bubblewrap from the pinned commit; allow its unprivileged user namespaces (docs/RUNBOOK.md)
+        run: sh scripts/build-bwrap.sh && sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+      - name: aegis-os from the pinned commit (C03, docs/PINS.md)
+        run: sh scripts/build-aegis-os.sh
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: >-
+          pip install pytest pytest-cov pyyaml jsonschema requests starlette uvicorn httpx "pydantic>=2.8"
+          "datamodel-code-generator>=0.26" "fastmcp>=2.12,<3" "duckdb>=1.1" "cryptography>=42"
+          "omnipilot-agent[system] @ git+https://github.com/xrchris7/OmniPilot@2e3a6bd02f1e508275f7242accad065805993a22" opentelemetry-sdk opentelemetry-exporter-otlp-proto-http
+      - run: sh scripts/gen-python-contracts.sh
+      - name: Q-gates (Q1 contracts + connectivity, Q2 tests + coverage, Q6 invariants, Q7 secret hygiene)
+        run: python scripts/qgate.py 1
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: python-results
+          path: |
+            packages/contracts/out/py
+            docs/reviews/phase-1-qgates.json
+            coverage.json
+
+  contracts-ts2:
+    name: contracts round trip ts2 (Python -> TypeScript)
+    needs: python
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 9.15.0 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - run: pnpm install --no-frozen-lockfile --filter @revenueos/contracts...
+      - run: pnpm --filter @revenueos/contracts build
+      - uses: actions/download-artifact@v4
+        with: { name: python-results, path: results }
+      - run: mkdir -p packages/contracts/out && cp -r results/packages/contracts/out/py packages/contracts/out/py
+      - run: pnpm --filter @revenueos/contracts test:ts2
+
+  compose:
+    name: docker compose up + acceptance (all phases) + trace secret scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y postgresql-client
+      - run: sh infra/bootstrap.sh
+      # The sandbox supervisor nests unprivileged user namespaces (Bubblewrap) inside its
+      # container; Ubuntu's AppArmor userns restriction would refuse that (see docs/RUNBOOK.md).
+      - run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0 || true
+      - run: docker compose -f infra/compose.yaml --profile test build
+      - name: bring up the stack (discovery reads the offline registry fixture, never the public registries)
+        env:
+          DISCOVERY_REGISTRY_URL: http://discovery-fixture:8085
+          DISCOVERY_SMITHERY_URL: http://discovery-fixture:8085
+          DISCOVERY_NPM_URL: http://discovery-fixture:8085
+          DISCOVERY_GITHUB_API: http://discovery-fixture:8085
+          DISCOVERY_RAW_BASE: http://discovery-fixture:8085
+          DISCOVERY_ALLOW_HTTP_HOSTS: mcp-fixture-echo,discovery-fixture
+        run: docker compose -f infra/compose.yaml --profile test up -d --wait --wait-timeout 900
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install pytest requests pyyaml
+      - name: acceptance
+        shell: bash
+        run: set -o pipefail; REVENUEOS_E2E=1 pytest -v -rA tests/e2e -p no:cacheprovider 2>&1 | tee acceptance.log
+      - if: always()
+        run: docker compose -f infra/compose.yaml --profile test logs --no-color 2>&1 | tee compose.log | tail -300 || true
+      - name: mail and identity logs (artifact downloads are not available to every reader)
+        if: failure()
+        run: grep -E '^(stalwart|agenticmail|identity|allmail|signup-test|sandbox-supervisor)-1' compose.log | tail -200 || true
+      - name: secret scan across emitted traces and logs (spec 2.4)
+        if: always()
+        run: >-
+          sudo chmod -R a+r infra/otel/out &&
+          python scripts/scan_traces.py --keychain infra/secrets/keychain --secret-file infra/secrets/pg_owner_password
+          --require infra/otel/out/traces.jsonl infra/otel/out compose.log acceptance.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: acceptance
+          path: |
+            acceptance.log
+            compose.log
+            infra/otel/out/traces.jsonl
+
+  secret-scan:
+    name: secret scan (gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

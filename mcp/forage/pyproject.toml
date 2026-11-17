@@ -1,0 +1,19 @@
+[project]
+name = "revenueos-mcp-forage"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = ["revenueos-mcp-common", "revenueos-mcp-nava"]
+
+[project.scripts]
+revenueos-mcp-forage = "revenueos_mcp_forage.server:main"
+
+[tool.uv.sources]
+revenueos-mcp-common = { workspace = true }
+revenueos-mcp-nava = { workspace = true }
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["revenueos_mcp_forage"]
