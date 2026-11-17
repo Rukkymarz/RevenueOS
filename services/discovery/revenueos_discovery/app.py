@@ -52,7 +52,7 @@ def _fail(e: Exception) -> JSONResponse:
     if isinstance(e, PermissionError):
         return JSONResponse({"status": "refused", "reason": str(e)}, status_code=403)
     if isinstance(e, DatabaseError):
-        return JSONResponse({"status": "refused", "reason": e.message()[:400]}, status_code=409)
+        return JSONResponse({"status": "refused", "reason": e.message[:400]}, status_code=409)
     if isinstance(e, (AgentDiscoverError, KeyError, ValueError)):
         return JSONResponse({"status": "failed", "reason": f"{type(e).__name__}: {str(e)[:400]}"}, status_code=400)
     return JSONResponse({"status": "failed", "reason": f"{type(e).__name__}: {str(e)[:400]}"}, status_code=502)

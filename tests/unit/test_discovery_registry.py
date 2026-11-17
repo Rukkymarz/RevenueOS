@@ -114,3 +114,10 @@ def test_deactivate_is_scoped_and_logged(db, pgdb, ad, installed, world):
 def test_tool_events_are_append_only(db, pgdb, ad, installed, world):
     db.rejects("DELETE FROM tool_events", "append-only")
     db.rejects("UPDATE tool_events SET kind = 'installed'", "append-only")
+
+
+def test_database_refusals_surface_as_typed_http_conflicts_not_500s(db, pgdb, ad, installed, world):
+    from revenueos_discovery import app as appmod
+    from revenueos_common.db import DatabaseError
+    r = appmod._fail(DatabaseError("ERROR:  INV-10: window fixed"))
+    assert r.status_code == 409 and b"INV-10: window fixed" in r.body

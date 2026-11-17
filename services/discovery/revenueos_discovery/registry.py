@@ -50,8 +50,8 @@ def activate(db, ad, *, server: str, task_id: str, agent_id: str | None = None) 
                 "VALUES ($i::uuid, $t::uuid, nullif($a, '')::uuid) ON CONFLICT DO NOTHING RETURNING id",
                 i=inst["id"], t=task_id, a=agent_id or "")
     except DatabaseError as e:            # the trigger refused it between our check and the insert
-        event(db, server, "activation_blocked", {"reason": e.message()[:300]}, task_id=task_id, agent_id=agent_id)
-        raise ActivationRefused(e.message()) from None
+        event(db, server, "activation_blocked", {"reason": e.message[:300]}, task_id=task_id, agent_id=agent_id)
+        raise ActivationRefused(e.message) from None
     if ad is not None and not inst["active"]:
         set_active(db, ad, server, True)
     event(db, server, "activated", {"status": inst["status"]}, task_id=task_id, agent_id=agent_id)
