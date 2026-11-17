@@ -103,7 +103,9 @@ jobs:
       # The sandbox supervisor nests unprivileged user namespaces (Bubblewrap) inside its
       # container; Ubuntu's AppArmor userns restriction would refuse that (see docs/RUNBOOK.md).
       - run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0 || true
-      - run: docker compose -f infra/compose.yaml --profile test build
+      - name: build the stack (limited parallelism: concurrent image exports exhausted the runner and it was shut down)
+        env: { COMPOSE_PARALLEL_LIMIT: "3" }
+        run: docker compose -f infra/compose.yaml --profile test build
       - name: bring up the stack (discovery reads the offline registry fixture, never the public registries)
         env:
           DISCOVERY_REGISTRY_URL: http://discovery-fixture:8085
