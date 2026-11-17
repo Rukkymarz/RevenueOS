@@ -35,7 +35,7 @@ def mission_control() -> mirrors.MissionControl:
     if "mc" not in _state:
         s = secrets()
         _state["mc"] = mirrors.MissionControl(key=lambda: s.get("keychain://mission-control-api-key"),
-                                              user=lambda: s.get("keychain://mission-control-user"),
+                                              user=os.environ.get("MISSION_CONTROL_USER", "mc-admin"),
                                               password=lambda: s.get("keychain://mission-control-password"))
     return _state["mc"]
 

@@ -135,6 +135,7 @@ services:
       <<: *pyenv
       PORT: "8106"
       MISSION_CONTROL_URL: "http://mission-control:3000"
+      MISSION_CONTROL_USER: "mc-admin"
     depends_on:
       migrate: { condition: service_completed_successfully }
       mission-control: { condition: service_healthy }
@@ -146,6 +147,7 @@ services:
     build: { context: "https://github.com/builderz-labs/mission-control.git#c1a846fe020567bb3ceb3b65db9f00db875618cd" }
     env_file: ./secrets/mc.env
     environment:
+      AUTH_USER: "mc-admin"
       MC_COOKIE_SECURE: "false"
       MC_ALLOWED_HOSTS: "mission-control,localhost,127.0.0.1"
       NEXT_TELEMETRY_DISABLED: "1"

@@ -18,11 +18,9 @@ done
 gen "$DIR/keychain/mcp-forage-token"        # Forage, the single manually configured MCP gateway (spec 4.1)
 gen "$DIR/keychain/mission-control-api-key"   # C06 Mission Control: REST/CLI/MCP key and the dashboard login
 gen "$DIR/keychain/mission-control-password"
-[ -f "$DIR/keychain/mission-control-user" ] || { umask 077; printf 'mc-%s' "$(openssl rand -hex 6)" > "$DIR/keychain/mission-control-user"; }
-chmod 600 "$DIR/keychain/mission-control-user"
 # Mission Control reads its settings from environment variables; this file is generated here, never committed.
-( umask 077; printf 'API_KEY=%s\nAUTH_USER=%s\nAUTH_PASS=%s\n' "$(cat "$DIR/keychain/mission-control-api-key")" \
-  "$(cat "$DIR/keychain/mission-control-user")" "$(cat "$DIR/keychain/mission-control-password")" > "$DIR/mc.env" )
+( umask 077; printf 'API_KEY=%s\nAUTH_PASS=%s\n' "$(cat "$DIR/keychain/mission-control-api-key")" \
+  "$(cat "$DIR/keychain/mission-control-password")" > "$DIR/mc.env" )   # the login name is not a secret: compose sets it
 gen "$DIR/keychain/egress-identity-hmac"   # signs identity-pinned egress (supervisor -> egress-authz)
 # Mail stack (spec 2.1). Stalwart reads its admin secret from a file, byte for byte: no newline.
 [ -f "$DIR/keychain/stalwart-admin-password" ] || { umask 077; printf '%s' "$(openssl rand -hex 24)" > "$DIR/keychain/stalwart-admin-password"; }
