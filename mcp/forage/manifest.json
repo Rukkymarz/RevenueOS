@@ -1,0 +1,18 @@
+{
+  "name": "forage",
+  "version": "0.1.0",
+  "description": "Forage (spec 4.1): the single manually configured MCP gateway. forage_search searches the Official MCP Registry, Smithery and npm in parallel (plus the mcptoon and MCPfinder adapters and the ingested curated lists); forage_install installs a server through the selection policy into agent-discover, sandboxed, usable in the same session; forage_learn writes usage instructions to the agent rule file; call reaches any installed server. Each tool forwards to a governed NAVA syscall, where INV-10 and the receipt are enforced.",
+  "resolution_mode": "native",
+  "status": "approved",
+  "transport": "streamable-http",
+  "endpoint": "/mcp (compose service forage-mcp)",
+  "health": "/health",
+  "auth": { "type": "bearer", "secret_ref": "keychain://mcp-forage-token" },
+  "requires": { "secrets": ["keychain://mcp-forage-token", "keychain://nava-agent-<agent_id>"] },
+  "tools": [
+    { "name": "forage_search", "risk_class": "low", "description": "Syscall forage.search." },
+    { "name": "forage_install", "risk_class": "low", "description": "Syscall forage.install (classified medium by the gateway; the result is an experimental, sandboxed server)." },
+    { "name": "forage_learn", "risk_class": "low", "description": "Syscall forage.learn (writes the agent rule file)." },
+    { "name": "call", "risk_class": "low", "description": "Syscall mcp.call (INV-10 checked at gateway step 3 on every call)." }
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "name": "@revenueos/api",
+  "version": "0.1.0",
+  "private": true,
+  "main": "dist/src/main.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/src/main.js",
+    "test": "node --test \"dist/test/*.test.js\"",
+    "lint": "eslint src test"
+  },
+  "dependencies": {
+    "@nestjs/common": "^11.0.0",
+    "@nestjs/core": "^11.0.0",
+    "@nestjs/platform-express": "^11.0.0",
+    "@opentelemetry/api": "^1.9.0",
+    "@opentelemetry/exporter-trace-otlp-http": ">=0.200.0 <1",
+    "@opentelemetry/instrumentation-http": ">=0.200.0 <1",
+    "@opentelemetry/resources": "^2.0.0",
+    "@opentelemetry/sdk-node": ">=0.200.0 <1",
+    "@revenueos/contracts": "workspace:*",
+    "pg": "^8.13.0",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.1",
+    "zod": "^4.1.0"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.10.0",
+    "@types/pg": "^8.11.0",
+    "typescript": "^5.9.0"
+  }
+}

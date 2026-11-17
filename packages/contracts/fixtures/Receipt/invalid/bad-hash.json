@@ -1,0 +1,12 @@
+{
+  "tool_call_id": "3e6c4d63-3e1b-4b3e-8c0c-2e1f4e3d2c37",
+  "task_id": "0b9b3a52-6f2e-4c61-9a3b-1f2e3d4c5b6a",
+  "agent_id": "1c8a2b41-5e1d-4b50-8a2a-0e1d2c3b4a59",
+  "server": "s",
+  "tool": "t",
+  "args_hash": "abc",
+  "latency_ms": 1,
+  "cost": 0,
+  "risk_class": "low",
+  "verdict": "ok"
+}

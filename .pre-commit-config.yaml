@@ -1,0 +1,25 @@
+# Commit hooks (spec 1.1). Install with `pre-commit install`. CI enforces the same checks.
+repos:
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.21.2
+    hooks:
+      - id: gitleaks
+  - repo: local
+    hooks:
+      - id: invariant-harness
+        name: fifteen invariant files with real attacks
+        entry: python -m pytest -q tests/invariants/test_harness.py -p no:cacheprovider
+        language: system
+        pass_filenames: false
+        files: ^tests/invariants/
+      - id: mcp-sdk-boundary
+        name: only mcp-common imports the MCP SDK
+        entry: python -m pytest -q tests/connectivity/test_mcp_boundary.py -p no:cacheprovider
+        language: system
+        pass_filenames: false
+        files: \.py$
+      - id: no-literal-secrets
+        name: no literal secrets in tracked files
+        entry: python -m pytest -q tests/threats/test_secret_hygiene.py -p no:cacheprovider
+        language: system
+        pass_filenames: false

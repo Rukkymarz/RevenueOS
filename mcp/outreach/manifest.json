@@ -1,0 +1,36 @@
+{
+  "name": "outreach",
+  "version": "0.1.0",
+  "description": "Compliant cold-email drafts (identity, postal address, unsubscribe, honest subject, suppression list) and an approval-gated release. External recipients are held until the owner enables external send.",
+  "resolution_mode": "native",
+  "status": "approved",
+  "transport": "streamable-http",
+  "endpoint": "/mcp",
+  "health": "/health",
+  "auth": {
+    "type": "bearer",
+    "secret_ref": "keychain://mcp-outreach-token"
+  },
+  "requires": {
+    "secrets": [
+      "keychain://mcp-outreach-token"
+    ]
+  },
+  "tools": [
+    {
+      "name": "outreach_draft",
+      "risk_class": "low",
+      "description": "Build and check a draft"
+    },
+    {
+      "name": "outreach_send",
+      "risk_class": "high",
+      "description": "Release a draft (needs a hash-bound human approval; external domains are held)"
+    },
+    {
+      "name": "outreach_suppress",
+      "risk_class": "low",
+      "description": "Add an address to the suppression list"
+    }
+  ]
+}
